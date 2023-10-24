@@ -577,10 +577,12 @@ class MainWindow(QMainWindow):
             font.setPointSize(new_size)
             QApplication.setFont(font)
 
-
-if __name__ == '__main__':
+def main():
     sys.excepthook = show_exception
     app = QApplication([])
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()
