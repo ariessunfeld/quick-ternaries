@@ -7,10 +7,12 @@ import pkg_resources
 def get_latest_release(username, repo):
     url = f"https://api.github.com/repos/{username}/{repo}/releases/latest"
     response = requests.get(url)
-    return response.json()["tag_name"]
+    tag_str = str(response.json()["tag_name"])
+    return tag_str.lower().lstrip('v')
 
 def get_installed_version(package_name):
-    return pkg_resources.get_distribution(package_name).version
+    version = str(pkg_resources.get_distribution(package_name).version)
+    return version.lower().lstrip('v')
 
 def update_to_latest(username, repo, package_name):
     latest_version = get_latest_release(username, repo)
