@@ -13,10 +13,10 @@ from PySide6.QtGui import QFont
 import pandas as pd
 import numpy as np
 
-from advanced_widgets import AdvancedSettingsDialog, InfoButton
-from filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
-from file_handling_utils import find_header_row_csv, find_header_row_excel
-from ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
+from .advanced_widgets import AdvancedSettingsDialog, InfoButton
+from .filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
+from .file_handling_utils import find_header_row_csv, find_header_row_excel
+from .ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
 
 def show_exception(type, value, tb):
     """Exception Hook"""

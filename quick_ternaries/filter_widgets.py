@@ -23,7 +23,7 @@ from PySide6.QtCore import Qt, Slot
 
 import numpy as np
 
-from filter_strategies import (
+from .filter_strategies import (
     EqualsFilterStrategy, OneOfFilterStrategy, GreaterThanFilterStrategy,
     GreaterEqualFilterStrategy, LessThanFilterStrategy, LessEqualFilterStrategy,
     BetweenFilterStrategy, BetweenEqualFilterStrategy, BetweenLowerEqualFilterStrategy,
