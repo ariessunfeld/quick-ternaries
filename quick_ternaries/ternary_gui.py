@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         hyperlink to the project repository.
         """
         current_directory = Path(__file__).resolve().parent
-        font_path = current_directory / 'assests' / 'fonts' / 'Motter Tektura Normal.ttf'
+        font_path = current_directory / 'assets' / 'fonts' / 'Motter Tektura Normal.ttf'
         font_path_str = str(font_path)
         font_id = QFontDatabase.addApplicationFont(font_path_str)
         if font_id != -1:
@@ -166,9 +166,13 @@ class MainWindow(QMainWindow):
         Layout for control panel title. Includes the 'quick ternaries' title logo and a settings
         button that is displayed as a gear icon.
         """
+        current_directory = Path(__file__).resolve().parent
+        settings_icon_path = current_directory / 'assets' / 'icons' / 'settings_icon.png'
+        settings_icon_path_str = str(settings_icon_path)
+        
         self.settings_button = QPushButton(self)
         self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setIcon(QIcon('settings_icon.png'))
+        self.settings_button.setIcon(QIcon(settings_icon_path_str))
         self.settings_button.setStyleSheet('border: none;') # Remove the button outline
         self.settings_button.setIconSize(QSize(20, 20))
         self.settings_button.setFixedSize(20, 20)
@@ -176,7 +180,7 @@ class MainWindow(QMainWindow):
 
         title_settings_layout = QHBoxLayout()
         title_settings_layout.addWidget(self.title_label)
-        #title_settings_layout.addStretch(1) # Push title to the left and settings to the right
+        title_settings_layout.addStretch(1) # Push title to the left and settings to the right
         title_settings_layout.addWidget(self.settings_button)
         self.controls_layout.insertLayout(0, title_settings_layout) # Insert at the top of the controls layout
 
