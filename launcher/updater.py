@@ -1,8 +1,9 @@
 """Updater script for quick-ternaries python package"""
 
-import requests
 import subprocess
-import pkg_resources
+from pkg_resources import get_distribution, DistributionNotFound
+
+import requests
 
 def get_latest_release(username, repo):
     url = f"https://api.github.com/repos/{username}/{repo}/releases/latest"
@@ -11,7 +12,11 @@ def get_latest_release(username, repo):
     return tag_str.lower().lstrip('v')
 
 def get_installed_version(package_name):
-    version = str(pkg_resources.get_distribution(package_name).version)
+    try:
+        version = str(get_distribution(package_name).version)
+    except DistributionNotFound:
+        # Return a default version if the package is not installed
+        return '0.0.-1'
     return version.lower().lstrip('v')
 
 def update_to_latest(username, repo, package_name):
