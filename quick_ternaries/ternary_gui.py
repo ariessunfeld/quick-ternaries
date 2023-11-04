@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog, QDialog, 
     QLineEdit, QStackedWidget)
 
-from PySide6.QtCore import Qt, QSize, QUrl, Signal
+from PySide6.QtCore import Qt, QSize, QUrl
 from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices, QColor, QPainter, QBrush
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
@@ -127,6 +127,7 @@ class MainWindow(QMainWindow):
         tab_index = self.content_stack.count()  # Get the index for the new tab
         tab_button.clicked.connect(lambda: self.change_tab(tab_index))
         self.sidebar_layout.addWidget(tab_button)
+        tab_button.setCursor(Qt.PointingHandCursor)
 
         # Create a content widget and set the passed layout to it
         content_widget = QWidget()
@@ -247,13 +248,22 @@ class MainWindow(QMainWindow):
         a button to trigger the file loading dialog.
         """
         file_loader_layout = QGridLayout()
-        self.file_label = QLabel(MainWindow.NO_FILE_SELECTED)
+        self.file_label = QLineEdit(MainWindow.NO_FILE_SELECTED)
+        self.file_label.setReadOnly(True)
+        self.file_label.setFrame(False)
+        self.file_label.setCursor(Qt.IBeamCursor)
+        self.file_label.setStyleSheet("""
+            QLineEdit {
+                border: none;
+                background-color: transparent;
+            }
+        """)
         self.load_button = QPushButton(MainWindow.LOAD_DATA_FILE)
         self.load_button.clicked.connect(self.load_data_file)
-
+        
         file_loader_layout.addWidget(self.file_label,  0, 0)
         file_loader_layout.addWidget(self.load_button, 0, 1)
-
+        
         self.start_setup_layout.addLayout(file_loader_layout)
 
     def setup_ternary_type_selection_layout(self):
@@ -510,6 +520,7 @@ class MainWindow(QMainWindow):
         Initialize the QWebEngineView widget that will display the ternary plot.
         """
         self.ternary_view = QWebEngineView()
+        self.ternary_view.loadFinished.connect(self.on_load_finished)
         self.ternary_plot_layout.addWidget(self.ternary_view)
 
     def finalize_layout(self, main_layout: QHBoxLayout):
@@ -526,6 +537,7 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
         self.update_visibility()
+        self.resize(1200, 600)
 
     def open_settings(self):
         """
@@ -533,6 +545,16 @@ class MainWindow(QMainWindow):
         """
         self.settings_dialog = SettingsDialog(self)
         self.settings_dialog.exec_()
+
+    def on_load_finished(self, ok):
+        if ok:  # Check if the page loaded successfully
+            # Obtain the size of the content
+            content_size = self.ternary_view.page().contentsSize().toSize()
+            # Adjust the size of the ternary_view if necessary
+            self.ternary_view.resize(content_size.width(), content_size.height())
+            # Optionally, adjust the main window size
+            self.adjustSize()
+
 
     def update_advanced_visibility(self):
         pass
@@ -612,8 +634,10 @@ class MainWindow(QMainWindow):
 
     def load_data_file(self):
         data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
+    
         if data_file:
             self.file_label.setText(data_file)
+            self.file_label.setToolTip(data_file)
             if data_file.endswith('.csv'):
                 try:
                     header = find_header_row_csv(data_file, 16)
