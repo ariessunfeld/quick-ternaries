@@ -25,7 +25,7 @@ def update_to_latest(username, repo, package_name):
     if installed_version < latest_version:
         ans = input(f"Version {latest_version} is availabe. You have version {installed_version}. Do you want to update? [Y]/N: ")
         if ans.lower() in ['', 'y', 'yes']:
-            cmd = f"pip install --upgrade git+https://github.com/{username}/{repo}.git@{latest_version}"
+            cmd = f"pip install --upgrade git+https://github.com/{username}/{repo}.git@v{latest_version}"
             subprocess.run(cmd, shell=True)
 
 if __name__ == "__main__":
