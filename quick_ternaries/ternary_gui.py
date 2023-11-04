@@ -1,5 +1,8 @@
+"""GUI for Ternary App"""
+
 import os
 import sys
+from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtWidgets import (
@@ -13,14 +16,15 @@ from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 import pandas as pd
+from pandas import ExcelWriter
+
 import numpy as np
 import plotly.io as pio
 
-from pandas import ExcelWriter
-from .advanced_widgets import AdvancedSettingsDialog, InfoButton
-from .filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
-from .file_handling_utils import find_header_row_csv, find_header_row_excel
-from .ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
+from quick_ternaries.advanced_widgets import AdvancedSettingsDialog, InfoButton
+from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
+from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
+from quick_ternaries.ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
 
 def show_exception(type, value, tb):
     """Exception Hook"""
@@ -112,8 +116,8 @@ class MainWindow(QMainWindow):
         The title label is configured to display the 'quick ternaries' logo which includes a
         hyperlink to the project repository.
         """
-        current_directory = os.getcwd()
-        font_path = os.path.join(current_directory, 'Motter Tektura Normal.ttf')
+        current_directory = Path(__file__).resolve().parent
+        font_path = current_directory / 'assests' / 'fonts' / 'Motter Tektura Normal.ttf'
         font_id = QFontDatabase.addApplicationFont(font_path)
         if font_id != -1:
             # If the font was successfully loaded, proceed to set up the title label
@@ -171,7 +175,7 @@ class MainWindow(QMainWindow):
 
         title_settings_layout = QHBoxLayout()
         title_settings_layout.addWidget(self.title_label)
-        title_settings_layout.addStretch(1) # Push title to the left and settings to the right
+        #title_settings_layout.addStretch(1) # Push title to the left and settings to the right
         title_settings_layout.addWidget(self.settings_button)
         self.controls_layout.insertLayout(0, title_settings_layout) # Insert at the top of the controls layout
 
@@ -466,7 +470,7 @@ class MainWindow(QMainWindow):
         Creates and opens the settings dialog for the application.
         """
         self.settings_dialog = SettingsDialog(self)
-        self.settings_dialog.exec_()
+        self.settings_dialog.exec()
 
     def update_advanced_visibility(self):
         pass
