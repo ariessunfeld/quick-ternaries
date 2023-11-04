@@ -118,7 +118,8 @@ class MainWindow(QMainWindow):
         """
         current_directory = Path(__file__).resolve().parent
         font_path = current_directory / 'assests' / 'fonts' / 'Motter Tektura Normal.ttf'
-        font_id = QFontDatabase.addApplicationFont(font_path)
+        font_path_str = str(font_path)
+        font_id = QFontDatabase.addApplicationFont(font_path_str)
         if font_id != -1:
             # If the font was successfully loaded, proceed to set up the title label
             font_families = QFontDatabase.applicationFontFamilies(font_id)
