@@ -6,10 +6,11 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFontDialog,
     QGridLayout, QPushButton, QLabel, QWidget, QLineEdit, 
     QFileDialog, QComboBox, QCheckBox, QSpinBox, QListWidget, 
-    QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog, QDialog)
+    QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog, QDialog, 
+    QLineEdit, QStackedWidget)
 
-from PySide6.QtCore import Qt, QSize, QUrl
-from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices
+from PySide6.QtCore import Qt, QSize, QUrl, Signal
+from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices, QColor, QPainter, QBrush
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 import pandas as pd
@@ -76,6 +77,20 @@ class SettingsDialog(QDialog):
         if ok:
             QApplication.setFont(font)
 
+class CustomTabButton(QPushButton):
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.setCheckable(True)
+        self.setStyleSheet("CustomTabButton { background-color: white; }"
+                           "CustomTabButton:checked { background-color: darkgrey; }")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setBrush(QBrush(QColor(100, 100, 100) if self.isChecked() else QColor(70, 70, 70)))
+        painter.setPen(Qt.NoPen)
+        painter.drawRect(self.rect())
+        
+        super().paintEvent(event)
 
 class MainWindow(QMainWindow):
     """
@@ -106,6 +121,28 @@ class MainWindow(QMainWindow):
         self.setup_layouts()
         self.setWindowTitle("Ternary Diagram Creator")
 
+    def add_new_tab(self, name, layout):
+        # Create a button that acts as a tab
+        tab_button = CustomTabButton(name)
+        tab_index = self.content_stack.count()  # Get the index for the new tab
+        tab_button.clicked.connect(lambda: self.change_tab(tab_index))
+        self.sidebar_layout.addWidget(tab_button)
+
+        # Create a content widget and set the passed layout to it
+        content_widget = QWidget()
+        content_widget.setLayout(layout)
+        self.content_stack.addWidget(content_widget)
+
+    def change_tab(self, index):
+        # Set the current index of the stack to the content associated with the tab
+        self.content_stack.setCurrentIndex(index)
+
+        # Uncheck all other buttons (tabs)
+        for button_index in range(self.sidebar_layout.count()):
+            button = self.sidebar_layout.itemAt(button_index).widget()
+            if isinstance(button, QPushButton):
+                button.setChecked(button_index == index)
+
     def setup_fonts(self):
         """
         Load the 'Motter Tektura' font and use it to set up the application's title label.
@@ -132,17 +169,41 @@ class MainWindow(QMainWindow):
                 self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
                 self.title_label.setOpenExternalLinks(True) # Allow the label to open links
 
+    def setup_sidebar(self):
+        # Assuming you want to add the existing layouts as tab content
+        self.add_new_tab("Start Setup", self.start_setup_layout)
+        self.add_new_tab("Trace Configuration", self.trace_config_layout)
+
+        self.sidebar_layout.setAlignment(Qt.AlignTop)
+        # self.sidebar_layout.setSpacing(0)  # Remove space between buttons
+
+        self.controls_layout.addLayout(self.sidebar_layout)
+        self.controls_layout.addWidget(self.content_stack, 3)
+
     def setup_layouts(self):
         """
         Configure the main layout of the application, organizing control elements and the
         ternary plot display area.
         """
-        main_layout = QHBoxLayout() # Horizontal layout to separate controls from the plot area
-        self.controls_layout = QVBoxLayout() # Layout for control elements
-        self.ternary_plot_layout = QVBoxLayout() # Layout for the ternary plot
+        # Main horizontal layout
+        main_layout = QHBoxLayout()
+
+        # Setup the QStackedWidget here
+        self.content_stack = QStackedWidget()
+
+        # Setup the sidebar layout for tab buttons
+        self.sidebar_layout = QVBoxLayout()
 
         # Initialize various sections of the UI
+        self.left_side_layout    = QVBoxLayout()  # Left side of the UI includes the 'quick ternaries' title and ternary controls.
+        self.controls_layout     = QHBoxLayout()  # Controls for customizing the ternary. Includes the tab menu on the left and the options on the right
+        self.start_setup_layout  = QVBoxLayout()  # Start menu layout
+        self.trace_config_layout = QVBoxLayout()  # Layout for customizing ternary trace options
+        self.ternary_plot_layout = QVBoxLayout()  # Layout for the ternary plot
+
+        # Setup individual sections of the UI
         self.setup_title_layout()
+        self.setup_sidebar() # Setup the tab-like button stack
         self.setup_file_loader_layout()
         self.setup_ternary_type_selection_layout()
         self.setup_custom_type_selection_widgets()
@@ -152,8 +213,13 @@ class MainWindow(QMainWindow):
         self.setup_heatmap_options()
         self.setup_filter_options()
         self.setup_advanced_settings()
+
+        self.left_side_layout.addLayout(self.controls_layout)
+
         self.setup_bottom_buttons()
         self.setup_ternary_plot()
+
+        # Finalize the layout by setting the central widget with the main_layout
         self.finalize_layout(main_layout)
 
     def setup_title_layout(self):
@@ -173,7 +239,7 @@ class MainWindow(QMainWindow):
         title_settings_layout.addWidget(self.title_label)
         title_settings_layout.addStretch(1) # Push title to the left and settings to the right
         title_settings_layout.addWidget(self.settings_button)
-        self.controls_layout.insertLayout(0, title_settings_layout) # Insert at the top of the controls layout
+        self.left_side_layout.insertLayout(0, title_settings_layout) # Insert at the top of the left side
 
     def setup_file_loader_layout(self):
         """
@@ -185,10 +251,10 @@ class MainWindow(QMainWindow):
         self.load_button = QPushButton(MainWindow.LOAD_DATA_FILE)
         self.load_button.clicked.connect(self.load_data_file)
 
-        file_loader_layout.addWidget(self.file_label, 0, 0)
+        file_loader_layout.addWidget(self.file_label,  0, 0)
         file_loader_layout.addWidget(self.load_button, 0, 1)
 
-        self.controls_layout.addLayout(file_loader_layout)
+        self.start_setup_layout.addLayout(file_loader_layout)
 
     def setup_ternary_type_selection_layout(self):
         """
@@ -202,7 +268,7 @@ class MainWindow(QMainWindow):
 
         ternary_type_selection_layout.addWidget(self.diagram_type_combobox, 0, 1)
 
-        self.controls_layout.addLayout(ternary_type_selection_layout)
+        self.start_setup_layout.addLayout(ternary_type_selection_layout)
 
     def setup_custom_type_selection_widgets(self):
         """
@@ -240,7 +306,7 @@ class MainWindow(QMainWindow):
         h_layout.addWidget(self.available_columns_list)
         h_layout.addLayout(grid_layout)
 
-        self.controls_layout.addLayout(h_layout)
+        self.start_setup_layout.addLayout(h_layout)
         self.custom_type_widgets.append(self.available_columns_list)
 
     def setup_apex_name_widgets(self):
@@ -250,7 +316,7 @@ class MainWindow(QMainWindow):
         """
         self.apex_names_checkbox = QCheckBox('Customize apex display names')
         self.apex_names_checkbox.stateChanged.connect(self.update_visibility)
-        self.controls_layout.addWidget(self.apex_names_checkbox)
+        self.start_setup_layout.addWidget(self.apex_names_checkbox)
 
         # Line edits and labels for custom apex names, added to QHBoxLayouts for organization
         self.custom_apex_name_widgets = []
@@ -281,9 +347,9 @@ class MainWindow(QMainWindow):
              self.apex2_name, self.apex2_tag,
              self.apex3_name, self.apex3_tag])
 
-        self.controls_layout.addLayout(apex1_hlayout)
-        self.controls_layout.addLayout(apex2_hlayout)
-        self.controls_layout.addLayout(apex3_hlayout)
+        self.start_setup_layout.addLayout(apex1_hlayout)
+        self.start_setup_layout.addLayout(apex2_hlayout)
+        self.start_setup_layout.addLayout(apex3_hlayout)
 
     def setup_title_field(self):
         """
@@ -294,7 +360,7 @@ class MainWindow(QMainWindow):
         self.title_field = QLineEdit()
         title_layout.addWidget(self.title_field, 0, 1)
 
-        self.controls_layout.addLayout(title_layout)
+        self.start_setup_layout.addLayout(title_layout)
 
     def setup_point_size_layout(self):
         """
@@ -307,7 +373,7 @@ class MainWindow(QMainWindow):
         point_size_layout.addWidget(QLabel("Point Size:"), 0, 0)
         point_size_layout.addWidget(self.point_size, 0, 1)
 
-        self.controls_layout.addLayout(point_size_layout)
+        self.trace_config_layout.addLayout(point_size_layout)
 
     def setup_heatmap_options(self):
         """
@@ -315,7 +381,7 @@ class MainWindow(QMainWindow):
         """
         self.heatmap_checkbox = QCheckBox("Use Heatmap")
         self.heatmap_checkbox.stateChanged.connect(self.update_visibility)
-        self.controls_layout.addWidget(self.heatmap_checkbox)
+        self.trace_config_layout.addWidget(self.heatmap_checkbox)
 
         # Dropdown for selecting which column to use for heatmap and related controls
         self.heatmap_column = QComboBox()
@@ -347,7 +413,7 @@ class MainWindow(QMainWindow):
         heatmap_layout.addLayout(cmin_layout, 1, 0)
         heatmap_layout.addLayout(cmax_layout, 1, 1)
 
-        self.controls_layout.addLayout(heatmap_layout)
+        self.trace_config_layout.addLayout(heatmap_layout)
 
     def setup_filter_options(self):
         """
@@ -376,7 +442,7 @@ class MainWindow(QMainWindow):
         filter_checkbox_layout.addItem(spacer)
 
         # Add the filter options layout to the main controls layout
-        self.controls_layout.addLayout(filter_checkbox_layout)
+        self.trace_config_layout.addLayout(filter_checkbox_layout)
 
         # Initialize the filter dialog but do not show it yet
         self.filter_dialog = FilterDialog(self)
@@ -406,15 +472,15 @@ class MainWindow(QMainWindow):
         advanced_checkbox_layout.addWidget(self.show_advanced_settings_button)
         advanced_checkbox_layout.addItem(spacer)
 
-        self.controls_layout.addLayout(advanced_checkbox_layout)
+        self.trace_config_layout.addLayout(advanced_checkbox_layout)
 
         self.advanced_checkbox.stateChanged.connect(self.update_advanced_visibility)
         self.show_advanced_settings_button.clicked.connect(self.advanced_settings_dialog.show)
 
     def setup_bottom_buttons(self):
         """
-        The bottom buttons in the UI for previewing and saving the ternary diagram, and saving 
-        filtered data.
+        The bottom buttons in the UI for previewing and saving the ternary diagram as well as 
+        saving filtered data.
         """
         # Horizontal layout for bottom buttons
         bottom_buttons = QHBoxLayout()
@@ -437,7 +503,7 @@ class MainWindow(QMainWindow):
         bottom_buttons.addWidget(self.save_filtered_data_button)
 
         # Add the bottom buttons layout to the main controls layout
-        self.controls_layout.addLayout(bottom_buttons)
+        self.left_side_layout.addLayout(bottom_buttons)
 
     def setup_ternary_plot(self):
         """
@@ -448,13 +514,13 @@ class MainWindow(QMainWindow):
 
     def finalize_layout(self, main_layout: QHBoxLayout):
         """
-        Finalizes the main layout by adding the control and plot layouts with appropriate stretch factors.
-        Sets the central widget of the main window with the finalized layout.
+        Add the control and plot layouts to the main window.
 
         Args:
             main_layout: The main window that contains the entire UI.
         """
-        main_layout.addLayout(self.controls_layout, 1)
+
+        main_layout.addLayout(self.left_side_layout, 1)
         main_layout.addLayout(self.ternary_plot_layout, 3)
         container = QWidget()
         container.setLayout(main_layout)
@@ -735,6 +801,12 @@ class MainWindow(QMainWindow):
             title = self._default_ternary_title(all_input['ternary type'])
 
         fig = plot_ternary([plot_data], title, top_name, left_name, right_name)
+
+        # Adjust figure padding so it fits in the render window
+        fig.update_layout(
+            margin=dict(l=100, r=100, t=100, b=100)
+        )
+
         self.current_figure = fig
 
         # Convert the figure to HTML
