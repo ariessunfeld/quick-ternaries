@@ -1,5 +1,8 @@
+"""GUI for Ternary App"""
+
 import os
 import sys
+from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtWidgets import (
@@ -14,14 +17,15 @@ from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices, QColor,
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 import pandas as pd
+from pandas import ExcelWriter
+
 import numpy as np
 import plotly.io as pio
 
-from pandas import ExcelWriter
-from .advanced_widgets import AdvancedSettingsDialog, InfoButton
-from .filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
-from .file_handling_utils import find_header_row_csv, find_header_row_excel
-from .ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
+from quick_ternaries.advanced_widgets import AdvancedSettingsDialog, InfoButton
+from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
+from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
+from quick_ternaries.ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
 
 def show_exception(type, value, tb):
     """Exception Hook"""
@@ -150,9 +154,10 @@ class MainWindow(QMainWindow):
         The title label is configured to display the 'quick ternaries' logo which includes a
         hyperlink to the project repository.
         """
-        current_directory = os.getcwd()
-        font_path = os.path.join(current_directory, 'Motter Tektura Normal.ttf')
-        font_id = QFontDatabase.addApplicationFont(font_path)
+        current_directory = Path(__file__).resolve().parent
+        font_path = current_directory / 'assets' / 'fonts' / 'Motter Tektura Normal.ttf'
+        font_path_str = str(font_path)
+        font_id = QFontDatabase.addApplicationFont(font_path_str)
         if font_id != -1:
             # If the font was successfully loaded, proceed to set up the title label
             font_families = QFontDatabase.applicationFontFamilies(font_id)
@@ -228,9 +233,13 @@ class MainWindow(QMainWindow):
         Layout for control panel title. Includes the 'quick ternaries' title logo and a settings
         button that is displayed as a gear icon.
         """
+        current_directory = Path(__file__).resolve().parent
+        settings_icon_path = current_directory / 'assets' / 'icons' / 'settings_icon.png'
+        settings_icon_path_str = str(settings_icon_path)
+        
         self.settings_button = QPushButton(self)
         self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setIcon(QIcon('settings_icon.png'))
+        self.settings_button.setIcon(QIcon(settings_icon_path_str))
         self.settings_button.setStyleSheet('border: none;') # Remove the button outline
         self.settings_button.setIconSize(QSize(20, 20))
         self.settings_button.setFixedSize(20, 20)
@@ -544,7 +553,7 @@ class MainWindow(QMainWindow):
         Creates and opens the settings dialog for the application.
         """
         self.settings_dialog = SettingsDialog(self)
-        self.settings_dialog.exec_()
+        self.settings_dialog.exec()
 
     def on_load_finished(self, ok):
         if ok:  # Check if the page loaded successfully
