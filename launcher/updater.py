@@ -1,9 +1,8 @@
 """Updater script for quick-ternaries python package"""
 
 import subprocess
-from pkg_resources import get_distribution, DistributionNotFound
-
 import requests
+from importlib.metadata import version, PackageNotFoundError
 
 def get_latest_release(username, repo):
     url = f"https://api.github.com/repos/{username}/{repo}/releases/latest"
@@ -13,20 +12,28 @@ def get_latest_release(username, repo):
 
 def get_installed_version(package_name):
     try:
-        version = str(get_distribution(package_name).version)
-    except DistributionNotFound:
+        # Using importlib.metadata to get the current installed version
+        return version(package_name).lower().lstrip('v')
+    except PackageNotFoundError:
         # Return a default version if the package is not installed
         return '0.0.-1'
-    return version.lower().lstrip('v')
 
 def update_to_latest(username, repo, package_name):
     latest_version = get_latest_release(username, repo)
     installed_version = get_installed_version(package_name)
     if installed_version < latest_version:
-        ans = input(f"Version {latest_version} is availabe. You have version {installed_version}. Do you want to update? [Y]/N: ")
+        if installed_version == '0.0.-1':
+            installed_version = '[no installation found]'
+        ans = input(f"\nVersion {latest_version} is available.\nYou have version {installed_version}.\nDo you want to update? [Y]/N: ")
         if ans.lower() in ['', 'y', 'yes']:
             cmd = f"pip install --upgrade git+https://github.com/{username}/{repo}.git@v{latest_version}"
-            subprocess.run(cmd, shell=True)
+            print('\nDownloading and installing... (this may take a minute)')
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, shell=True)
 
 if __name__ == "__main__":
-    update_to_latest('ariessunfeld', 'quick-ternaries', 'quick-ternaries')
+
+    USERNAME = 'ariessunfeld'
+    REPO = 'quick-ternaries'
+    PACKAGE_NAME = 'quick-ternaries'
+    
+    update_to_latest(USERNAME, REPO, PACKAGE_NAME)
