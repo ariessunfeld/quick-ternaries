@@ -16,7 +16,6 @@ from molmass import Formula
 from molmass.molmass import FormulaError
 
 import plotly.graph_objects as go
-import plotly.io as pio
 
 def make_plot_axis(title: str, tickangle: int) -> dict:
     """
@@ -83,12 +82,12 @@ def get_molar_mass(oxide: str) -> float:
         except FormulaError:
             err = 'Encountered a FormulaError trying to calculate the molar mass of'
             err += f' \"{oxide}\". '
-            err += f'Ensure all custom apex columns are valid formulae.'
+            err += 'Ensure all custom apex columns are valid formulae.'
             raise FormulaError(err)
         except ValueError:
             err = 'Encountered a ValueError trying to calculate the molar mass of'
             err += f' \"{oxide}\". '
-            err += f'Ensure all custom apex columns are valid formulae.'
+            err += 'Ensure all custom apex columns are valid formulae.'
             raise ValueError(err)
     return mass
 
