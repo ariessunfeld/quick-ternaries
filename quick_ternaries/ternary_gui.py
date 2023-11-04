@@ -6,13 +6,17 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFontDialog,
     QGridLayout, QPushButton, QLabel, QWidget, QLineEdit, 
     QFileDialog, QComboBox, QCheckBox, QSpinBox, QListWidget, 
-    QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog)
+    QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog, QDialog)
 
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, QSize, QUrl
+from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 import pandas as pd
 import numpy as np
+import plotly.io as pio
 
+from pandas import ExcelWriter
 from .advanced_widgets import AdvancedSettingsDialog, InfoButton
 from .filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from .file_handling_utils import find_header_row_csv, find_header_row_excel
@@ -24,7 +28,59 @@ def show_exception(type, value, tb):
     sys.__excepthook__(type, value, tb)
 
 
+class SettingsDialog(QDialog):
+    def __init__(self, parent=None):
+        super(SettingsDialog, self).__init__(parent)
+        self.setWindowTitle("Settings")
+
+        # The main layout for the dialog
+        layout = QVBoxLayout(self)
+
+        # Create the label and the spinbox for changing font size directly
+        self.fontsize_label = QLabel("Fontsize:")
+        self.font_size_spinbox = QSpinBox()
+        self.font_size_spinbox.setMinimum(6)  # Min font size
+        self.font_size_spinbox.setMaximum(20) # Max font size
+        self.font_size_spinbox.setValue(self.font().pointSize())  # Set the current font size
+        self.font_size_spinbox.valueChanged.connect(self.change_font_size)
+
+        # Add the label and spinbox to the horizontal layout
+        fontsize_layout = QHBoxLayout()
+        fontsize_layout.addWidget(self.fontsize_label)
+        fontsize_layout.addWidget(self.font_size_spinbox)
+        layout.addLayout(fontsize_layout)  # Adding the horizontal layout to the main vertical layout
+
+        # Button for advanced font settings
+        self.font_advanced_button = QPushButton("Advanced Font Settings")
+        self.font_advanced_button.clicked.connect(self.font_advanced)
+
+        # Add the advanced settings button to the main layout
+        layout.addWidget(self.font_advanced_button)
+
+    def change_font_size(self, value:int):
+        """
+        Change font size.
+
+        Args:
+            value: The current fontsize.
+        """
+        font = QApplication.font()
+        font.setPointSize(value)
+        QApplication.setFont(font)
+
+    def font_advanced(self):
+        """
+        Change font family/size.
+        """
+        ok, font = QFontDialog.getFont(QApplication.font(), self)
+        if ok:
+            QApplication.setFont(font)
+
+
 class MainWindow(QMainWindow):
+    """
+    Main application window.
+    """
 
     NO_FILE_SELECTED = "No file selected"
     LOAD_DATA_FILE = "Load data file"
@@ -37,90 +93,166 @@ class MainWindow(QMainWindow):
         "\nPoints with higher values than 'range max' will still be plotted;"\
         "\nthey will just have the same color as the highest value on the scale."\
         "\nThe default 'range max' value is twice the median of the selected column."
-
+    
     def __init__(self):
+        """
+        Initialize the main window, set up necessary directories, fonts, and layouts, and
+        set the window title.
+        """
         super().__init__()
-
-        # Set up img and csv directories if needed
-        self.home_dir = os.path.expanduser('~')
-        self.img_dir = os.path.join(self.home_dir, 'Documents', 'ternaries', 'img')
-        self.csv_dir = os.path.join(self.home_dir, 'Documents', 'ternaries', 'csv')
-        if not os.path.exists(self.img_dir):
-            os.makedirs(self.img_dir)
-        if not os.path.exists(self.csv_dir):
-            os.makedirs(self.csv_dir)
-
+        self.current_figure = None 
+        self.df = None
+        self.setup_fonts()
+        self.setup_layouts()
         self.setWindowTitle("Ternary Diagram Creator")
 
-        self.df = None
-        
-        # Create a QVBoxLayout instance
-        layout = QVBoxLayout()
+    def setup_fonts(self):
+        """
+        Load the 'Motter Tektura' font and use it to set up the application's title label.
+        The title label is configured to display the 'quick ternaries' logo which includes a
+        hyperlink to the project repository.
+        """
+        current_directory = os.getcwd()
+        font_path = os.path.join(current_directory, 'Motter Tektura Normal.ttf')
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        if font_id != -1:
+            # If the font was successfully loaded, proceed to set up the title label
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                self.custom_font = QFont(font_families[0], pointSize=20)
+                self.title_label = QLabel()
+                self.title_label.setFont(self.custom_font)
+                self.title_label.setTextFormat(Qt.RichText) # Enable rich text for hyperlink styling
+                self.title_label.setText(
+                    '<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
+                    'style="color: black; text-decoration:none;">' +
+                    'quick ternaries' +
+                    '</a>'
+                )
+                self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
+                self.title_label.setOpenExternalLinks(True) # Allow the label to open links
 
-        font_layout = QHBoxLayout()
-        self.font_button = QPushButton("Change Font Size", self)
-        #self.font_button.clicked.connect(self.choose_font)
-        self.font_button.clicked.connect(self.choose_font_size)
-        font_spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        font_layout.addWidget(self.font_button)
-        font_layout.addItem(font_spacer)
-        layout.addLayout(font_layout)
-        
-        # Create a QLabel and QPushButton for data file
+    def setup_layouts(self):
+        """
+        Configure the main layout of the application, organizing control elements and the
+        ternary plot display area.
+        """
+        main_layout = QHBoxLayout() # Horizontal layout to separate controls from the plot area
+        self.controls_layout = QVBoxLayout() # Layout for control elements
+        self.ternary_plot_layout = QVBoxLayout() # Layout for the ternary plot
+
+        # Initialize various sections of the UI
+        self.setup_title_layout()
+        self.setup_file_loader_layout()
+        self.setup_ternary_type_selection_layout()
+        self.setup_custom_type_selection_widgets()
+        self.setup_apex_name_widgets()
+        self.setup_title_field()
+        self.setup_point_size_layout()
+        self.setup_heatmap_options()
+        self.setup_filter_options()
+        self.setup_advanced_settings()
+        self.setup_bottom_buttons()
+        self.setup_ternary_plot()
+        self.finalize_layout(main_layout)
+
+    def setup_title_layout(self):
+        """
+        Layout for control panel title. Includes the 'quick ternaries' title logo and a settings
+        button that is displayed as a gear icon.
+        """
+        self.settings_button = QPushButton(self)
+        self.settings_button.clicked.connect(self.open_settings)
+        self.settings_button.setIcon(QIcon('settings_icon.png'))
+        self.settings_button.setStyleSheet('border: none;') # Remove the button outline
+        self.settings_button.setIconSize(QSize(20, 20))
+        self.settings_button.setFixedSize(20, 20)
+        self.settings_button.setCursor(Qt.PointingHandCursor) # Change cursor to pointing hand on hover
+
+        title_settings_layout = QHBoxLayout()
+        title_settings_layout.addWidget(self.title_label)
+        title_settings_layout.addStretch(1) # Push title to the left and settings to the right
+        title_settings_layout.addWidget(self.settings_button)
+        self.controls_layout.insertLayout(0, title_settings_layout) # Insert at the top of the controls layout
+
+    def setup_file_loader_layout(self):
+        """
+        Layout for file loading. Includes a label to display the file path and
+        a button to trigger the file loading dialog.
+        """
         file_loader_layout = QGridLayout()
         self.file_label = QLabel(MainWindow.NO_FILE_SELECTED)
         self.load_button = QPushButton(MainWindow.LOAD_DATA_FILE)
         self.load_button.clicked.connect(self.load_data_file)
+
         file_loader_layout.addWidget(self.file_label, 0, 0)
         file_loader_layout.addWidget(self.load_button, 0, 1)
-        layout.addLayout(file_loader_layout)
-        
-        # Create a QComboBox for selecting diagram type
+
+        self.controls_layout.addLayout(file_loader_layout)
+
+    def setup_ternary_type_selection_layout(self):
+        """
+        Layout for choosing the type of ternary diagram.
+        """
         ternary_type_selection_layout = QGridLayout()
         ternary_type_selection_layout.addWidget(QLabel("Ternary Type:"), 0, 0)
         self.diagram_type_combobox = QComboBox()
         self.diagram_type_combobox.addItems(MainWindow.TERNARY_TYPES)
         self.diagram_type_combobox.currentIndexChanged.connect(self.update_visibility)
-        ternary_type_selection_layout.addWidget(self.diagram_type_combobox, 0, 1)
-        layout.addLayout(ternary_type_selection_layout)
 
-        # Create widgets for custom diagram type selection
+        ternary_type_selection_layout.addWidget(self.diagram_type_combobox, 0, 1)
+
+        self.controls_layout.addLayout(ternary_type_selection_layout)
+
+    def setup_custom_type_selection_widgets(self):
+        """
+        Selecting custom apices for the ternary.
+        """
         self.available_columns_list = QListWidget()
         self.custom_type_widgets = []
         self.selected_values_lists = {}
-        grid_layout = QGridLayout()  # A grid layout for the custom type widgets
+        grid_layout = QGridLayout() 
+
         apices = ['Top', 'Left', 'Right']
-        for i in range(3):
+        for i, apex in enumerate(apices):
             inner_grid_layout = QGridLayout()
-            vbox_layout = QVBoxLayout()  # A vertical layout for each apex's widgets
-            lb = QLabel(f"{apices[i]} apex element(s):")
-            vbox_layout.addWidget(lb)
-            lw = SelectedValuesList(self)
-            self.selected_values_lists[i] = lw
+            vbox_layout = QVBoxLayout()
+
+            label = QLabel(f"{apex} apex element(s):")
+            vbox_layout.addWidget(label)
+            list_widget = SelectedValuesList(self)
+            self.selected_values_lists[i] = list_widget
+
             add_btn = QPushButton("Add >>")
-            add_btn.clicked.connect(lambda checked=False, lw=lw: self.add_column(lw))
+            add_btn.clicked.connect(lambda _, lw=list_widget: self.add_column(lw))
             vbox_layout.addWidget(add_btn)
+
             remove_btn = QPushButton("Remove <<")
-            remove_btn.clicked.connect(lambda checked=False, lw=lw: self.remove_value(lw))
+            remove_btn.clicked.connect(lambda _, lw=list_widget: self.remove_value(lw))
             vbox_layout.addWidget(remove_btn)
+
             inner_grid_layout.addLayout(vbox_layout, 0, 0)
-            inner_grid_layout.addWidget(lw, 0, 1)
-            grid_layout.addLayout(inner_grid_layout, i+1, 0)  # Add the QVBoxLayout to the grid layout in the appropriate column
-            self.custom_type_widgets.extend([lb, lw, add_btn, remove_btn])
-        
-        # Create a QHBoxLayout and add available_columns_list and grid_layout
+            inner_grid_layout.addWidget(list_widget, 0, 1)
+            grid_layout.addLayout(inner_grid_layout, i, 0)
+            self.custom_type_widgets.extend([label, list_widget, add_btn, remove_btn])
+
         h_layout = QHBoxLayout()
         h_layout.addWidget(self.available_columns_list)
         h_layout.addLayout(grid_layout)
-        layout.addLayout(h_layout)  # Add the horizontal layout to the main layout
-        self.custom_type_widgets.extend([self.available_columns_list])
-        
-        # Create a QCheckBox for custom apex names
+
+        self.controls_layout.addLayout(h_layout)
+        self.custom_type_widgets.append(self.available_columns_list)
+
+    def setup_apex_name_widgets(self):
+        """
+        Customize the display names of the apices. These widgets are only visible when the user 
+        checks the 'Customize apex display names' option.
+        """
         self.apex_names_checkbox = QCheckBox('Customize apex display names')
         self.apex_names_checkbox.stateChanged.connect(self.update_visibility)
-        layout.addWidget(self.apex_names_checkbox)
+        self.controls_layout.addWidget(self.apex_names_checkbox)
 
-        # Create QLineEdit for naming apices and setting the title
+        # Line edits and labels for custom apex names, added to QHBoxLayouts for organization
         self.custom_apex_name_widgets = []
 
         self.apex1_name = QLineEdit()
@@ -143,38 +275,49 @@ class MainWindow(QMainWindow):
         apex3_hlayout.addWidget(self.apex3_tag)
         apex3_hlayout.addWidget(self.apex3_name)
 
+        # Aggregate the widgets for easy access and manipulation
         self.custom_apex_name_widgets.extend(
-            [
-                self.apex1_name, self.apex1_tag, 
-                self.apex2_name, self.apex2_tag,
-                self.apex3_name, self.apex3_tag])
+            [self.apex1_name, self.apex1_tag,
+             self.apex2_name, self.apex2_tag,
+             self.apex3_name, self.apex3_tag])
 
-        layout.addLayout(apex1_hlayout)
-        layout.addLayout(apex2_hlayout)
-        layout.addLayout(apex3_hlayout)
+        self.controls_layout.addLayout(apex1_hlayout)
+        self.controls_layout.addLayout(apex2_hlayout)
+        self.controls_layout.addLayout(apex3_hlayout)
 
-        # Create a layout for Title
+    def setup_title_field(self):
+        """
+        Setting a title for the ternary figure.
+        """
         title_layout = QGridLayout()
         title_layout.addWidget(QLabel('Title:'), 0, 0)
         self.title_field = QLineEdit()
         title_layout.addWidget(self.title_field, 0, 1)
-        layout.addLayout(title_layout)
-        
-        # Create a QSpinBox for point size options
+
+        self.controls_layout.addLayout(title_layout)
+
+    def setup_point_size_layout(self):
+        """
+        Adjust ternary point size using a spinbox.
+        """
         point_size_layout = QGridLayout()
         self.point_size = QSpinBox()
-        self.point_size.setRange(1, 14)  # Set min and max values
-        self.point_size.setValue(6)
+        self.point_size.setRange(1, 14)  # Define the range for point size
+        self.point_size.setValue(6)      # Set the default value
         point_size_layout.addWidget(QLabel("Point Size:"), 0, 0)
         point_size_layout.addWidget(self.point_size, 0, 1)
-        layout.addLayout(point_size_layout)
 
-        # Create a QCheckBox for heatmap options
+        self.controls_layout.addLayout(point_size_layout)
+
+    def setup_heatmap_options(self):
+        """
+        Configure heatmap options for the plotted points.
+        """
         self.heatmap_checkbox = QCheckBox("Use Heatmap")
         self.heatmap_checkbox.stateChanged.connect(self.update_visibility)
-        layout.addWidget(self.heatmap_checkbox)
+        self.controls_layout.addWidget(self.heatmap_checkbox)
 
-        # Create QComboBox for heatmap column
+        # Dropdown for selecting which column to use for heatmap and related controls
         self.heatmap_column = QComboBox()
         self.heatmap_column.currentIndexChanged.connect(self.inject_range_min_max)
         self.heatmap_column_label = QLabel("Heatmap Column:")
@@ -182,90 +325,160 @@ class MainWindow(QMainWindow):
         self.heatmap_color_max = QLineEdit()
         self.heatmap_color_min_label = QLabel("Range min:")
         self.heatmap_color_max_label = QLabel("Range max:")
+        
+        # Info button with a tooltip for explaining heatmap range
         self.heatmap_range_info_button = InfoButton(self, MainWindow.HEATMAP_TIP)
+        
+        # Layout for heatmap configuration controls
         heatmap_layout = QGridLayout()
         heatmap_layout.addWidget(self.heatmap_column_label, 0, 0)
         heatmap_layout.addWidget(self.heatmap_column, 0, 1)
+        
+        # Layouts for minimum and maximum color range fields
         cmin_layout = QHBoxLayout()
         cmin_layout.addWidget(self.heatmap_color_min_label)
         cmin_layout.addWidget(self.heatmap_color_min)
+        
         cmax_layout = QHBoxLayout()
         cmax_layout.addWidget(self.heatmap_color_max_label)
         cmax_layout.addWidget(self.heatmap_color_max)
         cmax_layout.addWidget(self.heatmap_range_info_button)
+
         heatmap_layout.addLayout(cmin_layout, 1, 0)
         heatmap_layout.addLayout(cmax_layout, 1, 1)
-        layout.addLayout(heatmap_layout)
 
-        # Create a QCheckBox for filter options
+        self.controls_layout.addLayout(heatmap_layout)
+
+    def setup_filter_options(self):
+        """
+        Conditional filtering for the plotted data (optional)
+        """
         filter_checkbox_layout = QHBoxLayout()
+
+        # Enable/disable filtering
         self.filter_checkbox = QCheckBox("Use Filter(s)")
         self.filter_checkbox.stateChanged.connect(self.update_visibility)
         self.filter_checkbox.stateChanged.connect(self.update_filter_visibility)
+
+        # Filter settings dialog
         self.show_filters_button = QPushButton("Show Filter(s)")
-        #self.show_filters_button.setFixedWidth(4)
+        # self.show_filters_button.setFixedWidth(4)  # Uncomment to fix the width if needed
         self.show_filters_button.clicked.connect(self.show_filter_dialog)
+
         filter_checkbox_layout.addWidget(self.filter_checkbox)
         filter_checkbox_layout.addWidget(self.show_filters_button)
+
+        # Hide the 'Show Filter(s)' button by default
         self.show_filters_button.setVisible(False)
+
+        # Align the checkbox and button to the left
         spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
         filter_checkbox_layout.addItem(spacer)
-        layout.addLayout(filter_checkbox_layout)
 
-        # Create layout & widgets for advanced settings
-        advanced_checkbox_layout = QHBoxLayout()
-        self.advanced_settings_dialog = AdvancedSettingsDialog(self)
-        self.advanced_checkbox = QCheckBox("Use Advanced Settings")
-        self.show_advanced_settings_button = QPushButton("Show Advanced Settings")
-        spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        # Add widgets to layout
-        advanced_checkbox_layout.addWidget(self.advanced_checkbox)
-        advanced_checkbox_layout.addWidget(self.show_advanced_settings_button)
-        advanced_checkbox_layout.addItem(spacer)
-        layout.addLayout(advanced_checkbox_layout)
-        # Connect signals
-        self.advanced_checkbox.stateChanged.connect(self.update_advanced_visibility)
-        self.show_advanced_settings_button.clicked.connect(self.advanced_settings_dialog.show)
+        # Add the filter options layout to the main controls layout
+        self.controls_layout.addLayout(filter_checkbox_layout)
 
-
-        # Create a Filters Widget dialog area
+        # Initialize the filter dialog but do not show it yet
         self.filter_dialog = FilterDialog(self)
+        # Connect dialog signals to update UI appropriately
         self.filter_dialog.accepted.connect(self.show_filter_shower_button)
         self.filter_dialog.finished.connect(self.show_filter_shower_button)
 
+
+    def setup_advanced_settings(self):
+        """
+        Advanced settings button.
+        """
+        advanced_checkbox_layout = QHBoxLayout()
+
+        self.advanced_settings_dialog = AdvancedSettingsDialog(self)
+
+        # Enable/disable advanced settings
+        self.advanced_checkbox = QCheckBox("Use Advanced Settings")
+
+        # Display the advanced settings dialog
+        self.show_advanced_settings_button = QPushButton("Show Advanced Settings")
+
+        # Align to the left
+        spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        advanced_checkbox_layout.addWidget(self.advanced_checkbox)
+        advanced_checkbox_layout.addWidget(self.show_advanced_settings_button)
+        advanced_checkbox_layout.addItem(spacer)
+
+        self.controls_layout.addLayout(advanced_checkbox_layout)
+
+        self.advanced_checkbox.stateChanged.connect(self.update_advanced_visibility)
+        self.show_advanced_settings_button.clicked.connect(self.advanced_settings_dialog.show)
+
+    def setup_bottom_buttons(self):
+        """
+        The bottom buttons in the UI for previewing and saving the ternary diagram, and saving 
+        filtered data.
+        """
+        # Horizontal layout for bottom buttons
         bottom_buttons = QHBoxLayout()
 
-        # Create a "Preview Ternary" button
+        # Button to generate the ternary diagram preview
         self.generate_button = QPushButton("Preview Ternary")
-        self.generate_button.clicked.connect(self.generate_diagram)  # Connect to slot
-        bottom_buttons.addWidget(self.generate_button)
+        self.generate_button.clicked.connect(self.generate_diagram)  # Connect the button to its action
 
-        # Create a "Preview & Save" button
-        self.preview_and_save_button = QPushButton("Preview + Save")
-        self.preview_and_save_button.clicked.connect(self.preview_and_save)
-        bottom_buttons.addWidget(self.preview_and_save_button)
+        # Button to save the generated ternary diagram
+        self.save_ternary_button = QPushButton("Save Ternary")
+        self.save_ternary_button.clicked.connect(self.save_ternary_figure)
 
-        # Create a "Save Filtered Data" button
+        # Button to save the filtered data if any filters are applied
         self.save_filtered_data_button = QPushButton("Save Filtered Data")
         self.save_filtered_data_button.clicked.connect(self.save_filtered_data)
+
+        # Add buttons to the layout
+        bottom_buttons.addWidget(self.generate_button)
+        bottom_buttons.addWidget(self.save_ternary_button)
         bottom_buttons.addWidget(self.save_filtered_data_button)
 
-        # Add buttons to layout
-        layout.addLayout(bottom_buttons)
+        # Add the bottom buttons layout to the main controls layout
+        self.controls_layout.addLayout(bottom_buttons)
 
-        # Create a container QWidget and set the layout
+    def setup_ternary_plot(self):
+        """
+        Initialize the QWebEngineView widget that will display the ternary plot.
+        """
+        self.ternary_view = QWebEngineView()
+        self.ternary_plot_layout.addWidget(self.ternary_view)
+
+    def finalize_layout(self, main_layout: QHBoxLayout):
+        """
+        Finalizes the main layout by adding the control and plot layouts with appropriate stretch factors.
+        Sets the central widget of the main window with the finalized layout.
+
+        Args:
+            main_layout: The main window that contains the entire UI.
+        """
+        main_layout.addLayout(self.controls_layout, 1)
+        main_layout.addLayout(self.ternary_plot_layout, 3)
         container = QWidget()
-        container.setLayout(layout)
+        container.setLayout(main_layout)
         self.setCentralWidget(container)
         self.update_visibility()
+
+    def open_settings(self):
+        """
+        Creates and opens the settings dialog for the application.
+        """
+        self.settings_dialog = SettingsDialog(self)
+        self.settings_dialog.exec_()
 
     def update_advanced_visibility(self):
         pass
 
     def save_filtered_data(self):
+        """
+        Saves the filtered data to a user-specified location and format after applying filters.
+        """
         if self.df is None:
-            QMessageBox.critical(None, "Warning", 'You must load data first.')
+            QMessageBox.critical(self, "Warning", 'You must load data first.')
             return
+
         all_input = self.get_all_input_values()
 
         if all_input['use filter']:
@@ -275,79 +488,61 @@ class MainWindow(QMainWindow):
 
         df = add_molar_columns(df, all_input)
 
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d-%H-%M-%S")
-        csv_fname = f'filtered_data_{timestamp}.csv'
-        df.to_csv(os.path.join(self.csv_dir, csv_fname), index=0)
-        QMessageBox.information(
-            self, 
-            'New Data File', 
-            f'New CSV written to disk: {os.path.join(self.csv_dir, csv_fname)}')
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_types = "CSV Files (*.csv);;JSON Files (*.json);;Excel Files (*.xlsx);;All Files (*)"
+        file_name, selected_filter = QFileDialog.getSaveFileName(self, "Save Filtered Data", "",
+                                                file_types, options=options)
 
-    def preview_and_save(self):
-        if self.df is None:
-            QMessageBox.critical(None, "Warning", 'You must load data first.')
-            return
-        all_input = self.get_all_input_values()
+        if file_name:
+            # Ensure the file_name has the proper extension if it was not provided.
+            if '.' not in os.path.splitext(file_name)[1]:
+                extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
+                file_name += extension
 
-        if all_input['use filter']:
-            df = self.filter_dialog.apply_all_filters(self.df)
+            # Save the DataFrame to the selected file path
+            try:
+                if file_name.endswith('.csv'):
+                    df.to_csv(file_name, index=False)
+                elif file_name.endswith('.json'):
+                    df.to_json(file_name, orient='records', lines=True)
+                elif file_name.endswith('.xlsx'):
+                    with ExcelWriter(file_name) as writer:
+                        df.to_excel(writer, index=False)
+                QMessageBox.information(
+                    self,
+                    'Data Saved',
+                    f'Filtered data has been saved as: {file_name}')
+            except Exception as e:
+                QMessageBox.critical(
+                    self, 
+                    'Save Error', 
+                    f'An error occurred while saving the file: {e}')
+        
+    def save_ternary_figure(self):
+        """
+        Save the ternary to a specified location with a specified file type
+        """
+        if self.current_figure is not None:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html);;All Files (*)"
+            file_name, selected_filter = QFileDialog.getSaveFileName(self, "Save Ternary Diagram", "",
+                                                    file_types, options=options)
+            if file_name:
+                # Get the extension from the selected filter if the file_name has no extension
+                if '.' not in os.path.splitext(file_name)[1]:
+                    extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
+                    file_name += extension
+                if file_name.endswith('.html'):
+                    # Save interactive plot as HTML
+                    with open(file_name, 'w', encoding='utf-8') as f:
+                        f.write(self.current_figure.to_html(include_plotlyjs='cdn'))
+                else:
+                    # Save static image. The format is inferred from the extension of the file_name.
+                    pio.write_image(self.current_figure, file_name)
         else:
-            df = self.df
-
-        df = add_molar_columns(df, all_input)
-
-        plot_data = make_ternary_trace(
-            df,
-            'top_apex_molar_normed',
-            'left_apex_molar_normed',
-            'right_apex_molar_normed',
-            use_heatmap=all_input['use heatmap'],
-            heatmap_col=all_input['heatmap column'],
-            cmin=all_input['heatmap color min'],
-            cmax=all_input['heatmap color max'],
-            size=all_input['point size']
-            #color_col=all_input['heatmap column']
-        )
-
-        # Break this out into its own function
-        if all_input['use custom apex names']:
-            top_name = all_input['top apex custom name']
-            left_name = all_input['left apex custom name']
-            right_name = all_input['right apex custom name']
-        else:
-            tops, lefts, rights = parse_ternary_type(all_input['ternary type'], all_input)
-            top_name = '+'.join(tops)
-            left_name = '+'.join(lefts)
-            right_name = '+'.join(rights)
-
-        if all_input['title']:
-            title = all_input['title']
-        else:
-            title = 'Untitled'
-
-        fig = plot_ternary([plot_data], title, top_name, left_name, right_name)
-
-        fig.show()
-
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d-%H-%M-%S")
-
-        html_fname = f"ternary_{title.replace(' ', '_')}_{timestamp}.html"
-
-        fig.write_html(os.path.join(self.img_dir, html_fname))
-        QMessageBox.information(
-            self, 
-            'New Image File', 
-            f'New image written to disk: {os.path.join(self.img_dir, html_fname)}')
-
-        png_fname = f"ternary_{title.replace(' ', '_')}_{timestamp}.png"
-
-        fig.write_image(os.path.join(self.img_dir, png_fname), scale=10, engine='kaleido') # TODO don't hardcode scale
-        QMessageBox.information(
-            self, 
-            'New Image File', 
-            f'New image written to disk: {os.path.join(self.img_dir, png_fname)}') # TODO don't hardcode PNG; allow JPG (in Advanced Settings)
+            QMessageBox.critical(self, "Error", "There is no ternary diagram to save. Please generate one first.")
 
     def load_data_file(self):
         data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
@@ -480,6 +675,22 @@ class MainWindow(QMainWindow):
                     for i, filter in enumerate(self.filter_dialog.filters_scroll_area.filters)}
         
         return ret
+    
+    def _default_ternary_title(self, ternary_type:str):
+        """
+        Create a default title based off the type of ternary.
+
+        Ex: "A CNK FM Ternary Diagram"
+
+        Args:
+            ternary_type: The type of ternary being plotted. 
+                          Ex: Al2O3 CaO+Na2O+K2O FeOT+MgO
+        """
+        ternary_title = ternary_type.split(" ")
+        ternary_title = [apex.split("+") for apex in ternary_title]
+        ternary_title = [[ox[0] if ox!="MnO" else "Mn" for ox in apex] for apex in ternary_title]
+        ternary_title = " ".join(["".join(apex) for apex in ternary_title])
+        return ternary_title + " Ternary Diagram"
 
     def generate_diagram(self):
         if self.df is None:
@@ -509,23 +720,28 @@ class MainWindow(QMainWindow):
 
         # Break this out into its own function
         if all_input['use custom apex names']:
-            top_name = all_input['top apex custom name']
-            left_name = all_input['left apex custom name']
+            top_name   = all_input['top apex custom name']
+            left_name  = all_input['left apex custom name']
             right_name = all_input['right apex custom name']
         else:
             tops, lefts, rights = parse_ternary_type(all_input['ternary type'], all_input)
-            top_name = '+'.join(tops)
-            left_name = '+'.join(lefts)
+            top_name   = '+'.join(tops)
+            left_name  = '+'.join(lefts)
             right_name = '+'.join(rights)
 
         if all_input['title']:
             title = all_input['title']
         else:
-            title = 'Untitled'
+            title = self._default_ternary_title(all_input['ternary type'])
 
         fig = plot_ternary([plot_data], title, top_name, left_name, right_name)
+        self.current_figure = fig
 
-        fig.show()
+        # Convert the figure to HTML
+        html_string = fig.to_html(include_plotlyjs='cdn')
+
+        # Set the HTML content to the QWebEngineView
+        self.ternary_view.setHtml(html_string)
     
     def update_filter_ops(self):
         column_name = self.filter_column.currentText()
@@ -561,21 +777,6 @@ class MainWindow(QMainWindow):
             self.filter_values_list.clear()
             self.filter_val.setCompleter(None)
             self.filter_val2.setCompleter(None)
-
-    def choose_font(self):
-        ok, font = QFontDialog.getFont(QApplication.font(), self)
-        print(ok, type(ok))
-        print(f"font: {font}, type: {type(font)}")  # add this line to debug
-        if ok:
-            QApplication.setFont(QFont(font))
-
-    def choose_font_size(self):
-        font = QApplication.font()
-        current_size = font.pointSize()
-        new_size, ok = QInputDialog.getInt(self, "Choose font size", "Font size:", current_size, 6, 20)
-        if ok:
-            font.setPointSize(new_size)
-            QApplication.setFont(font)
 
 def main():
     sys.excepthook = show_exception
