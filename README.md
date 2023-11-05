@@ -14,7 +14,7 @@ For basic instructions on how to use the Terminal/Command Prompt, see the [New t
 
 ### Automatic
 
-- Download the macOS launcher zipfile from the Mac Launcher Release
+- Download the macOS launcher zipfile from the [macOS Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/mac-launcher/quick-ternaries-mac-launcher.zip)
 - Open the Finder and unzip the launcher by double-clicking the zipfile
 - Right-click the file `quick-ternaries_mac.command`, click `Open`, and then click `Open Anyway`
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_mac.command` to launch the app.)
@@ -34,7 +34,7 @@ For basic instructions on how to use the Terminal/Command Prompt, see the [New t
 
 ### Automatic
 
-- Download the Windows launcher zipfile from the Windows Launcher Release
+- Download the Windows launcher zipfile from the [Windows Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-launcher/quick-ternaries-windows-launcher.zip)
 - Open the File Browser, click the zipfile, and unzip it by clicking Extract All
 - Right-click the `quick-ternaries_windows.bat` file, click `Run`, and then click `Run Anyway`
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows.bat` to launch the app.)
