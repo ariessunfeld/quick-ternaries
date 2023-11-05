@@ -72,3 +72,27 @@ In the Command Prompt, the process is similar. The easiest way to get to a speci
 
 # Usage
 
+## Loading Data
+
+The first step in using the Quick Ternaries tool is to load your dataset. This can be an `.xlsx` file or `.csv`, both are supported. The tool will try to identify the appropriate header row automatically, so don't worry if you have a few blank rows before the column names.
+
+## Selecting a Ternary Type
+
+After loading data, you need to select a ternary type. This is where you define the axes of your ternary diagram. By default, the tool will assume you want `Al2O3, CaO+Na2O+K2O, FeOT+MgO`. There a few other presets you can choose from, but if you need something not listed, you can choose to use a `Custom` type. This will display a selection interface showing the columns in your loaded data. You can select columns and then click the appropriate arrows to add columns to axes of your diagram. 
+
+For example, if you have a column called `SiO2` in your data, it will appear on the left. If you want `SiO2` to be on the top apex of your ternary diagram, click `SiO2`, and then click the `>>` arrow for the `Top` box. If you make a mistake, you can click the item in any box and click the `<<` arrow to put it back.
+
+## Filtering
+
+TODO, multiple filters, etc
+
+## Adding a Heatmap
+
+TODO, setting range bounds, default values, etc
+
+## TODO - more sections
+
+TODO
+
+
+
