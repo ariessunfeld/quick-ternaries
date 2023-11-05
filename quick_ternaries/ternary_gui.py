@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
     QSpacerItem, QSizePolicy, QCompleter, QMessageBox, QInputDialog, QDialog, 
     QLineEdit, QStackedWidget)
 
-from PySide6.QtCore import Qt, QSize, QUrl
-from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices, QColor, QPainter, QBrush
+from PySide6.QtCore import Qt, QSize, QUrl, QEvent
+from PySide6.QtGui import QIcon, QFont, QFontDatabase, QDesktopServices, QColor, QPainter, QBrush, QPalette, QImage, QPixmap
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 import pandas as pd
@@ -26,6 +26,7 @@ from quick_ternaries.advanced_widgets import AdvancedSettingsDialog, InfoButton
 from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
 from quick_ternaries.ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
+from quick_ternaries.configuration import Config, Preprocess
 
 def show_exception(type, value, tb):
     """Exception Hook"""
@@ -85,8 +86,33 @@ class CustomTabButton(QPushButton):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.setCheckable(True)
-        self.setStyleSheet("CustomTabButton { background-color: white; }"
-                           "CustomTabButton:checked { background-color: darkgrey; }")
+        self._is_updating_style = False  # Guard flag
+        self.updateStyleSheet()
+
+    def updateStyleSheet(self):
+        if self._is_updating_style:
+            return  # Return immediately if the update is already in progress
+
+        self._is_updating_style = True
+        try:
+            palette = self.palette()
+            if self.isDarkMode(palette):
+                bg_color = palette.color(QPalette.ColorRole.Button).darker(50).name()
+                checked_color = palette.color(QPalette.ColorRole.Highlight).name()
+            else:
+                bg_color = palette.color(QPalette.ColorRole.Button).lighter(150).name()
+                checked_color = palette.color(QPalette.ColorRole.Highlight).darker(150).name()
+
+            self.setStyleSheet(f"""
+                CustomTabButton {{
+                    background-color: {bg_color};
+                }}
+                CustomTabButton:checked {{
+                    background-color: {checked_color};
+                }}
+            """)
+        finally:
+            self._is_updating_style = False  # Reset the guard flag
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -95,6 +121,15 @@ class CustomTabButton(QPushButton):
         painter.drawRect(self.rect())
         
         super().paintEvent(event)
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.PaletteChange:
+            self.updateStyleSheet()
+        super().changeEvent(event)  # Pass the event to the base class implementation
+
+    @staticmethod
+    def isDarkMode(palette):
+        return palette.color(QPalette.ColorRole.Base).lightness() < palette.color(QPalette.ColorRole.Text).lightness()
 
 class MainWindow(QMainWindow):
     """
@@ -126,7 +161,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ternary Diagram Creator")
 
     def add_new_tab(self, name, layout):
-        # Create a button that acts as a tab
+        """
+        Create a button that acts as a tab
+        """
         tab_button = CustomTabButton(name)
         tab_index = self.content_stack.count()  # Get the index for the new tab
         tab_button.clicked.connect(lambda: self.change_tab(tab_index))
@@ -166,14 +203,24 @@ class MainWindow(QMainWindow):
                 self.title_label = QLabel()
                 self.title_label.setFont(self.custom_font)
                 self.title_label.setTextFormat(Qt.RichText) # Enable rich text for hyperlink styling
-                self.title_label.setText(
-                    '<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
-                    'style="color: black; text-decoration:none;">' +
-                    'quick ternaries' +
-                    '</a>'
-                )
+                self.updateTitleLabelColor()  # Call a method to set the text color based on the current theme
                 self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
                 self.title_label.setOpenExternalLinks(True) # Allow the label to open links
+
+    def updateTitleLabelColor(self):
+        """
+        Update the title label hyperlink color based on the current theme.
+        """
+        # Check the palette to determine if it's dark mode
+        palette = self.palette()
+        is_dark_mode = palette.color(QPalette.Base).lightness() < palette.color(QPalette.Text).lightness()
+        color = 'white' if is_dark_mode else 'black'  # Choose color based on the theme
+        self.title_label.setText(
+            f'<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
+            f'style="color: {color}; text-decoration:none;">' +
+            'quick ternaries' +
+            '</a>'
+        )
 
     def setup_sidebar(self):
         # Assuming you want to add the existing layouts as tab content
@@ -233,23 +280,54 @@ class MainWindow(QMainWindow):
         Layout for control panel title. Includes the 'quick ternaries' title logo and a settings
         button that is displayed as a gear icon.
         """
-        current_directory = Path(__file__).resolve().parent
-        settings_icon_path = current_directory / 'assets' / 'icons' / 'settings_icon.png'
-        settings_icon_path_str = str(settings_icon_path)
-        
-        self.settings_button = QPushButton(self)
-        self.settings_button.clicked.connect(self.open_settings)
-        self.settings_button.setIcon(QIcon(settings_icon_path_str))
-        self.settings_button.setStyleSheet('border: none;') # Remove the button outline
-        self.settings_button.setIconSize(QSize(20, 20))
-        self.settings_button.setFixedSize(20, 20)
-        self.settings_button.setCursor(Qt.PointingHandCursor) # Change cursor to pointing hand on hover
-
+        self.settings_button = self.create_settings_button()
         title_settings_layout = QHBoxLayout()
         title_settings_layout.addWidget(self.title_label)
         title_settings_layout.addStretch(1) # Push title to the left and settings to the right
         title_settings_layout.addWidget(self.settings_button)
         self.left_side_layout.insertLayout(0, title_settings_layout) # Insert at the top of the left side
+
+    def create_settings_button(self):
+        """
+        Create and style the settings button, then update the icon.
+        """
+        button = QPushButton(self)
+        button.clicked.connect(self.open_settings)
+        button.setStyleSheet('border: none;')
+        button.setIconSize(QSize(20, 20))
+        button.setFixedSize(20, 20)
+        button.setCursor(Qt.PointingHandCursor)
+        self.updateSettingsIcon(button)
+        return button
+
+    def updateSettingsIcon(self, button):
+        """
+        Update the settings icon based on the current theme.
+        """
+        icon_path = str(Path(__file__).resolve().parent / 'assets' / 'icons' / 'settings_icon.png')
+        icon = QIcon(icon_path) if not self.isDarkMode(self.palette()) else self.invertIconColors(icon_path)
+        button.setIcon(icon)
+
+    def invertIconColors(self, icon_path):
+        """
+        Invert the opaque colors of an icon.
+        """
+        image = QImage(icon_path).convertToFormat(QImage.Format_ARGB32)
+        self._invert_image_colors(image)
+        return QIcon(QPixmap.fromImage(image))
+
+    def _invert_image_colors(self, image):
+        """
+        Invert the RGB channels of an image without affecting fully transparent pixels.
+        """
+        for x in range(image.width()):
+            for y in range(image.height()):
+                original_color = image.pixelColor(x, y)
+                if original_color.alpha() != 0:
+                    image.setPixelColor(x, y, QColor(255 - original_color.red(),
+                                                     255 - original_color.green(),
+                                                     255 - original_color.blue(),
+                                                     original_color.alpha()))
 
     def setup_file_loader_layout(self):
         """
@@ -309,11 +387,11 @@ class MainWindow(QMainWindow):
             self.selected_values_lists[i] = list_widget
 
             add_btn = QPushButton("Add >>")
-            add_btn.clicked.connect(lambda _, lw=list_widget: self.add_column(lw))
+            add_btn.clicked.connect(lambda *args, lw=list_widget: self.add_column(lw))
             vbox_layout.addWidget(add_btn)
 
             remove_btn = QPushButton("Remove <<")
-            remove_btn.clicked.connect(lambda _, lw=list_widget: self.remove_value(lw))
+            remove_btn.clicked.connect(lambda *args, lw=list_widget: self.remove_value(lw))
             vbox_layout.addWidget(remove_btn)
 
             inner_grid_layout.addLayout(vbox_layout, 0, 0)
@@ -775,7 +853,7 @@ class MainWindow(QMainWindow):
         
         return ret
     
-    def _default_ternary_title(self, ternary_type:str):
+    def _appex_abbr(self, ternary_type:str):
         """
         Create a default title based off the type of ternary.
 
@@ -789,7 +867,7 @@ class MainWindow(QMainWindow):
         ternary_title = [apex.split("+") for apex in ternary_title]
         ternary_title = [[ox[0] if ox!="MnO" else "Mn" for ox in apex] for apex in ternary_title]
         ternary_title = " ".join(["".join(apex) for apex in ternary_title])
-        return ternary_title + " Ternary Diagram"
+        return ternary_title
 
     def generate_diagram(self):
         if self.df is None:
@@ -804,19 +882,6 @@ class MainWindow(QMainWindow):
 
         df = add_molar_columns(df, all_input)
 
-        plot_data = make_ternary_trace(
-            df,
-            'top_apex_molar_normed',
-            'left_apex_molar_normed',
-            'right_apex_molar_normed',
-            use_heatmap=all_input['use heatmap'],
-            heatmap_col=all_input['heatmap column'],
-            cmin=all_input['heatmap color min'],
-            cmax=all_input['heatmap color max'],
-            size=all_input['point size']
-            #color_col=all_input['heatmap column']
-        )
-
         # Break this out into its own function
         if all_input['use custom apex names']:
             top_name   = all_input['top apex custom name']
@@ -827,13 +892,28 @@ class MainWindow(QMainWindow):
             top_name   = '+'.join(tops)
             left_name  = '+'.join(lefts)
             right_name = '+'.join(rights)
+        apices = [top_name,left_name,right_name]
 
         if all_input['title']:
             title = all_input['title']
         else:
-            title = self._default_ternary_title(all_input['ternary type'])
+            title = self._appex_abbr(all_input['ternary type']) + " Ternary Diagram"
 
-        fig = plot_ternary([plot_data], title, top_name, left_name, right_name)
+        if all_input['use heatmap']:
+            colormap = all_input['heatmap column']
+            cmin     = float(all_input['heatmap color min'])
+            cmax     = float(all_input['heatmap color max'])
+        else:
+            colormap = None
+            cmin     = None
+            cmax     = None
+
+        config = Config(df, colormap, cmin, cmax, symbol=None, size=all_input['point size'])
+
+        formula_list = all_input['ternary type'].split(" ")
+        formula_list = [apex.split("+") for apex in formula_list]
+
+        fig = config.graph_ternary(title, formula_list, apices, None, None)
 
         # Adjust figure padding so it fits in the render window
         fig.update_layout(
@@ -847,7 +927,7 @@ class MainWindow(QMainWindow):
 
         # Set the HTML content to the QWebEngineView
         self.ternary_view.setHtml(html_string)
-    
+
     def update_filter_ops(self):
         column_name = self.filter_column.currentText()
         if column_name:  # If there is a selected column
@@ -882,6 +962,10 @@ class MainWindow(QMainWindow):
             self.filter_values_list.clear()
             self.filter_val.setCompleter(None)
             self.filter_val2.setCompleter(None)
+
+    @staticmethod
+    def isDarkMode(palette):
+        return palette.color(QPalette.ColorRole.Base).lightness() < palette.color(QPalette.ColorRole.Text).lightness()
 
 def main():
     sys.excepthook = show_exception
