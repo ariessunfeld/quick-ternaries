@@ -25,8 +25,7 @@ import plotly.io as pio
 from quick_ternaries.advanced_widgets import AdvancedSettingsDialog, InfoButton
 from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
-from quick_ternaries.ternary_utils import add_molar_columns, make_ternary_trace, plot_ternary, parse_ternary_type
-from quick_ternaries.configuration import Config, Preprocess
+from quick_ternaries.ternary_utils import Config, parse_ternary_type, create_title
 
 def show_exception(type, value, tb):
     """Exception Hook"""
@@ -376,8 +375,7 @@ class MainWindow(QMainWindow):
         self.selected_values_lists = {}
         grid_layout = QGridLayout() 
 
-        apices = ['Top', 'Left', 'Right']
-        for i, apex in enumerate(apices):
+        for i, apex in enumerate(['Top', 'Left', 'Right']):
             inner_grid_layout = QGridLayout()
             vbox_layout = QVBoxLayout()
 
@@ -661,8 +659,6 @@ class MainWindow(QMainWindow):
         else:
             df = self.df
 
-        df = add_molar_columns(df, all_input)
-
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         file_types = "CSV Files (*.csv);;JSON Files (*.json);;Excel Files (*.xlsx);;All Files (*)"
@@ -821,24 +817,23 @@ class MainWindow(QMainWindow):
             self.available_columns_list.addItem(selected_item)
 
     def get_all_input_values(self):
-        """Returns a dictionary with all input parameters from gui"""
+        """Returns a dictionary with all input parameters from GUI"""
         # TODO validation / type checking?
         ret = {
             'file': self.file_label.text(),
             'ternary type': self.diagram_type_combobox.currentText(),
-            'top apex selected values': [
-                self.selected_values_lists[0].item(x).text() \
-                    for x in range(self.selected_values_lists[0].count())],
-            'left apex selected values': [
-                self.selected_values_lists[1].item(x).text() \
-                    for x in range(self.selected_values_lists[1].count())],
-            'right apex selected values': [
-                self.selected_values_lists[2].item(x).text() \
-                    for x in range(self.selected_values_lists[2].count())],
+            'apex custom values': 
+            [
+                [
+                    self.selected_values_lists[apex_index].item(oxide).text()\
+                        for oxide in range(self.selected_values_lists[apex_index].count())
+                        ]\
+                            for apex_index in range(3)
+                            ],
             'use custom apex names': self.apex_names_checkbox.isChecked(),
-            'top apex custom name': self.apex1_name.text(),
-            'left apex custom name': self.apex2_name.text(),
-            'right apex custom name': self.apex3_name.text(),
+            'apex custom names': [self.apex1_name.text(),  # Top apex
+                                  self.apex2_name.text(),  # Left apex
+                                  self.apex3_name.text()], # Right apex
             'title': self.title_field.text(),
             'point size': self.point_size.text(),
             'use heatmap': self.heatmap_checkbox.isChecked(),
@@ -852,22 +847,6 @@ class MainWindow(QMainWindow):
                     for i, filter in enumerate(self.filter_dialog.filters_scroll_area.filters)}
         
         return ret
-    
-    def _appex_abbr(self, ternary_type:str):
-        """
-        Create a default title based off the type of ternary.
-
-        Ex: "A CNK FM Ternary Diagram"
-
-        Args:
-            ternary_type: The type of ternary being plotted. 
-                          Ex: Al2O3 CaO+Na2O+K2O FeOT+MgO
-        """
-        ternary_title = ternary_type.split(" ")
-        ternary_title = [apex.split("+") for apex in ternary_title]
-        ternary_title = [[ox[0] if ox!="MnO" else "Mn" for ox in apex] for apex in ternary_title]
-        ternary_title = " ".join(["".join(apex) for apex in ternary_title])
-        return ternary_title
 
     def generate_diagram(self):
         if self.df is None:
@@ -880,24 +859,12 @@ class MainWindow(QMainWindow):
         else:
             df = self.df
 
-        df = add_molar_columns(df, all_input)
+        formula_list, apex_names = parse_ternary_type(all_input['ternary type'],
+                                                      all_input['apex custom values'],
+                                                      all_input['use custom apex names'],
+                                                      all_input['apex custom names'])
 
-        # Break this out into its own function
-        if all_input['use custom apex names']:
-            top_name   = all_input['top apex custom name']
-            left_name  = all_input['left apex custom name']
-            right_name = all_input['right apex custom name']
-        else:
-            tops, lefts, rights = parse_ternary_type(all_input['ternary type'], all_input)
-            top_name   = '+'.join(tops)
-            left_name  = '+'.join(lefts)
-            right_name = '+'.join(rights)
-        apices = [top_name,left_name,right_name]
-
-        if all_input['title']:
-            title = all_input['title']
-        else:
-            title = self._appex_abbr(all_input['ternary type']) + " Ternary Diagram"
+        title = create_title(formula_list, all_input['title'])
 
         if all_input['use heatmap']:
             colormap = all_input['heatmap column']
@@ -910,10 +877,7 @@ class MainWindow(QMainWindow):
 
         config = Config(df, colormap, cmin, cmax, symbol=None, size=all_input['point size'])
 
-        formula_list = all_input['ternary type'].split(" ")
-        formula_list = [apex.split("+") for apex in formula_list]
-
-        fig = config.graph_ternary(title, formula_list, apices, hover_data=None)
+        fig = config.graph_ternary(title, formula_list, apex_names, hover_data=None)
 
         # Adjust figure padding so it fits in the render window
         fig.update_layout(
