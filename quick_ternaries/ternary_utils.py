@@ -161,7 +161,7 @@ class Config():
             data = {
                 "File": row["File"],
                 "Target": row["Target"],
-                "Target:obs": f"{row['Target']}:{row['Observation Point']}",
+                # "Target:obs": f"{row['Target']}:{row['Observation Point']}",
                 apices[0]: mole_percents[0],
                 apices[1]: mole_percents[1],
                 apices[2]: mole_percents[2],
@@ -238,7 +238,8 @@ class Config():
         custom_data = data[hover_data] if hover_data else None
 
         # Initialize the hover data with <Target>:<Obs point>, bolded and with a larger font size
-        hover_template = "<span style='font-size: 14px;'><b>%{text}</b></span><br>"
+        # hover_template = "<span style='font-size: 14px;'><b>%{text}</b></span><br>"
+        hover_template = ""
 
         # Add the rest of the hover data
         for i, header in enumerate(hover_data):
@@ -272,7 +273,7 @@ class Config():
             b=data[apices[1]],
             c=data[apices[2]],
             mode='markers',
-            text=data["Target:obs"],  # for hover info
+            # text=data["Target:obs"],  # for hover info
             marker=marker_props,
             customdata=custom_data.values,
             hovertemplate=hover_template
@@ -280,14 +281,24 @@ class Config():
 
         fig.add_trace(trace)
 
+        line_style = dict(linecolor = 'grey',
+                          min = 0.01, # Min creates a buffer to prevent problems plotting points on the border of the ternary
+                          linewidth = 2,
+                          ticks = 'outside')
+
         # Configure the layout of the ternary plot
         fig.update_layout(
             ternary={
                 'sum': 1,
-                # Min creates a buffer to prevent problems plotting points on the border of the ternary
-                'aaxis': {'title': apices[0], 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
-                'baxis': {'title': apices[1], 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
-                'caxis': {'title': apices[2], 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
+                'aaxis': dict(
+                    title = apices[0],
+                    **line_style),
+                'baxis': dict(
+                    title = apices[0],
+                    **line_style),
+                'caxis': dict(
+                    title = apices[0],
+                    **line_style),
             },
             title=dict(
                 text=title,
@@ -302,16 +313,16 @@ class Config():
         )
 
         if darkmode:
+            line_style = dict(tickcolor='white',
+                              linecolor = 'white')
             fig.update_layout(
                 font = {
                     'color': 'white'  # Set font color to white
                 },
-                xaxis = {
-                    'gridcolor': 'grey'
-                },
-                yaxis = {
-                    'gridcolor': 'grey'
-                }
+                ternary = dict(
+                    aaxis = line_style,
+                    baxis = line_style,
+                    caxis = line_style)
             )
 
         return fig
