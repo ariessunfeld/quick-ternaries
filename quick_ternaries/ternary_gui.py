@@ -913,7 +913,7 @@ class MainWindow(QMainWindow):
         formula_list = all_input['ternary type'].split(" ")
         formula_list = [apex.split("+") for apex in formula_list]
 
-        fig = config.graph_ternary(title, formula_list, apices, None, None)
+        fig = config.graph_ternary(title, formula_list, apices, hover_data=None)
 
         # Adjust figure padding so it fits in the render window
         fig.update_layout(

@@ -287,8 +287,7 @@ class Config():
             title: str,
             formula_list: list,
             apices: list,
-            hover_data: list = None,
-            highlight: list = None
+            hover_data: list = None
             ) -> go.Scatterternary:
         """
         Create a ternary diagram using Plotly Express.
@@ -299,10 +298,6 @@ class Config():
             apices: A list of the apex names.
             hover_data: A list of column headers from your input data file to 
                         include in the figures hover data (only accessible through html files).
-            highlight: A list where the first value is a column name, the following values
-                       correspond to points to highlight, and the last value is the highlight 
-                       color.
-                       (ex: ["Sol", "314", "15", "red"])
 
         Returns:
             fig: A Plotly Express ternary scatter plot.
@@ -312,9 +307,6 @@ class Config():
         cmax     = self.cmax
         symbol   = self.symbol
         size     = self.size
-
-        if highlight:
-            hover_data.append(highlight[0])
 
         data = self._ternary_data(formula_list, apices, hover_data)
 
@@ -391,31 +383,5 @@ class Config():
             ),
             legend_orientation='h'
         )
-
-        # Highlighting specific points if highlight data is provided
-        if highlight:
-            col = highlight[0]
-            vals = highlight[1:-1]
-            color = highlight[-1]
-            # Correct the type of the values if they're numeric
-            if all(map(lambda x: x.replace(".", "").isnumeric(), vals)):
-                vals = list(map(float, vals))
-            highlight_data = data[data[col].isin(vals)]
-
-            highlight_trace = go.Scatterternary(
-                a=highlight_data[apices[0]],
-                b=highlight_data[apices[1]],
-                c=highlight_data[apices[2]],
-                mode='markers',
-                marker=dict(
-                    color='rgba(255, 255, 255, 0)',  # Transparent markers
-                    line=dict(width=size / 5, color=color),
-                    size=1.5 * size,
-                ),
-                name="".join(col + " " + ", ".join(map(str, vals))),
-                hoverinfo='skip'  # Skip the hover information for these points
-            )
-
-            fig.add_trace(highlight_trace)
 
         return fig
