@@ -201,7 +201,8 @@ class Config():
             title: str,
             formula_list: list,
             apices: list,
-            hover_data: list = None
+            hover_data: list = None,
+            darkmode: bool = False
             ) -> go.Scatterternary:
         """
         Create a ternary diagram using Plotly Express.
@@ -295,8 +296,23 @@ class Config():
                 xanchor='center',
                 yanchor='top'
             ),
-            legend_orientation='h'
+            legend_orientation='h',
+            plot_bgcolor  = 'rgba(0, 0, 0, 0)',  # Set background color to transparent
+            paper_bgcolor = 'rgba(0, 0, 0, 0)',  # Set paper color to transparent
         )
+
+        if darkmode:
+            fig.update_layout(
+                font = {
+                    'color': 'white'  # Set font color to white
+                },
+                xaxis = {
+                    'gridcolor': 'grey'
+                },
+                yaxis = {
+                    'gridcolor': 'grey'
+                }
+            )
 
         return fig
 

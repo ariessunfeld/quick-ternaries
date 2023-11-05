@@ -605,6 +605,7 @@ class MainWindow(QMainWindow):
         Initialize the QWebEngineView widget that will display the ternary plot.
         """
         self.ternary_view = QWebEngineView()
+        self.ternary_view.page().setBackgroundColor(Qt.transparent)
         self.ternary_view.loadFinished.connect(self.on_load_finished)
         self.ternary_plot_layout.addWidget(self.ternary_view)
 
@@ -877,7 +878,7 @@ class MainWindow(QMainWindow):
 
         config = Config(df, colormap, cmin, cmax, symbol=None, size=all_input['point size'])
 
-        fig = config.graph_ternary(title, formula_list, apex_names, hover_data=None)
+        fig = config.graph_ternary(title, formula_list, apex_names, hover_data=None, darkmode=self.isDarkMode(self.palette()))
 
         # Adjust figure padding so it fits in the render window
         fig.update_layout(
