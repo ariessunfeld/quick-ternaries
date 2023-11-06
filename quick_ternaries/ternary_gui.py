@@ -162,18 +162,24 @@ class MainWindow(QMainWindow):
 
     def add_new_tab(self, name, layout):
         """
-        Create a button that acts as a tab
+        Create a button that acts as a tab and insert it above the "+ New Tab" button
         """
         tab_button = CustomTabButton(name)
         tab_index = self.content_stack.count()  # Get the index for the new tab
-        tab_button.clicked.connect(lambda: self.change_tab(tab_index))
-        self.sidebar_layout.addWidget(tab_button)
+        
+        # Updated lambda function
+        tab_button.clicked.connect(lambda checked=False, index=tab_index: self.change_tab(index))
         tab_button.setCursor(Qt.PointingHandCursor)
+
+        # Insert the new tab button above the "+ New Tab" button
+        new_tab_index = self.sidebar_layout.indexOf(self.new_tab_button)
+        self.sidebar_layout.insertWidget(new_tab_index, tab_button)
 
         # Create a content widget and set the passed layout to it
         content_widget = QWidget()
         content_widget.setLayout(layout)
         self.content_stack.addWidget(content_widget)
+
 
     def change_tab(self, index):
         # Set the current index of the stack to the content associated with the tab
@@ -182,8 +188,38 @@ class MainWindow(QMainWindow):
         # Uncheck all other buttons (tabs)
         for button_index in range(self.sidebar_layout.count()):
             button = self.sidebar_layout.itemAt(button_index).widget()
-            if isinstance(button, QPushButton):
+            if isinstance(button, CustomTabButton):
                 button.setChecked(button_index == index)
+
+    def create_new_tab(self):
+        # Generate a name for the new tab
+        new_tab_name = f"Trace {self.content_stack.count()}"
+        
+        # Add the new tab
+        self.add_new_tab(new_tab_name, self.trace_config_layout)
+        
+        # Switch to the new tab (optional)
+        self.change_tab(self.content_stack.count() - 1)
+
+    def setup_sidebar(self):
+        # Create the "+ New Tab" button
+        self.new_tab_button = CustomTabButton("+ Add Trace")
+        self.new_tab_button.clicked.connect(self.create_new_tab)
+        self.new_tab_button.setCursor(Qt.PointingHandCursor)
+
+        # Add existing tabs
+        self.add_new_tab("Start Setup", self.start_setup_layout)
+        self.add_new_tab("Trace 1", self.trace_config_layout)
+
+        # Add the "+ New Tab" button to the sidebar_layout
+        self.sidebar_layout.addWidget(self.new_tab_button)
+
+        self.sidebar_layout.setAlignment(Qt.AlignTop)
+        # self.sidebar_layout.setSpacing(0)  # Remove space between buttons, if desired
+
+        # Add the sidebar_layout to the main controls_layout
+        self.controls_layout.addLayout(self.sidebar_layout)
+        self.controls_layout.addWidget(self.content_stack, 3)
 
     def setup_fonts(self):
         """
@@ -222,16 +258,6 @@ class MainWindow(QMainWindow):
             '</a>'
         )
 
-    def setup_sidebar(self):
-        # Assuming you want to add the existing layouts as tab content
-        self.add_new_tab("Start Setup", self.start_setup_layout)
-        self.add_new_tab("Trace Configuration", self.trace_config_layout)
-
-        self.sidebar_layout.setAlignment(Qt.AlignTop)
-        # self.sidebar_layout.setSpacing(0)  # Remove space between buttons
-
-        self.controls_layout.addLayout(self.sidebar_layout)
-        self.controls_layout.addWidget(self.content_stack, 3)
 
     def setup_layouts(self):
         """
@@ -305,21 +331,15 @@ class MainWindow(QMainWindow):
         Update the settings icon based on the current theme.
         """
         icon_path = str(Path(__file__).resolve().parent / 'assets' / 'icons' / 'settings_icon.png')
-        icon = QIcon(icon_path) if not self.isDarkMode(self.palette()) else self.invertIconColors(icon_path)
+        icon = QIcon(icon_path) if not self.isDarkMode(self.palette()) else self.invertImgColors(icon_path)
         button.setIcon(icon)
 
-    def invertIconColors(self, icon_path):
+    def invertImgColors(self, img_path):
         """
-        Invert the opaque colors of an icon.
+        Invert the opaque colors of an image.
         """
-        image = QImage(icon_path).convertToFormat(QImage.Format_ARGB32)
-        self._invert_image_colors(image)
-        return QIcon(QPixmap.fromImage(image))
+        image = QImage(img_path).convertToFormat(QImage.Format_ARGB32)
 
-    def _invert_image_colors(self, image):
-        """
-        Invert the RGB channels of an image without affecting fully transparent pixels.
-        """
         for x in range(image.width()):
             for y in range(image.height()):
                 original_color = image.pixelColor(x, y)
@@ -328,6 +348,8 @@ class MainWindow(QMainWindow):
                                                      255 - original_color.green(),
                                                      255 - original_color.blue(),
                                                      original_color.alpha()))
+
+        return QIcon(QPixmap.fromImage(image))
 
     def setup_file_loader_layout(self):
         """
