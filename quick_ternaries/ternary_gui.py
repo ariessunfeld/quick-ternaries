@@ -153,6 +153,7 @@ class MainWindow(QMainWindow):
         set the window title.
         """
         super().__init__()
+        self.initialized = False
         self.current_figure = None 
         self.df = None
         self.setup_fonts()
@@ -609,7 +610,6 @@ class MainWindow(QMainWindow):
         """
         self.ternary_view = QWebEngineView()
         self.ternary_view.page().setBackgroundColor(Qt.transparent)
-        self.ternary_view.loadFinished.connect(self.on_load_finished)
         self.ternary_plot_layout.addWidget(self.ternary_view)
 
     def finalize_layout(self, main_layout: QHBoxLayout):
@@ -626,7 +626,11 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
         self.update_visibility()
-        self.resize(1200, 600)
+
+        # Resize the window when the app first starts to make room for the ternary render view
+        if not self.initialized:
+            self.resize(1200, 600)
+            self.initialized = True
 
     def open_settings(self):
         """
@@ -634,16 +638,6 @@ class MainWindow(QMainWindow):
         """
         self.settings_dialog = SettingsDialog(self)
         self.settings_dialog.exec()
-
-    def on_load_finished(self, ok):
-        if ok:  # Check if the page loaded successfully
-            # Obtain the size of the content
-            content_size = self.ternary_view.page().contentsSize().toSize()
-            # Adjust the size of the ternary_view if necessary
-            self.ternary_view.resize(content_size.width(), content_size.height())
-            # Optionally, adjust the main window size
-            self.adjustSize()
-
 
     def update_advanced_visibility(self):
         pass
