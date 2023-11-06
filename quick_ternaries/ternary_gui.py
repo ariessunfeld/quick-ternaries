@@ -877,10 +877,17 @@ class MainWindow(QMainWindow):
         self.current_figure = fig
 
         # Convert the figure to HTML
-        html_string = fig.to_html(include_plotlyjs='cdn')
+        html_string = fig.to_html(include_plotlyjs=True)
 
-        # Set the HTML content to the QWebEngineView
-        self.ternary_view.setHtml(html_string)
+        # Make sure the 'resources' directory exists
+        save_path = os.path.join('resources', 'ternary.html')
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+        # Save the HTML content to the file
+        with open(save_path, 'w', encoding='utf-8') as file:
+            file.write(html_string)
+
+        self.ternary_view.load(QUrl.fromLocalFile(os.path.abspath(save_path)))
 
     def update_filter_ops(self):
         column_name = self.filter_column.currentText()
