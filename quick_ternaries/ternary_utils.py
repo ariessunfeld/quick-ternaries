@@ -200,7 +200,7 @@ class Config():
             self,
             title: str,
             formula_list: list,
-            apices: list,
+            apex_names: list,
             hover_data: list = None,
             darkmode: bool = False
             ) -> go.Scatterternary:
@@ -210,7 +210,7 @@ class Config():
         Arguments:
             title: A title for the plot
             formula_list: A list of the apex formulas.
-            apices: A list of the apex names.
+            apex_names: A list of the apex names.
             hover_data: A list of column headers from your input data file to 
                         include in the figures hover data (only accessible through html files).
 
@@ -223,7 +223,7 @@ class Config():
         symbol   = self.symbol
         size     = self.size
 
-        data = self._ternary_data(formula_list, apices, hover_data)
+        data = self._ternary_data(formula_list, apex_names, hover_data)
 
         wtp_hover = []
         for apex in formula_list:
@@ -269,9 +269,9 @@ class Config():
             )
 
         trace = go.Scatterternary(
-            a=data[apices[0]],
-            b=data[apices[1]],
-            c=data[apices[2]],
+            a=data[apex_names[0]],
+            b=data[apex_names[1]],
+            c=data[apex_names[2]],
             mode='markers',
             # text=data["Target:obs"],  # for hover info
             marker=marker_props,
@@ -291,13 +291,13 @@ class Config():
             ternary={
                 'sum': 1,
                 'aaxis': dict(
-                    title = apices[0],
+                    title = apex_names[0],
                     **line_style),
                 'baxis': dict(
-                    title = apices[0],
+                    title = apex_names[1],
                     **line_style),
                 'caxis': dict(
-                    title = apices[0],
+                    title = apex_names[2],
                     **line_style),
             },
             title=dict(
@@ -358,6 +358,10 @@ def parse_ternary_type(t_type: str,
         apex_names = custom_apex_names
     else:
         apex_names = formula_list
+    
+    for i in range(3):
+        if not apex_names[i]:
+            apex_names[i] = formula_list[i]
     
     formula_list = [apex.split("+") for apex in formula_list]
 

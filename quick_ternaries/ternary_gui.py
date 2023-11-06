@@ -583,14 +583,17 @@ class MainWindow(QMainWindow):
         # Button to generate the ternary diagram preview
         self.generate_button = QPushButton("Preview Ternary")
         self.generate_button.clicked.connect(self.generate_diagram)  # Connect the button to its action
+        self.generate_button.setCursor(Qt.PointingHandCursor)
 
         # Button to save the generated ternary diagram
         self.save_ternary_button = QPushButton("Save Ternary")
         self.save_ternary_button.clicked.connect(self.save_ternary_figure)
+        self.save_ternary_button.setCursor(Qt.PointingHandCursor)
 
         # Button to save the filtered data if any filters are applied
         self.save_filtered_data_button = QPushButton("Save Filtered Data")
         self.save_filtered_data_button.clicked.connect(self.save_filtered_data)
+        self.save_filtered_data_button.setCursor(Qt.PointingHandCursor)
 
         # Add buttons to the layout
         bottom_buttons.addWidget(self.generate_button)
