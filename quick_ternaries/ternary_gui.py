@@ -410,9 +410,6 @@ class MainWindow(QMainWindow):
         Customize the display names of the apices. These widgets are only visible when the user 
         checks the 'Customize apex display names' option.
         """
-        self.apex_names_checkbox = QCheckBox('Customize apex display names')
-        self.apex_names_checkbox.stateChanged.connect(self.update_visibility)
-        self.start_setup_layout.addWidget(self.apex_names_checkbox)
 
         # Line edits and labels for custom apex names, added to QHBoxLayouts for organization
         self.custom_apex_name_widgets = []
@@ -772,7 +769,6 @@ class MainWindow(QMainWindow):
             self.filter_dialog.hide()
         self.show_filters_button.setVisible(is_filter and self.filter_dialog.isHidden())
         is_custom_type = self.diagram_type_combobox.currentText() == 'Custom'
-        use_custom_apex_names = self.apex_names_checkbox.isChecked()
         for widget in self.custom_type_widgets:
             widget.setVisible(is_custom_type)
         is_heatmap = self.heatmap_checkbox.isChecked()
@@ -783,8 +779,6 @@ class MainWindow(QMainWindow):
         self.heatmap_color_max.setVisible(is_heatmap)
         self.heatmap_color_max_label.setVisible(is_heatmap)
         self.heatmap_range_info_button.setVisible(is_heatmap)
-        for lt in self.custom_apex_name_widgets:
-            lt.setVisible(use_custom_apex_names)
 
     def update_filter_visibility(self):
         is_filter = self.filter_checkbox.isChecked()
@@ -828,7 +822,6 @@ class MainWindow(QMainWindow):
                         ]\
                             for apex_index in range(3)
                             ],
-            'use custom apex names': self.apex_names_checkbox.isChecked(),
             'apex custom names': [self.apex1_name.text(),  # Top apex
                                   self.apex2_name.text(),  # Left apex
                                   self.apex3_name.text()], # Right apex
@@ -859,7 +852,6 @@ class MainWindow(QMainWindow):
 
         formula_list, apex_names = parse_ternary_type(all_input['ternary type'],
                                                       all_input['apex custom values'],
-                                                      all_input['use custom apex names'],
                                                       all_input['apex custom names'])
 
         title = create_title(formula_list, all_input['title'])

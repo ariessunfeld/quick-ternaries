@@ -330,7 +330,6 @@ class Config():
 
 def parse_ternary_type(t_type: str, 
                        custom_t_type: list[str]=None,
-                       use_custom_apex_names: bool=False,
                        custom_apex_names: list[str]=None) -> tuple(list[str]):
     """
     Parse the apice oxides to use in the final ternary.
@@ -340,7 +339,6 @@ def parse_ternary_type(t_type: str,
                 "SiO2+Al2O3 CaO+NaO+K2O FeOT+MgO", or "Al2O3 CaO+Na2O K2O") or "Custom"
         custom_t_type: Custom ternary apex values. 
                        Example: [["SiO2"], ["Al2O3"], ["CaO","MgO"]]
-        use_custom_apex_names: Bool to use custom apex names
         custom_apex_names: 
     Returns:
         (tops, lefts, rights): A tuple containing the oxides to plot on the top, left, and right
@@ -354,11 +352,8 @@ def parse_ternary_type(t_type: str,
     else:
         formula_list = t_type.split(' ')
 
-    if use_custom_apex_names:
-        apex_names = custom_apex_names
-    else:
-        apex_names = formula_list
-    
+    apex_names = custom_apex_names
+
     for i in range(3):
         if not apex_names[i]:
             apex_names[i] = formula_list[i]
