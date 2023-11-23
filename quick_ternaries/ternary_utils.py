@@ -9,324 +9,318 @@ from molmass.molmass import FormulaError
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-class Config():
-    """"
-    Configure data and create a scatter ternary.
-    """
+class MolarMassCalculator:
+    def __init__(self, formula_list):
+        self.formula_list = formula_list
 
-    # Initialization and related methods
-    def __init__(self,
-                 dataframe: pd.DataFrame,
-                 colormap: str = None,
-                 cmin: float = None,
-                 cmax: float = None,
-                 symbol:   str = None,
-                 size:     str = None):
+    def _get_molar_mass(self, formula) -> float:
         """
-        Initialize the Config object with the provided arguments.
+        Obtain the molar mass of an oxide
 
         Arguments:
-            file: A Pandas Dataframe containing all of the data to plot.
-            colormap: The name of the column to use for a colormap.
-            symbol: The name of the column to use for point symbols.
-            size: The name of the column to use for point sizes.
+            formula: some oxide formula (ex: Al2O3, MnO, etc.)
+        Returns:
+            formula_mass: molar mass of input formula
+
+        Raises:
+            Exception: Propagates any exception raised during molar mass calculation.
         """
 
-        # This has all the major oxides, but if you ever need to plot
-        # something else, just add the element to the mass dict.
-        major_oxides = ["Al2O3", "MnO", "MgO", "SiO2", "CaO", "Na2O", "K2O", "TiO2", "FeOT"]
-        # 'FeOT' is handled separately because the `Formula` function
-        # doesn't recognize 'FeOT' and instead calls it 'FeO'
-        mass_dict = {}
-        for oxide in [x for x in major_oxides if x != "FeOT"]:
-            mass_dict[oxide] = Formula(oxide).mass
-        if "FeOT" in major_oxides:
-            mass_dict["FeOT"] = Formula("FeO").mass
+        formula_mass = np.nan # Default value if formula not recognized
+
+        if formula == 'FeOT':
+            formula_mass = Formula('FeO').mass
+        else:
+            try:
+                formula_mass = Formula(formula).mass
+            except Exception as e:
+                raise Exception(f'Error processing "{formula}": {e}')
+        return formula_mass
+        
+    def add_molar_columns(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """
+        Append columns with molar conversions to the dataframe.
+        """
+            
+        # Flatten the list of formulas for easier processing
+        all_formulae = [formula for apex in self.formula_list for formula in apex]
+
+        # Add molar mass columns
+        for formula in all_formulae:
+            try:
+                formula_mass = self._get_molar_mass(formula)
+                molar_col_name = f'__{formula}_molar'
+                dataframe[molar_col_name] = dataframe[formula] / formula_mass
+            except KeyError:
+                print(f'KeyError: Column "{formula}" not found in dataframe.')
+            except Exception as e:
+                print(f'Error processing formula "{formula}": {e}')
+
+        # Calculate normalization values and normalize molar columns
+        molar_columns = [f'__{formula}_molar' for formula in all_formulae]
+        dataframe['__molar_normalization'] = dataframe[molar_columns].sum(axis=1)
+
+        for col in molar_columns:
+            normed_col_name = f'{col}_normed'
+            dataframe[normed_col_name] = dataframe[col] / dataframe['__molar_normalization']
+
+        # Combine values according to formula_list to get apex columns
+        apex_positions = ["top", "left", "right"]
+        for position, apex in zip(apex_positions, self.formula_list):
+            normed_cols = [f'__{formula}_molar_normed' for formula in apex]
+            dataframe[f'{position}_apex_molar_normed'] = dataframe[normed_cols].sum(axis=1)
+
+        return dataframe
+
+class Trace:
+    def __init__(self, 
+                 dataframe: pd.DataFrame, 
+                 formula_list: list, 
+                 apex_names: list):
+        """
+        Initialize the Trace object with a dataframe, a list of formulas, and apex names.
+
+        Args:
+            dataframe: The master datafile with oxide compositions.
+            formula_list: List of elemental formulas for top, left, and right apices.
+            apex_names: Names of the apices.
+        """
+
+        self.dataframe = dataframe.copy()
+        self.formula_list = formula_list
+        self.apex_names = apex_names
+        self.molar_mass_calculator = MolarMassCalculator(formula_list)
+
+    def _trace_data(self, 
+                    symbol: str,
+                    size: float,
+                    colormap: str,
+                    hover_cols: list) -> pd.DataFrame:
+        """
+        Collect trace data into a dictionary.
+
+        Returns:
+            dict: A dictionary containing the data to include in the ternaries.
+        """
+        dataframe  = self.dataframe
+        formula_list = self.formula_list
+        apex_names = self.apex_names
+    
+        self.dataframe = self.molar_mass_calculator.add_molar_columns(self.dataframe)
+
+        # Summing up the weight percent for each apex
+        for apex in zip(self.formula_list, apex_names):
+            dataframe[f"{apex[1]}-wt%"] = np.sum(dataframe[apex[0]], axis=1)
+
+        trace_data = {
+            apex_names[0]: dataframe["top_apex_molar_normed"],
+            apex_names[1]: dataframe["left_apex_molar_normed"],
+            apex_names[2]: dataframe["right_apex_molar_normed"],
+            **{f"{apex}-wt%":    round(dataframe[f"{apex}-wt%"], 5) for apex in apex_names},
+            **{f"{formula}-wt%": round(dataframe[f"{formula}"],  5) for apex in formula_list for formula in apex}
+            }
+        
+        if colormap:
+            trace_data.update({colormap: dataframe[colormap]})
+        if symbol:
+            trace_data.update({symbol: dataframe[symbol]})
+        if size:
+            if isinstance(size, str):
+                trace_data.update({size: dataframe[size]})
+            else:
+                trace_data.update({"Size": size})
+        if hover_cols:
+            for datum in hover_cols:
+                trace_data.update({datum: dataframe[datum]})
+
+        trace_data = pd.DataFrame(trace_data)
+
+        if colormap:
+            # Reorder df so higher colormap values are plotted on top of lower ones.
+            trace_data = trace_data.sort_values(by=colormap, ascending=True)
+        if isinstance(size,str):
+            # Reorder df so that larger points are plotted behind smaller points.
+            trace_data = trace_data.sort_values(by=size, ascending=False)
+
+        return trace_data
+
+    def _hover_menu(self, data:pd.DataFrame, hover_cols:list) -> tuple:
+        """
+        Generate hover data and template for a Plotly trace.
+
+        Args:
+            data: Data to be used for the hover information.
+            hover_cols: List of column names to include in hover information.
+
+        Returns:
+            hover_data, hover_template: The data to include in the hover menu along with its associated HTML formatting.
+        """
+
+        # Prepare hover columns
+        wtp_hover = [f"{formula}-wt%" for apex in self.formula_list for formula in apex]
+        hover_cols = wtp_hover + hover_cols if hover_cols else wtp_hover
+
+        # Construct hover template
+        hover_template = ""
+        for i, header in enumerate(hover_cols):
+            hover_template += f"<br><b>{header}:</b> %{{customdata[{i}]}}"
+
+        hover_template += "<extra></extra>" # Disable default hover text (ex: "Trace 0")
+
+        # Structure hover data
+        hover_data = data[hover_cols].values
+
+        return hover_data, hover_template
+
+    def make_trace(self, 
+                   symbol=None,
+                   size=None,
+                   color=None,
+                   colormap=None,
+                   cmin=None,cmax=None,
+                   hover_cols=None) -> go.Scatterternary:
+        """
+        Create a Plotly Scatterternary trace with the specified properties.
+
+        Args:
+            symbol: Marker symbol.
+            size: Marker size.
+            colormap: Name of the column to use for color mapping.
+            color: Static marker color.
+            cmin: Minimum value for color scale.
+            cmax: Maximum value for color scale.
+            hover_cols: Columns to include in hover information.
+
+        Returns:
+            Scatterternary: A Plotly Scatterternary trace object.
+        """
 
         if size:
             if size.replace(".","").isnumeric():
                 size = float(size)
 
-        self.major_oxides = major_oxides
-        self.mass_dict    = mass_dict
-        self.dataframe    = dataframe
-        self.colormap     = colormap
-        self.cmin         = cmin
-        self.cmax         = cmax
-        self.symbol       = symbol
-        self.size         = size
-
-    # Data processing and calculation methods
-    def _wtp_to_molar(
-            self,
-            file: str,
-            formulas_list: list,
-            masses_dict: dict,
-            comp_data: pd.DataFrame
-            ) -> dict:
-        """
-        Returns a dict with mole percents for each apex's chemical 
-        formula for specific data for an observation point.
-
-        Arguments:
-            file: The target filename
-            formulas_list: A list of lists, each with the constituent chemicals in a formula.
-                ex: formulas_list = [[Al2O3], ['CaO','Na2O','K2O']] 
-                    represents the two formulas: "Al2O3" and "CaO+Na2O+K2O"
-            masses_dict: A dict with grams/mol values for various oxides.
-            comp_data: A df with composition data and headers that 
-                       superset the oxides in formulas_list.
-        Returns:
-            formula_mole_percent: A dict with mole percents for each apex's chemical 
-                                  formula for specific data for an observation point.
-        """
-
-        # Get the corresponding row from the comp_data sheet
-        df_temp = comp_data[comp_data["File"].eq(file)]
-
-        # Go through the list of formulas passed into the
-        # function and get the percentage normalization
-        percentage_normalization = sum(float(list(df_temp[element])[0])
-                                       for formula in formulas_list
-                                       for element in formula)
-
-        # Normalize these percentages and put normalized vals into dict with elements as keys
-        element_percents = {
-            element: 100 * float(list(df_temp[element])[0]) / percentage_normalization
-            for formula in formulas_list 
-            for element in formula
-        }
-
-        # Get the amt. moles for each of these elements based on the percentage, assuming wt = 1kg
-        # This uses the formula mols = wt / mlr wt
-        element_moles = {
-            element: normed_wt_percent / masses_dict[element]
-            for element, normed_wt_percent in element_percents.items()
-        }
-
-        # Get the total molar amt for normalization
-        molar_normalization = sum(element_moles.values())
-
-        # Calculate the molar percents for each element to 3 sig. figs.
-        element_mole_percent = {
-            element: round(100 * molar_value / molar_normalization,3)
-            for element, molar_value in element_moles.items()
-        }
-
-        # Add together the constituent components of each
-        # formula to get the percentages for each apex
-        formula_mole_percent = {
-            tuple(formula): sum(element_mole_percent[element] for element in formula) 
-            for formula in formulas_list
-        }
-
-        return formula_mole_percent
-
-    def _ternary_data(
-            self,
-            formula_list: list,
-            apices: list,
-            hover_data: list
-            ) -> list:
-        """
-        Collect data to be plotted on the ternary diagram.
-
-        Arguments:
-            formula_list: A list of the apex formulas.
-            apices: A list of the apex names.
-            hover_data: A list of column headers from your input data file to include
-                        in the figures hover data (only accessible through html files).
-        
-        Returns:
-            data_list: A Pandas Dataframe containing the data to include in the ternaries.
-        """
-
-        dataframe = self.dataframe
-        mass_dict = self.mass_dict
-        colormap  = self.colormap
-        symbol    = self.symbol
-        size      = self.size
-
-        for apex in zip(formula_list,apices):
-            # The total weight percent for each apex
-            dataframe[f"{apex[1]}-wt%"] = np.sum(dataframe[apex[0]], axis=1)
-
-        data_list = []
-        for _, row in dataframe.iterrows():
-
-            mole_percents = self._wtp_to_molar(row["File"], formula_list, mass_dict, dataframe)
-            mole_percents = list(mole_percents.values())
-            # mole_percents = list(map(lambda x: round(x,5), mole_percents))
-
-            data = {
-                "File": row["File"],
-                "Target": row["Target"],
-                # "Target:obs": f"{row['Target']}:{row['Observation Point']}",
-                apices[0]: mole_percents[0],
-                apices[1]: mole_percents[1],
-                apices[2]: mole_percents[2],
-                "Norm factor": 100,
-                **{f"{apex}-wt%": round(row[f"{apex}-wt%"], 5) for apex in apices},
-                **{f"{oxide}-wt%": round(row[f"{oxide}"], 5) for apex in formula_list for oxide in apex}
-            }
-
-            if colormap:
-                data.update({colormap: row[colormap]})
-            if symbol:
-                data.update({symbol: row[symbol]})
-            if size:
-                if isinstance(size,str):
-                    data.update({size: row[size]})
-                else:
-                    data.update({"Size": size})
-            if hover_data:
-                for datum in hover_data:
-                    data.update({datum: row[datum]})
-            data_list.append(data)
-
-        dataframe = pd.DataFrame(data_list)
-
-        if colormap:
-            # Reorder df so higher colormap values are plotted on top of lower ones.
-            dataframe = dataframe.sort_values(by=colormap, ascending=True)
-        if isinstance(size,str):
-            # Reorder df so that larger points are plotted behind smaller points.
-            dataframe = dataframe.sort_values(by=size, ascending=False)
-
-        return dataframe
-
-    # Plotting methods
-    def graph_ternary(
-            self,
-            title: str,
-            formula_list: list,
-            apex_names: list,
-            hover_data: list = None,
-            darkmode: bool = False
-            ) -> go.Scatterternary:
-        """
-        Create a ternary diagram using Plotly Express.
-
-        Arguments:
-            title: A title for the plot
-            formula_list: A list of the apex formulas.
-            apex_names: A list of the apex names.
-            hover_data: A list of column headers from your input data file to 
-                        include in the figures hover data (only accessible through html files).
-
-        Returns:
-            fig: A Plotly Express ternary scatter plot.
-        """
-        colormap = self.colormap
-        cmin     = self.cmin
-        cmax     = self.cmax
-        symbol   = self.symbol
-        size     = self.size
-
-        data = self._ternary_data(formula_list, apex_names, hover_data)
-
-        wtp_hover = []
-        for apex in formula_list:
-            for oxide in apex:
-                wtp_hover.append(f"{oxide}-wt%")
-        hover_data = wtp_hover + hover_data if hover_data else wtp_hover
-
-        # Create a subplot for ternary plot
-        fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'ternary'}]])
-        
-        # Prepare the custom data for hover in a way compatible with go.Scatterternary
-        custom_data = data[hover_data] if hover_data else None
-
-        # Initialize the hover data with <Target>:<Obs point>, bolded and with a larger font size
-        # hover_template = "<span style='font-size: 14px;'><b>%{text}</b></span><br>"
-        hover_template = ""
-
-        # Add the rest of the hover data
-        for i, header in enumerate(hover_data):
-            hover_template += f"<br><b>{header}:</b> %{{customdata[{i}]}}"
-
-        hover_template += "<extra></extra>" # Disable the text that says "Trace 0"
+        trace_data = self._trace_data(symbol,
+                                      size,
+                                      colormap,
+                                      hover_cols)
 
         # Define default marker properties
-        marker_props = dict(
-            symbol=symbol,
-            size=size,
-            line=dict(width=0.3, color='Black')
-        )
+        marker_props = {
+            "symbol": symbol,
+            "line": dict(width=0.3, color='Black')
+        }
 
-        # If colormap is provided, update marker properties with colormap info
-        if colormap:
-            marker_props.update(
-                color=data[colormap],
-                colorscale='matter',
-                cmin=cmin, cmax=cmax,
-                line=dict(color='rgba(0, 0, 0, 0)'),
-                showscale=True,
-                colorbar=dict(
-                    title=colormap+"-wt%",
+        # Apply dynamic sizing based on a DataFrame column
+        if isinstance(size, str) and size in trace_data.columns:
+            marker_props["size"] = trace_data[size]
+        elif isinstance(size, (int, float)):
+            marker_props["size"] = size
+            
+        if color:
+            marker_props["color"] = color
+        # Update marker properties for color mapping
+        elif colormap:
+            marker_props.update({
+                "color": trace_data[colormap],
+                "colorscale": 'matter',
+                "cmin": cmin, 
+                "cmax": cmax,
+                "line": dict(color='rgba(0, 0, 0, 0)'),
+                "showscale": True,
+                "colorbar": dict(
+                    title=f"{colormap}-wt%",
                     titleside='top'
                 )
-            )
+            })
+
+        hover_data, hover_template = self._hover_menu(trace_data, hover_cols)
 
         trace = go.Scatterternary(
-            a=data[apex_names[0]],
-            b=data[apex_names[1]],
-            c=data[apex_names[2]],
+            a=trace_data[self.apex_names[0]],
+            b=trace_data[self.apex_names[1]],
+            c=trace_data[self.apex_names[2]],
             mode='markers',
-            # text=data["Target:obs"],  # for hover info
             marker=marker_props,
-            customdata=custom_data.values,
+            customdata=hover_data,
             hovertemplate=hover_template
-        )
+            )
+        
+        return trace
+    
+class TernaryGraph:
+    def __init__(self, title: str, apex_names: list, enable_darkmode: bool = False):
+        """
+        Initialize a TernaryGraph object.
 
-        fig.add_trace(trace)
+        Args:
+            title: A title for the plot.
+            apex_names: A list of the apex names.
+            enable_darkmode: Boolean to enable or disable dark mode for the plot.
+        """
+        self.title = title
+        self.apex_names = apex_names
+        self.enable_darkmode = enable_darkmode
+        self.fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'ternary'}]])
 
-        line_style = dict(linecolor = 'grey',
-                          min = 0.01, # Min creates a buffer to prevent problems plotting points on the border of the ternary
-                          linewidth = 2,
-                          ticks = 'outside')
+    def add_trace(self, trace: go.Scatterternary):
+        """
+        Add a trace to the ternary plot.
 
-        # Configure the layout of the ternary plot
-        fig.update_layout(
+        Args:
+            trace: Plotly GO Scatterternary trace object.
+        """
+        self.fig.add_trace(trace)
+
+    def _configure_layout(self):
+        """
+        Configure the layout of the ternary plot.
+        """
+        line_style = dict(linecolor='grey', min=0.01, linewidth=2, ticks='outside')
+        
+        if self.enable_darkmode:
+            line_style.update(tickcolor='white', linecolor='white')
+
+        self.fig.update_layout(
             ternary={
                 'sum': 1,
-                'aaxis': dict(
-                    title = apex_names[0],
-                    **line_style),
-                'baxis': dict(
-                    title = apex_names[1],
-                    **line_style),
-                'caxis': dict(
-                    title = apex_names[2],
-                    **line_style),
+                'aaxis': dict(title=self.apex_names[0], **line_style),
+                'baxis': dict(title=self.apex_names[1], **line_style),
+                'caxis': dict(title=self.apex_names[2], **line_style),
             },
             title=dict(
-                text=title,
-                x=0.5,  # Center alignment of title
-                y=0.95,  # Position the title a little higher to avoid overlap with the plot
+                text=self.title,
+                x=0.5,
+                y=0.95,
                 xanchor='center',
                 yanchor='top'
             ),
             legend_orientation='h',
-            plot_bgcolor  = 'rgba(0, 0, 0, 0)',  # Set background color to transparent
-            paper_bgcolor = 'rgba(0, 0, 0, 0)',  # Set paper color to transparent
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)',
+            font=dict(color='white') if self.enable_darkmode else dict()
         )
 
-        if darkmode:
-            line_style = dict(tickcolor='white',
-                              linecolor = 'white')
-            fig.update_layout(
-                font = {
-                    'color': 'white'  # Set font color to white
-                },
-                ternary = dict(
-                    aaxis = line_style,
-                    baxis = line_style,
-                    caxis = line_style)
-            )
+        # Adjust figure padding so it fits in the render window
+        self.fig.update_layout(
+            margin=dict(l=100, r=100, t=100, b=100)
+        )
 
-        return fig
+    def show(self):
+        """
+        Show the configured ternary plot.
+        """
+        self._configure_layout()
+        self.fig.show()
 
+    def to_html(self):
+        """
+        Convert the ternary plot to HTML.
+
+        Returns:
+            str: HTML representation of the ternary plot.
+        """
+        self._configure_layout()
+        return self.fig.to_html(include_plotlyjs=True)
 
 def parse_ternary_type(t_type: str, 
                        custom_t_type: list[str]=None,

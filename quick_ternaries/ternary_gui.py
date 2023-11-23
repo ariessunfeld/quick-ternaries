@@ -25,7 +25,7 @@ import plotly.io as pio
 from quick_ternaries.advanced_widgets import AdvancedSettingsDialog, InfoButton
 from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
-from quick_ternaries.ternary_utils import Config, parse_ternary_type, create_title
+from quick_ternaries.ternary_utils import TernaryGraph, Trace, parse_ternary_type, create_title
 
 def show_exception(type, value, tb):
     """Exception Hook"""
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
         self.initialized = False
-        self.current_figure = None 
+        self.current_figure = None
         self.df = None
         self.setup_fonts()
         self.setup_layouts()
@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
                 if file_name.endswith('.html'):
                     # Save interactive plot as HTML
                     with open(file_name, 'w', encoding='utf-8') as f:
-                        f.write(self.current_figure.to_html(include_plotlyjs='cdn'))
+                        f.write(self.current_figure.to_html())
                 else:
                     # Save static image. The format is inferred from the extension of the file_name.
                     pio.write_image(self.current_figure, file_name)
@@ -887,19 +887,21 @@ class MainWindow(QMainWindow):
             cmin     = None
             cmax     = None
 
-        config = Config(df, colormap, cmin, cmax, symbol=None, size=all_input['point size'])
+        size=all_input['point size']
 
-        fig = config.graph_ternary(title, formula_list, apex_names, hover_data=None, darkmode=self.isDarkMode(self.palette()))
+        graph = TernaryGraph(title, apex_names, enable_darkmode=self.isDarkMode(self.palette()))
+        data = Trace(df, formula_list, apex_names)
+        graph.add_trace(data.make_trace(symbol=None,
+                                        size=size,
+                                        color=None,
+                                        colormap=colormap,
+                                        cmin=cmin,cmax=cmax,
+                                        hover_cols=None))
 
-        # Adjust figure padding so it fits in the render window
-        fig.update_layout(
-            margin=dict(l=100, r=100, t=100, b=100)
-        )
-
-        self.current_figure = fig
+        self.current_figure = graph
 
         # Convert the figure to HTML
-        html_string = fig.to_html(include_plotlyjs=True)
+        html_string = graph.to_html()
 
         # Make sure the 'resources' directory exists
         save_path = os.path.join('resources', 'ternary.html')
