@@ -18,6 +18,8 @@ from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, Fil
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
 from quick_ternaries.ternary_utils import TernaryGraph, Trace, parse_ternary_type, create_title
 
+#GITHUB_LINK = "https://github.com/ariessunfeld/quick-ternaries"
+GITHUB_LINK = "https://gitlab.lanl.gov"
 
 class CustomTabButton(QWidget):
     def __init__(self,
@@ -167,7 +169,7 @@ class TabManager(QWidget):
 
     def remove_tab(self, tab):
         # Confirm before removing the tab
-        if QMessageBox.question(self, 'Confirm Removal', "Are you sure you want to close this tab?") == QMessageBox.Yes:
+        if QMessageBox.question(self, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
             all_ids = list(self.trace_editors.keys())
             all_ids.sort()
             tab_index = all_ids.index(tab.identifier) + 1
@@ -819,7 +821,7 @@ class LeftSide(QWidget):
         is_dark_mode = palette.color(QPalette.Base).lightness() < palette.color(QPalette.Text).lightness()
         color = 'white' if is_dark_mode else 'black'  # Choose color based on the theme
         self.title_label.setText(
-            f'<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
+            f'<a href={GITHUB_LINK} ' +
             f'style="color: {color}; text-decoration:none;">' +
             'quick ternaries' +
             '</a>'
