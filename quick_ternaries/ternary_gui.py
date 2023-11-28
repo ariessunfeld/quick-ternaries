@@ -138,16 +138,16 @@ class TabManager(QWidget):
     def add_trace(self):
         start_setup_data = self.start_setup.get_data()
 
-        # if start_setup_data["file"] == "No file selected":
-        #     QMessageBox.critical(self, "Error", "Please select data file")
-        # else:
-        self.tab_counter += 1
+        if start_setup_data["file"] == "No file selected":
+            QMessageBox.critical(self, "Error", "Please select data file")
+        else:
+            self.tab_counter += 1
 
-        new_trace_editor = TraceEditor(self.start_setup.df)
+            new_trace_editor = TraceEditor(self.start_setup.df)
 
-        tab_id = str(self.tab_counter)  # Unique identifier for the tab
-        self.trace_editors[tab_id] = new_trace_editor
-        self.add_tab(f"Trace {tab_id}", new_trace_editor.trace_config_layout)
+            tab_id = str(self.tab_counter)  # Unique identifier for the tab
+            self.trace_editors[tab_id] = new_trace_editor
+            self.add_tab(f"Trace {tab_id}", new_trace_editor.trace_config_layout)
 
     def add_tab(self, name, custom_layout):
         tab_index = self.tab_layout.count() - 1
@@ -466,10 +466,8 @@ class StartSetup:
     def __init__(self):
         self.start_setup_layout  = QVBoxLayout()  # Start menu layout
         self.setup_file_loader_layout()
-        self.df = pd.read_csv("../../LANL/Ternaries/Quick Ternaries/DATA.csv")# None
         self.setup_ternary_type_selection_layout()
         self.setup_custom_type_selection_widgets()
-        self.available_columns_list.addItems(self.df.columns) # Delete for final version (in setup_file_loader_layout)
         self.setup_apex_name_widgets()
         self.setup_title_field()
         self.update_visibility()
@@ -926,18 +924,23 @@ class MainWindow(QMainWindow):
 
     def generate_diagram(self):
         all_data = self.left_side.tab_manager.get_all_data()
-        self.ternary = RenderTernary(all_data)
+        # Only generate the diagram if there is trace data
+        if len(all_data)!=1:
+            self.ternary = RenderTernary(all_data)
 
-        # Remove the old ternary view if it exists
-        if self.current_ternary_view:
-            self.main_layout.removeWidget(self.current_ternary_view)
-            self.current_ternary_view.deleteLater()
+            # Remove the old ternary view if it exists
+            if self.current_ternary_view:
+                self.main_layout.removeWidget(self.current_ternary_view)
+                self.current_ternary_view.deleteLater()
 
-        # Add the new ternary view to the layout
-        self.current_ternary_view = self.ternary.ternary_view
-        self.current_ternary_view.setMinimumWidth(500)
+            # Add the new ternary view to the layout
+            self.current_ternary_view = self.ternary.ternary_view
+            self.current_ternary_view.setMinimumWidth(500)
 
-        self.main_layout.addWidget(self.current_ternary_view)
+            self.main_layout.addWidget(self.current_ternary_view)
+        else:
+            if all_data["StartSetup"]["file"] != "No file selected":
+                QMessageBox.critical(self, "Error", "Please add a trace before rendering")
 
     def connect_ternary_controls(self):
         self.left_side.tab_manager.new_tab_button.clicked.connect(self.generate_diagram)

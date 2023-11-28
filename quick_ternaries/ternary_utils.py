@@ -120,8 +120,6 @@ class Trace:
         
         if colormap:
             trace_data.update({colormap: dataframe[colormap]})
-        # if symbol:
-        #     trace_data.update({symbol: dataframe[symbol]})
         if size:
             if isinstance(size, str):
                 trace_data.update({size: dataframe[size]})
