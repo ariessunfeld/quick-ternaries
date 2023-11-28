@@ -16,7 +16,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from quick_ternaries.advanced_widgets import InfoButton
 from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
-from ternary_utils import TernaryGraph, Trace, parse_ternary_type, create_title
+from quick_ternaries.ternary_utils import TernaryGraph, Trace, parse_ternary_type, create_title
 
 
 class CustomTabButton(QWidget):
