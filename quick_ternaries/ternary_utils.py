@@ -73,9 +73,8 @@ class MolarMassCalculator:
         return dataframe
 
 class Trace:
-    def __init__(self, 
-                 dataframe: pd.DataFrame, 
-                 formula_list: list, 
+    def __init__(self,
+                 formula_list: list,
                  apex_names: list):
         """
         Initialize the Trace object with a dataframe, a list of formulas, and apex names.
@@ -86,12 +85,12 @@ class Trace:
             apex_names: Names of the apices.
         """
 
-        self.dataframe = dataframe.copy()
         self.formula_list = formula_list
         self.apex_names = apex_names
         self.molar_mass_calculator = MolarMassCalculator(formula_list)
 
-    def _trace_data(self, 
+    def _trace_data(self,
+                    dataframe: pd.DataFrame,
                     symbol: str,
                     size: float,
                     colormap: str,
@@ -102,11 +101,10 @@ class Trace:
         Returns:
             dict: A dictionary containing the data to include in the ternaries.
         """
-        dataframe  = self.dataframe
         formula_list = self.formula_list
         apex_names = self.apex_names
     
-        self.dataframe = self.molar_mass_calculator.add_molar_columns(self.dataframe)
+        dataframe = self.molar_mass_calculator.add_molar_columns(dataframe)
 
         # Summing up the weight percent for each apex
         for apex in zip(self.formula_list, apex_names):
@@ -122,8 +120,8 @@ class Trace:
         
         if colormap:
             trace_data.update({colormap: dataframe[colormap]})
-        if symbol:
-            trace_data.update({symbol: dataframe[symbol]})
+        # if symbol:
+        #     trace_data.update({symbol: dataframe[symbol]})
         if size:
             if isinstance(size, str):
                 trace_data.update({size: dataframe[size]})
@@ -172,17 +170,20 @@ class Trace:
 
         return hover_data, hover_template
 
-    def make_trace(self, 
-                   symbol=None,
-                   size=None,
-                   color=None,
-                   colormap=None,
-                   cmin=None,cmax=None,
-                   hover_cols=None) -> go.Scatterternary:
+    def make_trace(self,
+                   dataframe: pd.DataFrame,
+                   name: str=None,
+                   symbol: str=None,
+                   size: float=None,
+                   color: str=None,
+                   colormap: str=None,
+                   cmin:float=None,cmax:float=None,
+                   hover_cols:list=None) -> go.Scatterternary:
         """
         Create a Plotly Scatterternary trace with the specified properties.
 
         Args:
+            dataframe:
             symbol: Marker symbol.
             size: Marker size.
             colormap: Name of the column to use for color mapping.
@@ -194,12 +195,10 @@ class Trace:
         Returns:
             Scatterternary: A Plotly Scatterternary trace object.
         """
+        dataframe = dataframe.copy()
 
-        if size:
-            if size.replace(".","").isnumeric():
-                size = float(size)
-
-        trace_data = self._trace_data(symbol,
+        trace_data = self._trace_data(dataframe,
+                                      symbol,
                                       size,
                                       colormap,
                                       hover_cols)
@@ -239,6 +238,7 @@ class Trace:
             a=trace_data[self.apex_names[0]],
             b=trace_data[self.apex_names[1]],
             c=trace_data[self.apex_names[2]],
+            name=name,
             mode='markers',
             marker=marker_props,
             customdata=hover_data,
@@ -285,7 +285,7 @@ class TernaryGraph:
                 'sum': 1,
                 'aaxis': dict(title=self.apex_names[0], **line_style),
                 'baxis': dict(title=self.apex_names[1], **line_style),
-                'caxis': dict(title=self.apex_names[2], **line_style),
+                'caxis': dict(title=self.apex_names[2], **line_style)
             },
             title=dict(
                 text=self.title,
@@ -295,9 +295,16 @@ class TernaryGraph:
                 yanchor='top'
             ),
             legend_orientation='h',
-            plot_bgcolor='rgba(0, 0, 0, 0)',
-            paper_bgcolor='rgba(0, 0, 0, 0)',
-            font=dict(color='white') if self.enable_darkmode else dict()
+            plot_bgcolor  = 'rgba(0, 0, 0, 0)',
+            paper_bgcolor = 'rgba(0, 0, 0, 0)',
+            font=dict(color='white' if self.enable_darkmode else 'black'),
+            # Adjust figure padding so it fits in the render window
+            margin=dict(l=100, r=100, t=100, b=100),
+            # Colorbar adjustments
+            coloraxis_colorbar=dict(
+                x=1.05,  # Positioning colorbar to the right of the plot
+                xpad=20  # Adding padding between plot and colorbar
+            )
         )
 
         # Adjust figure padding so it fits in the render window
@@ -351,7 +358,7 @@ def parse_ternary_type(t_type: str,
     for i in range(3):
         if not apex_names[i]:
             apex_names[i] = formula_list[i]
-    
+
     formula_list = [apex.split("+") for apex in formula_list]
 
     return formula_list, apex_names
