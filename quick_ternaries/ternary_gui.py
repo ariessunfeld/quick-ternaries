@@ -75,6 +75,7 @@ class CustomTabButton(QWidget):
         """
         self.change_tab_callback(self.index)
 
+
 class TabManager(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -143,7 +144,7 @@ class TabManager(QWidget):
         else:
             self.tab_counter += 1
 
-            new_trace_editor = TraceEditor(self.start_setup.df)
+            new_trace_editor = TraceEditor(self.start_setup)
 
             tab_id = str(self.tab_counter)  # Unique identifier for the tab
             self.trace_editors[tab_id] = new_trace_editor
@@ -229,9 +230,9 @@ class TraceEditor(QWidget):
         "\nthey will just have the same color as the highest value on the scale."\
         "\nThe default 'range max' value is twice the median of the selected column."
 
-    def __init__(self, dataframe):
+    def __init__(self, start_setup):
         super().__init__()
-        self.df = dataframe.copy()
+        self.df = start_setup.df.copy()
         self.trace_config_layout = QVBoxLayout()
         self._setup_trace_name()
         self._setup_point_size_layout()
@@ -465,7 +466,9 @@ class StartSetup:
 
     def __init__(self):
         self.start_setup_layout  = QVBoxLayout()  # Start menu layout
+        self.data_library = []
         self.setup_file_loader_layout()
+        self._setup_molar_conversion()
         self.setup_ternary_type_selection_layout()
         self.setup_custom_type_selection_widgets()
         self.setup_apex_name_widgets()
@@ -495,6 +498,23 @@ class StartSetup:
         file_loader_layout.addWidget(self.load_button, 0, 1)
         
         self.start_setup_layout.addLayout(file_loader_layout)
+
+    def _setup_molar_conversion(self):
+        """
+        Set up conditional filtering options for the plotted data.
+        """
+        # Layout for filter checkbox and show filters button
+        molar_conversion_checkbox_layout = QHBoxLayout()
+
+        # Checkbox for enabling/disabling filters
+        self.molar_conversion = QCheckBox("Convert from wt% to molar: ")
+        self.molar_conversion.setChecked(True)
+
+        # Add checkbox and button to the layout
+        molar_conversion_checkbox_layout.addWidget(self.molar_conversion)
+
+        # Add the filter options layout to the main controls layout
+        self.start_setup_layout.addLayout(molar_conversion_checkbox_layout)
 
     def load_data_file(self):
         data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
@@ -665,7 +685,8 @@ class StartSetup:
             'apex custom names': [self.apex1_name.text(),  # Top apex
                                   self.apex2_name.text(),  # Left apex
                                   self.apex3_name.text()], # Right apex
-            'title': self.title_field.text()
+            'title': self.title_field.text(),
+            'convert_wtp_to_molar': self.molar_conversion.isChecked(),
             }
         
         return data
@@ -728,6 +749,7 @@ class LeftSide(QWidget):
         super().__init__()  # Initialize the QWidget part of this class
         self.left_side_layout = QVBoxLayout()
         self.setLayout(self.left_side_layout)  # Set the layout for this widget
+        self.setMaximumWidth(500)
 
         self.setup_top_buttons()
         self.setup_tabs()
@@ -848,7 +870,8 @@ class RenderTernary:
 
         data = {"formula list": formula_list,
                 "apex names": apex_names,
-                "title": title}
+                "title": title,
+                "convert_wtp_to_molar": start_setup_data["convert_wtp_to_molar"]}
 
         return data
 
@@ -869,23 +892,16 @@ class RenderTernary:
         for trace_id in all_trace_ids:
             trace_data = all_data[trace_id]
             if trace_data is not None:
-                dataframe = trace_data["dataframe"]
-                name      = trace_data["name"]
-                symbol    = trace_data["symbol"]
-                color     = trace_data["color"]
-                colormap  = trace_data["colormap"]
-                cmin      = trace_data["cmin"]
-                cmax      = trace_data["cmax"]
-                size      = trace_data["size"]
-
-                trace = data.make_trace(dataframe,
-                                        name=name,
-                                        symbol=symbol,
-                                        size=size,
-                                        color=color,
-                                        colormap=colormap,
-                                        cmin=cmin,cmax=cmax,
-                                        hover_cols=None)
+                trace = data.make_trace(trace_data["dataframe"],
+                                        name       = trace_data["name"],
+                                        symbol     = trace_data["symbol"],
+                                        size       = trace_data["size"],
+                                        color      = trace_data["color"],
+                                        colormap   = trace_data["colormap"],
+                                        cmin       = trace_data["cmin"],
+                                        cmax       = trace_data["cmax"],
+                                        hover_cols = None,
+                                        convert_wtp_to_molar = start_setup_data["convert_wtp_to_molar"])
                 graph.add_trace(trace)
 
         self.current_figure = graph
@@ -920,7 +936,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(self.main_layout)
         self.setCentralWidget(central_widget)
 
-        self.resize(1200, 600)
+        self.resize(300, 600)
 
     def generate_diagram(self):
         all_data = self.left_side.tab_manager.get_all_data()

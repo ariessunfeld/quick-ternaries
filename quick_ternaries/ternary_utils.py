@@ -12,6 +12,8 @@ from plotly.subplots import make_subplots
 class MolarMassCalculator:
     def __init__(self, formula_list):
         self.formula_list = formula_list
+        # Flatten the list of formulas for easier processing
+        self.all_formulae = [formula for apex in formula_list for formula in apex]
 
     def _get_molar_mass(self, formula) -> float:
         """
@@ -41,12 +43,9 @@ class MolarMassCalculator:
         """
         Append columns with molar conversions to the dataframe.
         """
-            
-        # Flatten the list of formulas for easier processing
-        all_formulae = [formula for apex in self.formula_list for formula in apex]
 
         # Add molar mass columns
-        for formula in all_formulae:
+        for formula in self.all_formulae:
             try:
                 formula_mass = self._get_molar_mass(formula)
                 molar_col_name = f'__{formula}_molar'
@@ -56,8 +55,26 @@ class MolarMassCalculator:
             except Exception as e:
                 print(f'Error processing formula "{formula}": {e}')
 
+        return dataframe
+
+    def rename_molar_columns(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """
+        Rename columns to conform to future API
+        """
+        # Add molar mass columns
+        for formula in self.all_formulae:
+            molar_col_name = f'__{formula}_molar'
+            dataframe[molar_col_name] = dataframe[formula]
+
+        return dataframe
+
+    def data_normalization(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalize data
+        """
+
         # Calculate normalization values and normalize molar columns
-        molar_columns = [f'__{formula}_molar' for formula in all_formulae]
+        molar_columns = [f'__{formula}_molar' for formula in self.all_formulae]
         dataframe['__molar_normalization'] = dataframe[molar_columns].sum(axis=1)
 
         for col in molar_columns:
@@ -94,7 +111,8 @@ class Trace:
                     symbol: str,
                     size: float,
                     colormap: str,
-                    hover_cols: list) -> pd.DataFrame:
+                    hover_cols: list,
+                    convert_wtp_to_molar: bool=True) -> pd.DataFrame:
         """
         Collect trace data into a dictionary.
 
@@ -104,7 +122,11 @@ class Trace:
         formula_list = self.formula_list
         apex_names = self.apex_names
     
-        dataframe = self.molar_mass_calculator.add_molar_columns(dataframe)
+        if convert_wtp_to_molar:
+            dataframe = self.molar_mass_calculator.add_molar_columns(dataframe)
+        else:
+            dataframe = self.molar_mass_calculator.rename_molar_columns(dataframe)
+        dataframe = self.molar_mass_calculator.data_normalization(dataframe)
 
         # Summing up the weight percent for each apex
         for apex in zip(self.formula_list, apex_names):
@@ -176,7 +198,8 @@ class Trace:
                    color: str=None,
                    colormap: str=None,
                    cmin:float=None,cmax:float=None,
-                   hover_cols:list=None) -> go.Scatterternary:
+                   hover_cols:list=None,
+                   convert_wtp_to_molar:bool=True) -> go.Scatterternary:
         """
         Create a Plotly Scatterternary trace with the specified properties.
 
@@ -199,7 +222,8 @@ class Trace:
                                       symbol,
                                       size,
                                       colormap,
-                                      hover_cols)
+                                      hover_cols,
+                                      convert_wtp_to_molar)
 
         # Define default marker properties
         marker_props = {
@@ -269,6 +293,24 @@ class TernaryGraph:
         """
         self.fig.add_trace(trace)
 
+    def format_chemical_formula(self, formula):
+        """
+        Format chemical formula with subscripts.
+
+        Args:
+            formula (str): The chemical formula.
+
+        Returns:
+            str: Formatted formula with HTML-like subscripts.
+        """
+        formatted_formula = ''
+        for char in formula:
+            if char.isdigit():
+                formatted_formula += f'<sub>{char}</sub>'
+            else:
+                formatted_formula += char
+        return formatted_formula
+
     def _configure_layout(self):
         """
         Configure the layout of the ternary plot.
@@ -278,12 +320,15 @@ class TernaryGraph:
         if self.enable_darkmode:
             line_style.update(tickcolor='white', linecolor='white')
 
+        formatted_apex_names = [self.format_chemical_formula(name) for name in self.apex_names]
+
         self.fig.update_layout(
             ternary={
                 'sum': 1,
-                'aaxis': dict(title=self.apex_names[0], **line_style),
-                'baxis': dict(title=self.apex_names[1], **line_style),
-                'caxis': dict(title=self.apex_names[2], **line_style)
+                'aaxis': dict(title=formatted_apex_names[0], **line_style),
+                'baxis': dict(title=formatted_apex_names[1], **line_style),
+                'caxis': dict(title=formatted_apex_names[2], **line_style),
+                # 'bgcolor':'rgba(0, 0, 0, 0)',
             },
             title=dict(
                 text=self.title,
