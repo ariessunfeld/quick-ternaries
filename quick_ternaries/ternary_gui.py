@@ -5,18 +5,19 @@ import numpy as np
 import pandas as pd
 
 from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFontDialog, QGridLayout,
+    QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QFileDialog, QFontDialog, QGridLayout,
     QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
-from PySide6.QtCore import Qt, QSize, QUrl
+from PySide6.QtCore import Slot, Qt, QObject, QSize, QUrl
 from PySide6.QtGui import QDesktopServices, QFont, QFontDatabase, QIcon, QPalette
+from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from quick_ternaries.advanced_widgets import InfoButton
 from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
-from ternary_utils import TernaryGraph, Trace, parse_ternary_type, create_title
+from ternary_utils import TernaryGraph, Trace, get_apex_names, create_title
 
 
 class CustomTabButton(QWidget):
@@ -241,15 +242,13 @@ class TraceEditor(QWidget):
         self._setup_heatmap_options()
         self._setup_filter_options()
         self._update_visibility()
+        self.current_color = '#636EFA' # Default color
 
     def get_data(self):
-        color = self.trace_color.text()
-
-        trace_name = self.trace_name.text()
-        if trace_name == "":
-            trace_name = None
-
-        symbol = self.trace_shape.currentText()
+        if self.filter_checkbox.isChecked():
+            dataframe = self.filter_dialog.apply_all_filters(self.df)
+        else:
+            dataframe = self.df
 
         use_heatmap = self.heatmap_checkbox.isChecked()
         if use_heatmap:
@@ -266,33 +265,48 @@ class TraceEditor(QWidget):
             else:
                 QMessageBox.critical(self, "Error", "Please choose numeric value for cmax")
                 return
+            dataframe['color'] = dataframe[heatmap_column]
         else:
-            heatmap_column = None
+            color = self.trace_color.text()
+            if color:
+                dataframe['color'] = self.replace_colors(dataframe,color)
+            else:
+                dataframe['color'] = self.replace_colors(dataframe,'#636EFA')
             cmin = None
             cmax = None
+
+        trace_name = self.trace_name.text()
+        if trace_name == "":
+            trace_name = None
+
+        symbol = self.trace_shape.currentText()
 
         size = str(self.point_size.text())
         if size.replace(".","").isnumeric():
             size = float(size)
-
-        if self.filter_checkbox.isChecked():
-            dataframe = self.filter_dialog.apply_all_filters(self.df)
-        else:
-            dataframe = self.df
 
         data = {
             'dataframe': dataframe,
             'name': trace_name,
             'size': size,
             'symbol': symbol,
-            'color': color,
-            'colormap': heatmap_column,
             'cmin': cmin,
             'cmax': cmax
             }
         
         return data
     
+    def replace_colors(self, dataframe, new_color):
+        try:
+            if dataframe['color'].dtype.kind in 'biufc':
+                dataframe['color'] = new_color
+            else:
+                dataframe['color'] = dataframe['color'].replace(to_replace=self.current_color, value=new_color)
+        except:
+            dataframe['color'] = new_color
+        self.current_color = new_color
+        return dataframe['color']
+
     def _setup_trace_name(self):
         self.trace_name = QLineEdit()
 
@@ -517,37 +531,48 @@ class StartSetup:
         self.start_setup_layout.addLayout(molar_conversion_checkbox_layout)
 
     def load_data_file(self):
-        data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
-    
-        if data_file:
-            self.file_label.setText(data_file)
-            self.file_label.setToolTip(data_file)
-            if data_file.endswith('.csv'):
-                try:
-                    header = find_header_row_csv(data_file, 16)
-                    self.df = pd.read_csv(data_file, header=header)
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", str(e))
-                    return
-            elif data_file.endswith('.xlsx'):
-                try:
-                    excel_file = pd.ExcelFile(data_file)
-                    sheets = excel_file.sheet_names
-                    if len(sheets) > 1:
-                        sheet, ok = QInputDialog.getItem(self, "Select Excel Sheet", f"Choose a sheet from {os.path.basename(data_file)}", sheets, 0, False)
-                        if not ok:
-                            self.file_label.setText(MainWindow.NO_FILE_SELECTED)
-                            return
-                    else:
-                        sheet = sheets[0]
-                    header = find_header_row_excel(data_file, 16, sheet)
-                    self.df = excel_file.parse(sheet, header=header)  # Load the data and store in self.df
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", str(e))
-                    return
-            self.available_columns_list.clear()
-            self.available_columns_list.addItems(self.df.columns)
-            self.update_visibility()
+
+        dev_data = os.listdir("../data")
+        if dev_data:
+
+            filepath = "../data/" + dev_data[0]
+            self.df = pd.read_csv(filepath)
+            self.file_label.setText(dev_data[0])
+
+        else:
+
+            data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
+        
+            if data_file:
+
+                self.file_label.setText(data_file)
+                self.file_label.setToolTip(data_file)
+                if data_file.endswith('.csv'):
+                    try:
+                        header = find_header_row_csv(data_file, 16)
+                        self.df = pd.read_csv(data_file, header=header)
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", str(e))
+                        return
+                elif data_file.endswith('.xlsx'):
+                    try:
+                        excel_file = pd.ExcelFile(data_file)
+                        sheets = excel_file.sheet_names
+                        if len(sheets) > 1:
+                            sheet, ok = QInputDialog.getItem(self, "Select Excel Sheet", f"Choose a sheet from {os.path.basename(data_file)}", sheets, 0, False)
+                            if not ok:
+                                self.file_label.setText(MainWindow.NO_FILE_SELECTED)
+                                return
+                        else:
+                            sheet = sheets[0]
+                        header = find_header_row_excel(data_file, 16, sheet)
+                        self.df = excel_file.parse(sheet, header=header)  # Load the data and store in self.df
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", str(e))
+                        return
+        self.available_columns_list.clear()
+        self.available_columns_list.addItems(self.df.columns)
+        self.update_visibility()
 
     def setup_ternary_type_selection_layout(self):
         """
@@ -622,35 +647,35 @@ class StartSetup:
         # Line edits and labels for custom apex names, added to QHBoxLayouts for organization
         self.custom_apex_name_widgets = []
 
-        self.apex1_name = QLineEdit()
-        self.apex2_name = QLineEdit()
-        self.apex3_name = QLineEdit()
+        self.top_apex_name   = QLineEdit()
+        self.left_apex_name  = QLineEdit()
+        self.right_apex_name = QLineEdit()
 
-        self.apex1_tag = QLabel("Top apex display name:")
-        self.apex2_tag = QLabel("Left apex display name:")
-        self.apex3_tag = QLabel("Right apex display name:")
+        self.top_apex_tag   = QLabel("Top apex display name:")
+        self.left_apex_tag  = QLabel("Left apex display name:")
+        self.right_apex_tag = QLabel("Right apex display name:")
 
-        apex1_hlayout = QHBoxLayout()
-        apex1_hlayout.addWidget(self.apex1_tag)
-        apex1_hlayout.addWidget(self.apex1_name)
+        top_apex_hlayout = QHBoxLayout()
+        top_apex_hlayout.addWidget(self.top_apex_tag)
+        top_apex_hlayout.addWidget(self.top_apex_name)
 
-        apex2_hlayout = QHBoxLayout()
-        apex2_hlayout.addWidget(self.apex2_tag)
-        apex2_hlayout.addWidget(self.apex2_name)
+        left_apex_hlayout = QHBoxLayout()
+        left_apex_hlayout.addWidget(self.left_apex_tag)
+        left_apex_hlayout.addWidget(self.left_apex_name)
 
-        apex3_hlayout = QHBoxLayout()
-        apex3_hlayout.addWidget(self.apex3_tag)
-        apex3_hlayout.addWidget(self.apex3_name)
+        right_apex_hlayout = QHBoxLayout()
+        right_apex_hlayout.addWidget(self.right_apex_tag)
+        right_apex_hlayout.addWidget(self.right_apex_name)
 
         # Aggregate the widgets for easy access and manipulation
         self.custom_apex_name_widgets.extend(
-            [self.apex1_name, self.apex1_tag,
-             self.apex2_name, self.apex2_tag,
-             self.apex3_name, self.apex3_tag])
+            [self.top_apex_name,   self.top_apex_tag,
+             self.left_apex_name,  self.left_apex_tag,
+             self.right_apex_name, self.right_apex_tag])
 
-        self.start_setup_layout.addLayout(apex1_hlayout)
-        self.start_setup_layout.addLayout(apex2_hlayout)
-        self.start_setup_layout.addLayout(apex3_hlayout)
+        self.start_setup_layout.addLayout(top_apex_hlayout)
+        self.start_setup_layout.addLayout(left_apex_hlayout)
+        self.start_setup_layout.addLayout(right_apex_hlayout)
 
     def setup_title_field(self):
         """
@@ -668,8 +693,7 @@ class StartSetup:
         for widget in self.custom_type_widgets:
             widget.setVisible(is_custom_type)
 
-    def get_data(self):
-
+    def get_ternary_type(self):
         all_custom_apex_values = []
         for apex_index in range(3):
             apex_oxides = self.selected_values_lists[apex_index]
@@ -677,18 +701,27 @@ class StartSetup:
             for oxide in range(apex_oxides.count()):
                 custom_apex_values.append(apex_oxides.item(oxide).text())
             all_custom_apex_values.append(custom_apex_values)
-    
+
+        ternary_type = self.diagram_type_combobox.currentText()
+        if ternary_type == "Custom":
+            ternary_type = all_custom_apex_values
+        else:
+            ternary_type = [apex.split("+") for apex in ternary_type.split(" ")]
+
+        return ternary_type
+
+    def get_data(self):
+
         data = {
             'file': self.file_label.text(),
-            'ternary type': self.diagram_type_combobox.currentText(),
-            'apex custom values': all_custom_apex_values,
-            'apex custom names': [self.apex1_name.text(),  # Top apex
-                                  self.apex2_name.text(),  # Left apex
-                                  self.apex3_name.text()], # Right apex
+            'ternary type': self.get_ternary_type(),
+            'apex custom names': [self.top_apex_name.text(),    # Top apex
+                                  self.left_apex_name.text(),   # Left apex
+                                  self.right_apex_name.text()], # Right apex
             'title': self.title_field.text(),
             'convert_wtp_to_molar': self.molar_conversion.isChecked(),
             }
-        
+
         return data
 
 
@@ -783,9 +816,14 @@ class LeftSide(QWidget):
         self.save_ternary_button = QPushButton("Save Ternary")
         self.save_ternary_button.setCursor(Qt.PointingHandCursor)
 
+        # Button to change the color of selected data
+        self.change_color_button = QPushButton("Change Color")
+        self.change_color_button.setCursor(Qt.PointingHandCursor)
+
         # Add buttons to the layout
         bottom_buttons.addWidget(self.generate_button)
         bottom_buttons.addWidget(self.save_ternary_button)
+        bottom_buttons.addWidget(self.change_color_button)
 
         # Add the bottom buttons layout to the main controls layout
         self.left_side_layout.addLayout(bottom_buttons)
@@ -841,7 +879,7 @@ class LeftSide(QWidget):
         is_dark_mode = palette.color(QPalette.Base).lightness() < palette.color(QPalette.Text).lightness()
         color = 'white' if is_dark_mode else 'black'  # Choose color based on the theme
         self.title_label.setText(
-            f'<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
+            '<a href="https://github.com/ariessunfeld/quick-ternaries" ' +
             f'style="color: {color}; text-decoration:none;">' +
             'quick ternaries' +
             '</a>'
@@ -849,22 +887,10 @@ class LeftSide(QWidget):
 
 
 class RenderTernary:
-    def __init__(self, all_data):
-        self.current_figure = None
-        self.setup_ternary_plot()
-        self.generate_diagram(all_data)
-
-    def setup_ternary_plot(self):
-        """
-        Initialize the QWebEngineView widget that will display the ternary plot.
-        """
-        self.ternary_view = QWebEngineView()
-        self.ternary_view.page().setBackgroundColor(Qt.transparent)
-
     def parse_start_setup_data(self, start_setup_data):
-        formula_list, apex_names = parse_ternary_type(start_setup_data['ternary type'],
-                                                      start_setup_data['apex custom values'],
-                                                      start_setup_data['apex custom names'])
+        formula_list = start_setup_data['ternary type']
+        apex_names = get_apex_names(formula_list,
+                                    start_setup_data['apex custom names'])
         
         title = create_title(formula_list, start_setup_data['title'])
 
@@ -875,7 +901,7 @@ class RenderTernary:
 
         return data
 
-    def generate_diagram(self, all_data):
+    def make_graph(self, all_data):
 
         start_setup_data = self.parse_start_setup_data(all_data['StartSetup'])
         formula_list = start_setup_data["formula list"]
@@ -896,18 +922,38 @@ class RenderTernary:
                                         name       = trace_data["name"],
                                         symbol     = trace_data["symbol"],
                                         size       = trace_data["size"],
-                                        color      = trace_data["color"],
-                                        colormap   = trace_data["colormap"],
                                         cmin       = trace_data["cmin"],
                                         cmax       = trace_data["cmax"],
                                         hover_cols = None,
                                         convert_wtp_to_molar = start_setup_data["convert_wtp_to_molar"])
                 graph.add_trace(trace)
 
-        self.current_figure = graph
+        return graph
+
+    def write_html(self, graph):
 
         # Convert the figure to HTML
-        html_string = graph.to_html()
+        html_str = graph.to_html()
+
+        js_code = """
+            <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+            <script type="text/javascript">
+                document.addEventListener("DOMContentLoaded", function() {
+                    new QWebChannel(qt.webChannelTransport, function (channel) {
+                        window.plotlyInterface = channel.objects.plotlyInterface;
+                        var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
+                        plotElement.on('plotly_selected', function(eventData) {
+                            if (eventData) {
+                                var indices = eventData.points.map(function(pt) { return pt.pointIndex; });
+                                window.plotlyInterface.receiveSelectedIndices(indices);
+                            }
+                        });
+                    });
+                });
+            </script>
+        """
+
+        complete_html = html_str + js_code
 
         current_directory = os.path.dirname(os.path.abspath(__file__))
         save_path = os.path.join(current_directory, 'resources', 'ternary.html')
@@ -915,15 +961,41 @@ class RenderTernary:
 
         # Save the HTML content to the file
         with open(save_path, 'w', encoding='utf-8') as file:
-            file.write(html_string)
+            file.write(complete_html)
 
-        self.ternary_view.load(QUrl.fromLocalFile(os.path.abspath(save_path)))
+        html_object = QUrl.fromLocalFile(os.path.abspath(save_path))
+
+        return html_object
+
+class PlotlyInterface(QObject):
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.selectedIndices = []
+        self.selectedColor = None
+
+    @Slot(list)
+    def receiveSelectedIndices(self, indices):
+        self.selectedIndices = indices
+
+    def applyColorChange(self):
+        all_data = self.main_window.left_side.tab_manager.get_all_data()
+        all_traces = [all_data[dict_key] for dict_key in all_data.keys() if dict_key!="StartSetup"]
+        for trace in all_traces:
+            trace_data = trace['dataframe']
+            for index in self.selectedIndices:
+                if 0 <= index < len(trace_data):
+                    trace_data.at[index, 'color'] = self.selectedColor
+        self.main_window.generate_diagram()  # Re-plot with updated colors
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.main_layout = QHBoxLayout()
+        self.ternary_view = QWebEngineView()
+        self.setupWebChannel()
+        self.ternary_view.page().setBackgroundColor(Qt.transparent)
 
         self.left_side = LeftSide()  # Create an instance of LeftSide
         self.main_layout.addWidget(self.left_side)  # Add it to the layout
@@ -942,18 +1014,13 @@ class MainWindow(QMainWindow):
         all_data = self.left_side.tab_manager.get_all_data()
         # Only generate the diagram if there is trace data
         if len(all_data)!=1:
-            self.ternary = RenderTernary(all_data)
+            ternary = RenderTernary()
+            graph = ternary.make_graph(all_data)
+            ternary_html = ternary.write_html(graph)
 
-            # Remove the old ternary view if it exists
-            if self.current_ternary_view:
-                self.main_layout.removeWidget(self.current_ternary_view)
-                self.current_ternary_view.deleteLater()
-
-            # Add the new ternary view to the layout
-            self.current_ternary_view = self.ternary.ternary_view
-            self.current_ternary_view.setMinimumWidth(500)
-
-            self.main_layout.addWidget(self.current_ternary_view)
+            self.ternary_view.load(ternary_html)
+            self.ternary_view.setMinimumWidth(500)
+            self.main_layout.addWidget(self.ternary_view)
         else:
             if all_data["StartSetup"]["file"] != "No file selected":
                 QMessageBox.critical(self, "Error", "Please add a trace before rendering")
@@ -961,6 +1028,23 @@ class MainWindow(QMainWindow):
     def connect_ternary_controls(self):
         self.left_side.tab_manager.new_tab_button.clicked.connect(self.generate_diagram)
         self.left_side.generate_button.clicked.connect(self.generate_diagram)  # Connect the button to its action
+
+        self.left_side.change_color_button.clicked.connect(self.changeColor)
+
+    def setupWebChannel(self):
+        self.plotlyInterface = PlotlyInterface(self)
+        channel = QWebChannel(self.ternary_view.page())
+        channel.registerObject("plotlyInterface", self.plotlyInterface)
+        self.ternary_view.page().setWebChannel(channel)
+
+    @Slot()
+    def changeColor(self):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.plotlyInterface.selectedColor = color.name()
+            # Apply color change to currently selected indices
+            self.plotlyInterface.applyColorChange()
+            self.generate_diagram()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

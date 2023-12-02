@@ -108,9 +108,7 @@ class Trace:
 
     def _trace_data(self,
                     dataframe: pd.DataFrame,
-                    symbol: str,
                     size: float,
-                    colormap: str,
                     hover_cols: list,
                     convert_wtp_to_molar: bool=True) -> pd.DataFrame:
         """
@@ -122,11 +120,12 @@ class Trace:
         formula_list = self.formula_list
         apex_names = self.apex_names
     
+        data_preprocess = self.molar_mass_calculator
         if convert_wtp_to_molar:
-            dataframe = self.molar_mass_calculator.add_molar_columns(dataframe)
+            dataframe = data_preprocess.add_molar_columns(dataframe)
         else:
-            dataframe = self.molar_mass_calculator.rename_molar_columns(dataframe)
-        dataframe = self.molar_mass_calculator.data_normalization(dataframe)
+            dataframe = data_preprocess.rename_molar_columns(dataframe)
+        dataframe = data_preprocess.data_normalization(dataframe)
 
         # Summing up the weight percent for each apex
         for apex in zip(self.formula_list, apex_names):
@@ -137,28 +136,27 @@ class Trace:
             apex_names[1]: dataframe["left_apex_molar_normed"],
             apex_names[2]: dataframe["right_apex_molar_normed"],
             **{f"{apex}-wt%":    round(dataframe[f"{apex}-wt%"], 5) for apex in apex_names},
-            **{f"{formula}-wt%": round(dataframe[f"{formula}"],  5) for apex in formula_list for formula in apex}
+            **{f"{formula}-wt%": round(dataframe[f"{formula}"],  5) for apex in formula_list for formula in apex},
+            'color': dataframe['color']
             }
-        
-        if colormap:
-            trace_data.update({colormap: dataframe[colormap]})
+
         if size:
             if isinstance(size, str):
                 trace_data.update({size: dataframe[size]})
             else:
-                trace_data.update({"Size": size})
+                trace_data.update({"size": size})
         if hover_cols:
             for datum in hover_cols:
                 trace_data.update({datum: dataframe[datum]})
 
         trace_data = pd.DataFrame(trace_data)
 
-        if colormap:
+        if dataframe['color'].dtype.kind in 'biufc': # If the color column is numeric
             # Reorder df so higher colormap values are plotted on top of lower ones.
-            trace_data = trace_data.sort_values(by=colormap, ascending=True)
+            trace_data = trace_data.sort_values(by='color', ascending=True)
         if isinstance(size,str):
             # Reorder df so that larger points are plotted behind smaller points.
-            trace_data = trace_data.sort_values(by=size, ascending=False)
+            trace_data = trace_data.sort_values(by="size", ascending=False)
 
         return trace_data
 
@@ -195,8 +193,6 @@ class Trace:
                    name: str=None,
                    symbol: str=None,
                    size: float=None,
-                   color: str=None,
-                   colormap: str=None,
                    cmin:float=None,cmax:float=None,
                    hover_cols:list=None,
                    convert_wtp_to_molar:bool=True) -> go.Scatterternary:
@@ -207,8 +203,6 @@ class Trace:
             dataframe:
             symbol: Marker symbol.
             size: Marker size.
-            colormap: Name of the column to use for color mapping.
-            color: Static marker color.
             cmin: Minimum value for color scale.
             cmax: Maximum value for color scale.
             hover_cols: Columns to include in hover information.
@@ -219,9 +213,7 @@ class Trace:
         dataframe = dataframe.copy()
 
         trace_data = self._trace_data(dataframe,
-                                      symbol,
                                       size,
-                                      colormap,
                                       hover_cols,
                                       convert_wtp_to_molar)
 
@@ -237,19 +229,18 @@ class Trace:
         elif isinstance(size, (int, float)):
             marker_props["size"] = size
             
-        if color:
-            marker_props["color"] = color
+        marker_props['color'] = trace_data['color']
+
         # Update marker properties for color mapping
-        elif colormap:
+        if dataframe['color'].dtype.kind in 'biufc':
             marker_props.update({
-                "color": trace_data[colormap],
                 "colorscale": 'matter',
                 "cmin": cmin, 
                 "cmax": cmax,
                 "line": dict(color='rgba(0, 0, 0, 0)'),
                 "showscale": True,
                 "colorbar": dict(
-                    title=f"{colormap}-wt%",
+                    # title=f"{colormap}-wt%",
                     titleside='top'
                 )
             })
@@ -372,39 +363,24 @@ class TernaryGraph:
         self._configure_layout()
         return self.fig.to_html(include_plotlyjs=True)
 
-def parse_ternary_type(t_type: str, 
-                       custom_t_type: list[str]=None,
-                       custom_apex_names: list[str]=None) -> tuple(list[str]):
+def get_apex_names(t_type: list[str],
+                   apex_names: list[str]=None) -> list[str]:
     """
     Parse the apice oxides to use in the final ternary.
     
     Arguments:
-        t_type: Ternary type. Either a default type (ie "Al2O3 CaO+NaO+K2O FeOT+MgO", 
-                "SiO2+Al2O3 CaO+NaO+K2O FeOT+MgO", or "Al2O3 CaO+Na2O K2O") or "Custom"
-        custom_t_type: Custom ternary apex values. 
-                       Example: [["SiO2"], ["Al2O3"], ["CaO","MgO"]]
-        custom_apex_names: 
+        t_type: Ternary type. Example: [["SiO2"], ["Al2O3"], ["CaO","MgO"]]
+        apex_names: 
     Returns:
-        (tops, lefts, rights): A tuple containing the oxides to plot on the top, left, and right
-                               apices, respectively.
+        apex_names: The names of the apices to plot
 
     """
 
-    if t_type == 'Custom':
-        formula_list = custom_t_type
-        formula_list = ["+".join(apex) for apex in formula_list]
-    else:
-        formula_list = t_type.split(' ')
-
-    apex_names = custom_apex_names
-
     for i in range(3):
         if not apex_names[i]:
-            apex_names[i] = formula_list[i]
+            apex_names[i] = "+".join(t_type[i])
 
-    formula_list = [apex.split("+") for apex in formula_list]
-
-    return formula_list, apex_names
+    return apex_names
 
 def create_title(formula_list: list[list[str]], title: str=None)->str:
     """
