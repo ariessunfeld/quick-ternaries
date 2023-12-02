@@ -534,6 +534,7 @@ class StartSetup:
 
     def load_data_file(self):
 
+        os.makedirs("../data", exist_ok=True)
         dev_data = os.listdir("../data")
         if dev_data:
 
