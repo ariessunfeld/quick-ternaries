@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import sys
 
 import numpy as np
@@ -15,9 +15,9 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from quick_ternaries.advanced_widgets import InfoButton
-from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
 from quick_ternaries.file_handling_utils import find_header_row_csv, find_header_row_excel
-from ternary_utils import TernaryGraph, Trace, get_apex_names, create_title
+from quick_ternaries.filter_widgets import FilterDialog, SelectedValuesList, FilterWidget
+from quick_ternaries.ternary_utils import TernaryGraph, Trace, get_apex_names, create_title
 
 #GITHUB_LINK = "https://github.com/ariessunfeld/quick-ternaries"
 GITHUB_LINK = "https://gitlab.lanl.gov"
@@ -140,9 +140,8 @@ class TabManager(QWidget):
         self.change_tab(0)
 
     def add_trace(self):
-        start_setup_data = self.start_setup.get_data()
 
-        if start_setup_data["file"] == "No file selected":
+        if not self.start_setup.data_library:
             QMessageBox.critical(self, "Error", "Please select data file")
         else:
             self.tab_counter += 1
@@ -235,8 +234,15 @@ class TraceEditor(QWidget):
 
     def __init__(self, start_setup):
         super().__init__()
-        self.df = start_setup.df.copy()
+        data_library = start_setup.data_library
+        self.data_library = {filename: df.copy() for filename, df in data_library.items()}
         self.trace_config_layout = QVBoxLayout()
+        self._setup_data_selector()
+
+        selected_file = self.selected_data.currentText()
+        self.df = self.data_library[selected_file].copy()
+
+        self._setup_molar_conversion()
         self._setup_trace_name()
         self._setup_point_size_layout()
         self._setup_trace_shape()
@@ -247,10 +253,16 @@ class TraceEditor(QWidget):
         self.current_color = '#636EFA' # Default color
 
     def get_data(self):
+        df_current = self.df
+        selected_file = self.selected_data.currentText()
+        df_selected = self.data_library[selected_file].copy()
+
+        # Check if the current and selected dataframes are equivalent (disregarding the color column)
+        if not df_current.drop('color', axis=1, errors='ignore').equals(df_selected.drop('color', axis=1, errors='ignore')):
+            df_current = df_selected
+
         if self.filter_checkbox.isChecked():
-            dataframe = self.filter_dialog.apply_all_filters(self.df)
-        else:
-            dataframe = self.df
+            df_current  = self.filter_dialog.apply_all_filters(df_current)
 
         use_heatmap = self.heatmap_checkbox.isChecked()
         if use_heatmap:
@@ -267,15 +279,18 @@ class TraceEditor(QWidget):
             else:
                 QMessageBox.critical(self, "Error", "Please choose numeric value for cmax")
                 return
-            dataframe['color'] = dataframe[heatmap_column]
+            df_current['color'] = df_current[heatmap_column]
         else:
             color = self.trace_color.text()
             if color:
-                dataframe['color'] = self.replace_colors(dataframe,color)
+                df_current['color'] = self.replace_colors(df_current,color)
             else:
-                dataframe['color'] = self.replace_colors(dataframe,'#636EFA')
+                default_color = '#636EFA'
+                df_current['color'] = self.replace_colors(df_current,default_color)
             cmin = None
             cmax = None
+
+        self.df = df_current
 
         trace_name = self.trace_name.text()
         if trace_name == "":
@@ -288,23 +303,48 @@ class TraceEditor(QWidget):
             size = float(size)
 
         data = {
-            'dataframe': dataframe,
+            'dataframe': df_current,
             'name': trace_name,
             'size': size,
             'symbol': symbol,
             'cmin': cmin,
-            'cmax': cmax
+            'cmax': cmax,
+            'convert_wtp_to_molar': self.molar_conversion.isChecked()
             }
         
         return data
+
+    def _setup_data_selector(self):
+        self.selected_data = QComboBox()
+
+        selected_data_label = QLabel("Select Data:")
+
+        loaded_files = self.data_library.keys()
+        self.selected_data.addItems(loaded_files)
+
+        selected_data_layout = QHBoxLayout()
+        selected_data_layout.addWidget(selected_data_label)
+        selected_data_layout.addWidget(self.selected_data)
+
+        self.trace_config_layout.addLayout(selected_data_layout)
+
+    def _setup_molar_conversion(self):
+        molar_conversion_checkbox_layout = QHBoxLayout()
+
+        self.molar_conversion = QCheckBox("Convert from wt% to molar: ")
+        self.molar_conversion.setChecked(True)
+
+        # Add checkbox and button to the layout
+        molar_conversion_checkbox_layout.addWidget(self.molar_conversion)
+
+        self.trace_config_layout.addLayout(molar_conversion_checkbox_layout)
     
     def replace_colors(self, dataframe, new_color):
-        try:
-            if dataframe['color'].dtype.kind in 'biufc':
-                dataframe['color'] = new_color
-            else:
-                dataframe['color'] = dataframe['color'].replace(to_replace=self.current_color, value=new_color)
-        except:
+        # If the df has been initialized with a color column that doesn't contain heatmap data
+        if ('color' in dataframe.columns) and (dataframe['color'].dtype.kind not in 'biufc'):
+            dataframe['color'] = dataframe['color'].replace(to_replace=self.current_color, value=new_color)
+        # Otherwise, (re)initialize the color column
+        else:
             dataframe['color'] = new_color
         self.current_color = new_color
         return dataframe['color']
@@ -401,19 +441,19 @@ class TraceEditor(QWidget):
 
         self.trace_config_layout.addLayout(heatmap_layout)
 
-    def inject_data_to_filter(self, filter: FilterWidget):
-        if self.df is not None:
-            filter.column_combobox.clear()
-            filter.column_combobox.addItems(self.df.columns)
-            filter.update_visibility()
-
     def _inject_range_min_max(self):
         if self.df is not None:
             col = self.heatmap_column.currentText()
             dtype = self.df[col].dtype
             if np.issubdtype(dtype, np.number):  # If the dtype is numeric
-                self.heatmap_color_min.setText(str(min(self.df[col])))
-                self.heatmap_color_max.setText(str(2 * np.median(self.df[col])))
+                self.heatmap_color_min.setText(str(min(self.df[col].dropna())))
+                self.heatmap_color_max.setText(str(2 * np.median(self.df[col].dropna())))
+
+    def inject_data_to_filter(self, filter):
+        if self.df is not None:
+            filter.column_combobox.clear()
+            filter.column_combobox.addItems(self.df.columns)
+            filter.update_visibility()
 
     def _setup_filter_options(self):
         """
@@ -451,12 +491,7 @@ class TraceEditor(QWidget):
         Update the visibility of filter-related widgets based on the current state.
         """
         is_filter_enabled = self.filter_checkbox.isChecked()
-        self.show_filters_button.setVisible(is_filter_enabled and self.filter_dialog.isHidden())
-
-        if is_filter_enabled and self.filter_dialog.isHidden():
-            self.filter_dialog.show()
-        else:
-            self.filter_dialog.hide()
+        self.show_filters_button.setVisible(is_filter_enabled)
 
     def _update_visibility(self):
         is_heatmap = self.heatmap_checkbox.isChecked()
@@ -472,8 +507,7 @@ class TraceEditor(QWidget):
 
 
 class StartSetup:
-    NO_FILE_SELECTED = "No file selected"
-    LOAD_DATA_FILE = "Load data file"
+    LOAD_DATA_FILE = "Add files"
     TERNARY_TYPES = [
         "Al2O3 CaO+Na2O+K2O FeOT+MgO", 
         "SiO2+Al2O3 CaO+Na2O+K2O FeOT+MgO", 
@@ -482,9 +516,8 @@ class StartSetup:
 
     def __init__(self):
         self.start_setup_layout  = QVBoxLayout()  # Start menu layout
-        self.data_library = []
+        self.data_library = {}
         self.setup_file_loader_layout()
-        self._setup_molar_conversion()
         self.setup_ternary_type_selection_layout()
         self.setup_custom_type_selection_widgets()
         self.setup_apex_name_widgets()
@@ -493,88 +526,84 @@ class StartSetup:
 
     def setup_file_loader_layout(self):
         """
-        Layout for file loading. Includes a label to display the file path and
+        Layout for file loading. Includes a list widget to display the file paths and
         a button to trigger the file loading dialog.
         """
         file_loader_layout = QGridLayout()
-        self.file_label = QLineEdit(self.NO_FILE_SELECTED)
-        self.file_label.setReadOnly(True)
-        self.file_label.setFrame(False)
-        self.file_label.setCursor(Qt.IBeamCursor)
-        self.file_label.setStyleSheet("""
-            QLineEdit {
-                border: none;
+        self.file_list = QListWidget()
+        self.file_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid gray;
                 background-color: transparent;
             }
         """)
+        self.file_list.setMaximumHeight(50)
         self.load_button = QPushButton(self.LOAD_DATA_FILE)
-        self.load_button.clicked.connect(self.load_data_file)
+        self.load_button.clicked.connect(self.load_data_file)  # Notice the method name change
         
-        file_loader_layout.addWidget(self.file_label,  0, 0)
-        file_loader_layout.addWidget(self.load_button, 0, 1)
+        file_loader_layout.addWidget(self.file_list,  0, 0)
+        file_loader_layout.addWidget(self.load_button, 1, 0)  # Adjusted the row for the button
         
         self.start_setup_layout.addLayout(file_loader_layout)
 
-    def _setup_molar_conversion(self):
-        """
-        Set up conditional filtering options for the plotted data.
-        """
-        # Layout for filter checkbox and show filters button
-        molar_conversion_checkbox_layout = QHBoxLayout()
-
-        # Checkbox for enabling/disabling filters
-        self.molar_conversion = QCheckBox("Convert from wt% to molar: ")
-        self.molar_conversion.setChecked(True)
-
-        # Add checkbox and button to the layout
-        molar_conversion_checkbox_layout.addWidget(self.molar_conversion)
-
-        # Add the filter options layout to the main controls layout
-        self.start_setup_layout.addLayout(molar_conversion_checkbox_layout)
+    def read_data(self,filepath):
+        if filepath.endswith('.csv'):
+            try:
+                header = find_header_row_csv(filepath, 16)
+                dataframe = pd.read_csv(filepath, header=header)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
+                return
+        elif filepath.endswith('.xlsx'):
+            try:
+                excel_file = pd.ExcelFile(filepath)
+                sheets = excel_file.sheet_names
+                if len(sheets) > 1:
+                    sheet, _ = QInputDialog.getItem(self, "Select Excel Sheet", f"Choose a sheet from {Path(filepath).name}", sheets, 0, False)
+                else:
+                    sheet = sheets[0]
+                header = find_header_row_excel(filepath, 16, sheet)
+                dataframe = excel_file.parse(sheet, header=header)  # Load the data and store in dataframe
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
+                return
+        return dataframe
 
     def load_data_file(self):
 
-        os.makedirs("../data", exist_ok=True)
-        dev_data = os.listdir("../data")
-        if dev_data:
+        # Create the "data" directory relative to the current script location
+        data_directory = Path(__file__).parent / 'data'
+        data_directory.mkdir(parents=True, exist_ok=True)
+        dev_data = False
 
-            filepath = "../data/" + dev_data[0]
-            self.df = pd.read_csv(filepath)
-            self.file_label.setText(dev_data[0])
+        for file_path in data_directory.glob('*'):
+            if file_path.is_file():
+                dev_data = True
+                file_name = file_path.name
+                if not self.file_list.findItems(file_name, Qt.MatchExactly):
+                    dataframe = self.read_data(str(file_path))
+                    self.data_library[file_name] = dataframe
+                    self.file_list.addItem(file_name)
 
-        else:
-
-            data_file, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
+        if not dev_data:
+            filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         
-            if data_file:
+            if filepath:
+                file_name = filepath.split("/")[-1]
+                if not self.file_list.findItems(file_name, Qt.MatchExactly):
+                    dataframe = self.read_data(filepath)
+                    self.data_library[file_name] = dataframe
+                    self.file_list.addItem(file_name)
 
-                self.file_label.setText(data_file)
-                self.file_label.setToolTip(data_file)
-                if data_file.endswith('.csv'):
-                    try:
-                        header = find_header_row_csv(data_file, 16)
-                        self.df = pd.read_csv(data_file, header=header)
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", str(e))
-                        return
-                elif data_file.endswith('.xlsx'):
-                    try:
-                        excel_file = pd.ExcelFile(data_file)
-                        sheets = excel_file.sheet_names
-                        if len(sheets) > 1:
-                            sheet, ok = QInputDialog.getItem(self, "Select Excel Sheet", f"Choose a sheet from {os.path.basename(data_file)}", sheets, 0, False)
-                            if not ok:
-                                self.file_label.setText(MainWindow.NO_FILE_SELECTED)
-                                return
-                        else:
-                            sheet = sheets[0]
-                        header = find_header_row_excel(data_file, 16, sheet)
-                        self.df = excel_file.parse(sheet, header=header)  # Load the data and store in self.df
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", str(e))
-                        return
+        all_files = sorted(self.data_library.keys())
+        # Initialize the set of common columns with the columns of the first DataFrame
+        common_columns = set(self.data_library[all_files[0]].columns)
+        # Find the intersection with the columns of each subsequent DataFrame
+        for file in all_files[1:]:
+            df = self.data_library[file]
+            common_columns.intersection_update(df.columns)
         self.available_columns_list.clear()
-        self.available_columns_list.addItems(self.df.columns)
+        self.available_columns_list.addItems(sorted(common_columns))
         self.update_visibility()
 
     def setup_ternary_type_selection_layout(self):
@@ -716,13 +745,11 @@ class StartSetup:
     def get_data(self):
 
         data = {
-            'file': self.file_label.text(),
             'ternary type': self.get_ternary_type(),
             'apex custom names': [self.top_apex_name.text(),    # Top apex
                                   self.left_apex_name.text(),   # Left apex
                                   self.right_apex_name.text()], # Right apex
-            'title': self.title_field.text(),
-            'convert_wtp_to_molar': self.molar_conversion.isChecked(),
+            'title': self.title_field.text()
             }
 
         return data
@@ -859,9 +886,9 @@ class LeftSide(QWidget):
         The title label is configured to display the 'quick ternaries' logo which includes a
         hyperlink to the project repository.
         """
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        font_path = os.path.join(current_directory, 'assets', 'fonts', 'Motter Tektura Normal.ttf')
-        font_id = QFontDatabase.addApplicationFont(font_path)
+        current_directory = Path(__file__).resolve().parent
+        font_path = current_directory / 'assets' / 'fonts' / 'Motter Tektura Normal.ttf'
+        font_id = QFontDatabase.addApplicationFont(str(font_path))
         self.title_label = QLabel()
         if font_id != -1:
             # If the font was successfully loaded, proceed to set up the title label
@@ -899,8 +926,7 @@ class RenderTernary:
 
         data = {"formula list": formula_list,
                 "apex names": apex_names,
-                "title": title,
-                "convert_wtp_to_molar": start_setup_data["convert_wtp_to_molar"]}
+                "title": title}
 
         return data
 
@@ -928,7 +954,7 @@ class RenderTernary:
                                         cmin       = trace_data["cmin"],
                                         cmax       = trace_data["cmax"],
                                         hover_cols = None,
-                                        convert_wtp_to_molar = start_setup_data["convert_wtp_to_molar"])
+                                        convert_wtp_to_molar = trace_data["convert_wtp_to_molar"])
                 graph.add_trace(trace)
 
         return graph
@@ -958,15 +984,15 @@ class RenderTernary:
 
         complete_html = html_str + js_code
 
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        save_path = os.path.join(current_directory, 'resources', 'ternary.html')
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        current_directory = Path(__file__).parent
+        save_path = current_directory / 'resources' / 'ternary.html'
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Save the HTML content to the file
-        with open(save_path, 'w', encoding='utf-8') as file:
+        with save_path.open('w', encoding='utf-8') as file:
             file.write(complete_html)
 
-        html_object = QUrl.fromLocalFile(os.path.abspath(save_path))
+        html_object = QUrl.fromLocalFile(str(save_path.resolve()))
 
         return html_object
 
@@ -1025,14 +1051,14 @@ class MainWindow(QMainWindow):
             self.ternary_view.setMinimumWidth(500)
             self.main_layout.addWidget(self.ternary_view)
         else:
-            if all_data["StartSetup"]["file"] != "No file selected":
+            # If the user has loaded data and tries to render a ternary without adding a trace
+            if self.left_side.tab_manager.start_setup.data_library:
                 QMessageBox.critical(self, "Error", "Please add a trace before rendering")
 
     def connect_ternary_controls(self):
         self.left_side.tab_manager.new_tab_button.clicked.connect(self.generate_diagram)
-        self.left_side.generate_button.clicked.connect(self.generate_diagram)  # Connect the button to its action
-
         self.left_side.change_color_button.clicked.connect(self.changeColor)
+        self.left_side.generate_button.clicked.connect(self.generate_diagram)
 
     def setupWebChannel(self):
         self.plotlyInterface = PlotlyInterface(self)

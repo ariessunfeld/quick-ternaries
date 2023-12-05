@@ -23,7 +23,7 @@ from PySide6.QtCore import Qt, Slot
 
 import numpy as np
 
-from .filter_strategies import (
+from quick_ternaries.filter_strategies import (
     EqualsFilterStrategy, OneOfFilterStrategy, GreaterThanFilterStrategy,
     GreaterEqualFilterStrategy, LessThanFilterStrategy, LessEqualFilterStrategy,
     BetweenFilterStrategy, BetweenEqualFilterStrategy, BetweenLowerEqualFilterStrategy,
@@ -59,17 +59,23 @@ class FilterDialog(QDialog):
         self.ok_button.clicked.connect(self.accept)
         self.ok_button.setFocusPolicy(Qt.NoFocus)
 
+        self.cancel_button = QPushButton('Cancel')
+        self.cancel_button.clicked.connect(self.reject)
+        self.cancel_button.setFocusPolicy(Qt.NoFocus)
+
         self.main_window = main_window
         # Set up the FiltersWidget
         self.filters_scroll_area = FiltersWidget(self.main_window)
         self.filters_scroll_area.setMinimumSize(500, 400)
-        
+
         # Set up the layout
-        layout = QVBoxLayout(self)
+        layout         = QVBoxLayout(self)
+        buttons_layout = QHBoxLayout()
+
         layout.addWidget(self.filters_scroll_area)
-        layout.addWidget(self.ok_button)
-        #layout.addWidget(self.cancel_button)
-        
+        buttons_layout.addWidget(self.ok_button)
+        buttons_layout.addWidget(self.cancel_button)
+        layout.addLayout(buttons_layout)
 
     def inject_data_to_filter(self, filter, df):
         if df is not None:
