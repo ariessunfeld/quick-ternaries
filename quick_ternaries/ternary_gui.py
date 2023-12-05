@@ -3,6 +3,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import plotly.io as pio
 
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QFileDialog, QFontDialog, QGridLayout,
@@ -1021,15 +1022,15 @@ class PlotlyInterface(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.current_figure = None
         self.main_layout = QHBoxLayout()
         self.ternary_view = QWebEngineView()
         self.setupWebChannel()
-        self.ternary_view.page().setBackgroundColor(Qt.transparent)
+        # self.ternary_view.page().setBackgroundColor(Qt.transparent)
 
-        self.left_side = LeftSide()  # Create an instance of LeftSide
-        self.main_layout.addWidget(self.left_side)  # Add it to the layout
+        self.left_side = LeftSide()
+        self.main_layout.addWidget(self.left_side)
 
-        self.current_ternary_view = None  # Reference to the current ternary view
         self.connect_ternary_controls()
 
         # Set the main layout for the central widget
@@ -1045,6 +1046,7 @@ class MainWindow(QMainWindow):
         if len(all_data)!=1:
             ternary = RenderTernary()
             graph = ternary.make_graph(all_data)
+            self.current_figure = graph.fig
             ternary_html = ternary.write_html(graph)
 
             self.ternary_view.load(ternary_html)
@@ -1059,6 +1061,7 @@ class MainWindow(QMainWindow):
         self.left_side.tab_manager.new_tab_button.clicked.connect(self.generate_diagram)
         self.left_side.change_color_button.clicked.connect(self.changeColor)
         self.left_side.generate_button.clicked.connect(self.generate_diagram)
+        self.left_side.save_ternary_button.clicked.connect(self.save_ternary_figure)
 
     def setupWebChannel(self):
         self.plotlyInterface = PlotlyInterface(self)
@@ -1071,9 +1074,33 @@ class MainWindow(QMainWindow):
         color = QColorDialog.getColor()
         if color.isValid():
             self.plotlyInterface.selectedColor = color.name()
-            # Apply color change to currently selected indices
+            # Apply color change to currently selected indices and regenerate the figure
             self.plotlyInterface.applyColorChange()
-            self.generate_diagram()
+
+    def save_ternary_figure(self):
+        """
+        Save the ternary to a specified location with a specified file type
+        """
+        if self.current_figure is not None:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html)"
+            file_name, selected_filter = QFileDialog.getSaveFileName(self, "Save Ternary Diagram", "",
+                                                                     file_types, options=options)
+            if file_name:
+                # Get the extension from the selected filter if the file_name has no extension
+                if '.' not in file_name.split("/")[-1]:
+                    extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
+                    file_name += extension
+                if file_name.endswith('.html'):
+                    # Save interactive plot as HTML
+                    with open(file_name, 'w', encoding='utf-8') as f:
+                        f.write(self.current_figure.to_html())
+                else:
+                    # Save static image. The format is inferred from the extension of the file_name.
+                    pio.write_image(self.current_figure, file_name)
+        else:
+            QMessageBox.critical(self, "Error", "There is no ternary diagram to save. Please generate one first.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

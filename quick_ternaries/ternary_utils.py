@@ -284,24 +284,6 @@ class TernaryGraph:
         """
         self.fig.add_trace(trace)
 
-    def format_chemical_formula(self, formula):
-        """
-        Format chemical formula with subscripts.
-
-        Args:
-            formula (str): The chemical formula.
-
-        Returns:
-            str: Formatted formula with HTML-like subscripts.
-        """
-        formatted_formula = ''
-        for char in formula:
-            if char.isdigit():
-                formatted_formula += f'<sub>{char}</sub>'
-            else:
-                formatted_formula += char
-        return formatted_formula
-
     def _configure_layout(self):
         """
         Configure the layout of the ternary plot.
@@ -311,14 +293,12 @@ class TernaryGraph:
         if self.enable_darkmode:
             line_style.update(tickcolor='white', linecolor='white')
 
-        formatted_apex_names = [self.format_chemical_formula(name) for name in self.apex_names]
-
         self.fig.update_layout(
             ternary={
                 'sum': 1,
-                'aaxis': dict(title=formatted_apex_names[0], **line_style),
-                'baxis': dict(title=formatted_apex_names[1], **line_style),
-                'caxis': dict(title=formatted_apex_names[2], **line_style),
+                'aaxis': dict(title=self.apex_names[0], **line_style),
+                'baxis': dict(title=self.apex_names[1], **line_style),
+                'caxis': dict(title=self.apex_names[2], **line_style),
                 # 'bgcolor':'rgba(0, 0, 0, 0)',
             },
             title=dict(
@@ -329,8 +309,8 @@ class TernaryGraph:
                 yanchor='top'
             ),
             legend_orientation='h',
-            plot_bgcolor  = 'rgba(0, 0, 0, 0)',
-            paper_bgcolor = 'rgba(0, 0, 0, 0)',
+            # plot_bgcolor  = 'rgba(0, 0, 0, 0)',
+            # paper_bgcolor = 'rgba(0, 0, 0, 0)',
             font=dict(color='white' if self.enable_darkmode else 'black'),
             # Adjust figure padding so it fits in the render window
             margin=dict(l=100, r=100, t=100, b=100),
