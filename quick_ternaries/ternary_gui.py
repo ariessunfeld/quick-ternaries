@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import os
 
 import numpy as np
 import pandas as pd
@@ -523,6 +524,8 @@ class StartSetup:
         self.setup_custom_type_selection_widgets()
         self.setup_apex_name_widgets()
         self.setup_title_field()
+        self.setup_custom_hover_data_checkbox()
+        self.setup_custom_hover_data_selection_widgets()
         self.update_visibility()
 
     def setup_file_loader_layout(self):
@@ -590,7 +593,7 @@ class StartSetup:
             filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         
             if filepath:
-                file_name = filepath.split("/")[-1]
+                file_name = filepath.split(os.sep)[-1]
                 if not self.file_list.findItems(file_name, Qt.MatchExactly):
                     dataframe = self.read_data(filepath)
                     self.data_library[file_name] = dataframe
@@ -604,7 +607,9 @@ class StartSetup:
             df = self.data_library[file]
             common_columns.intersection_update(df.columns)
         self.available_columns_list.clear()
+        self.available_columns_list_hover_data.clear()
         self.available_columns_list.addItems(sorted(common_columns))
+        self.available_columns_list_hover_data.addItems(sorted(common_columns))
         self.update_visibility()
 
     def setup_ternary_type_selection_layout(self):
@@ -670,6 +675,67 @@ class StartSetup:
         if selected_item is not None:
             lw.takeItem(lw.row(selected_item))
             self.available_columns_list.addItem(selected_item)
+            self.available_columns_list.sortItems()
+    
+    def setup_custom_hover_data_checkbox(self):
+        hz_layout = QHBoxLayout()
+        self.hover_data_checkbox = QCheckBox()
+        self.hover_data_checkbox.stateChanged.connect(self.update_visibility)
+        label = QLabel("Customize Hover Data:")
+        hz_layout.addWidget(label)
+        hz_layout.addWidget(self.hover_data_checkbox)
+        self.start_setup_layout.addLayout(hz_layout)
+
+    def setup_custom_hover_data_selection_widgets(self):
+        """
+        Selecting hover data for the ternary.
+        """
+        self.available_columns_list_hover_data = QListWidget()
+        self.hover_data_widgets = []
+        self.selected_columns_list_hover_data = {}
+        grid_layout = QGridLayout()
+
+        for i, apex in enumerate(['Hover Data']):
+            inner_grid_layout = QGridLayout()
+            vbox_layout = QVBoxLayout()
+
+            label = QLabel(f"{apex}")
+            vbox_layout.addWidget(label)
+            list_widget = SelectedValuesList(self)
+            self.selected_columns_list_hover_data[i] = list_widget
+
+            add_btn = QPushButton("Add >>")
+            add_btn.clicked.connect(lambda *args, lw=list_widget: self._add_column_2(lw))
+            vbox_layout.addWidget(add_btn)
+
+            remove_btn = QPushButton("Remove <<")
+            remove_btn.clicked.connect(lambda *args, lw=list_widget: self._remove_value_2(lw))
+            vbox_layout.addWidget(remove_btn)
+
+            inner_grid_layout.addLayout(vbox_layout, 0, 0)
+            inner_grid_layout.addWidget(list_widget, 0, 1)
+            grid_layout.addLayout(inner_grid_layout, i, 0)
+            self.hover_data_widgets.extend([label, list_widget, add_btn, remove_btn])
+
+        h_layout = QHBoxLayout()
+        h_layout.addWidget(self.available_columns_list_hover_data)
+        h_layout.addLayout(grid_layout)
+
+        self.start_setup_layout.addLayout(h_layout)
+        self.hover_data_widgets.append(self.available_columns_list_hover_data)
+
+    def _add_column_2(self, lw: QListWidget):
+        selected_item = self.available_columns_list_hover_data.currentItem()
+        if selected_item is not None:
+            self.available_columns_list_hover_data.takeItem(self.available_columns_list_hover_data.row(selected_item))
+            lw.addItem(selected_item)
+
+    def _remove_value_2(self, lw: SelectedValuesList):
+        selected_item = lw.currentItem()
+        if selected_item is not None:
+            lw.takeItem(lw.row(selected_item))
+            self.available_columns_list_hover_data.addItem(selected_item)
+            self.available_columns_list_hover_data.sortItems()
 
     def setup_apex_name_widgets(self):
         """
@@ -725,6 +791,9 @@ class StartSetup:
         is_custom_type = self.diagram_type_combobox.currentText() == 'Custom'
         for widget in self.custom_type_widgets:
             widget.setVisible(is_custom_type)
+        is_using_custom_hover_data = self.hover_data_checkbox.isChecked()
+        for widget in self.hover_data_widgets:
+            widget.setVisible(is_using_custom_hover_data)
 
     def get_ternary_type(self):
         all_custom_apex_values = []
@@ -750,7 +819,10 @@ class StartSetup:
             'apex custom names': [self.top_apex_name.text(),    # Top apex
                                   self.left_apex_name.text(),   # Left apex
                                   self.right_apex_name.text()], # Right apex
-            'title': self.title_field.text()
+            'title': self.title_field.text(),
+            'hover data': [
+                self.selected_columns_list_hover_data[0].item(i).text() for i in range(
+                    self.selected_columns_list_hover_data[0].count())]
             }
 
         return data
