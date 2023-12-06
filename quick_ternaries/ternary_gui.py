@@ -1102,8 +1102,12 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.critical(self, "Error", "There is no ternary diagram to save. Please generate one first.")
 
-if __name__ == "__main__":
+
+def main():
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
