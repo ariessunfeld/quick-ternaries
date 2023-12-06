@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import os
 
 import numpy as np
 import pandas as pd
@@ -590,7 +591,7 @@ class StartSetup:
             filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         
             if filepath:
-                file_name = filepath.split("/")[-1]
+                file_name = filepath.split(os.sep)[-1]
                 if not self.file_list.findItems(file_name, Qt.MatchExactly):
                     dataframe = self.read_data(filepath)
                     self.data_library[file_name] = dataframe
@@ -670,6 +671,7 @@ class StartSetup:
         if selected_item is not None:
             lw.takeItem(lw.row(selected_item))
             self.available_columns_list.addItem(selected_item)
+            self.available_columns_list.sortItems()
 
     def setup_apex_name_widgets(self):
         """
@@ -720,6 +722,8 @@ class StartSetup:
         title_layout.addWidget(self.title_field, 0, 1)
 
         self.start_setup_layout.addLayout(title_layout)
+
+    
 
     def update_visibility(self):
         is_custom_type = self.diagram_type_combobox.currentText() == 'Custom'
