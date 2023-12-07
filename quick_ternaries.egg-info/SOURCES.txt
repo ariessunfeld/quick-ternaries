@@ -1,0 +1,26 @@
+README.md
+pyproject.toml
+setup.cfg
+quick_ternaries/__init__.py
+quick_ternaries/advanced_widgets.py
+quick_ternaries/app.py
+quick_ternaries/color_utils.py
+quick_ternaries/file_handling_utils.py
+quick_ternaries/filter_strategies.py
+quick_ternaries/filter_widgets.py
+quick_ternaries/setup_venv.py
+quick_ternaries/ternary_gui.py
+quick_ternaries/ternary_utils.py
+quick_ternaries.egg-info/PKG-INFO
+quick_ternaries.egg-info/SOURCES.txt
+quick_ternaries.egg-info/dependency_links.txt
+quick_ternaries.egg-info/entry_points.txt
+quick_ternaries.egg-info/not-zip-safe
+quick_ternaries.egg-info/requires.txt
+quick_ternaries.egg-info/top_level.txt
+quick_ternaries/assets/fonts/Motter Tektura Normal.ttf
+quick_ternaries/assets/icons/settings_icon.png
+quick_ternaries/backend/__init__.py
+quick_ternaries/gui/__init__.py
+quick_ternaries/gui/classes/__init__.py
+quick_ternaries/gui/classes/trace.py
