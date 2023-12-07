@@ -1,0 +1,2 @@
+[console_scripts]
+quick-ternaries = quick_ternaries.ternary_gui:main
