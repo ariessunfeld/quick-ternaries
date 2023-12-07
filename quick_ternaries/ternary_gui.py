@@ -1158,19 +1158,25 @@ class MainWindow(QMainWindow):
             options |= QFileDialog.DontUseNativeDialog
             file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html)"
             file_name, selected_filter = QFileDialog.getSaveFileName(self, "Save Ternary Diagram", "",
-                                                                     file_types, options=options)
+                                                                    file_types, options=options)
             if file_name:
                 # Get the extension from the selected filter if the file_name has no extension
                 if '.' not in file_name.split("/")[-1]:
                     extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
                     file_name += extension
+
                 if file_name.endswith('.html'):
                     # Save interactive plot as HTML
                     with open(file_name, 'w', encoding='utf-8') as f:
                         f.write(self.current_figure.to_html())
                 else:
-                    # Save static image. The format is inferred from the extension of the file_name.
-                    pio.write_image(self.current_figure, file_name)
+                    # Prompt for DPI
+                    dpi, ok = QInputDialog.getInt(self, "DPI Setting", "Enter DPI:", 300, 1, 10000)
+                    if ok:
+                        # Save static image with specified DPI
+                        pio.write_image(self.current_figure, file_name, scale=dpi / 72.0)
+            else:
+                QMessageBox.critical(self, "Error", "Please specify a file name.")
         else:
             QMessageBox.critical(self, "Error", "There is no ternary diagram to save. Please generate one first.")
 
