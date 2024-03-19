@@ -1174,7 +1174,17 @@ class MainWindow(QMainWindow):
                     dpi, ok = QInputDialog.getInt(self, "DPI Setting", "Enter DPI:", 400, 1, 10000)
                     if ok:
                         # Save static image with specified DPI
-                        pio.write_image(self.current_figure, file_name, scale=dpi / 72)
+                        for trace in self.current_figure.data:
+                            if 'marker' in trace and 'size' in trace.marker:
+                                original_size = trace.marker.size
+                                trace.marker.size = original_size / 1.8  # Halving the size
+                        
+                        pio.write_image(self.current_figure, file_name, scale=dpi / 72.0)
+                        
+                        for trace in self.current_figure.data:
+                            if 'marker' in trace and 'size' in trace.marker:
+                                modified_size = trace.marker.size
+                                trace.marker.size = 1.8 * modified_size
             else:
                 QMessageBox.critical(self, "Error", "Please specify a file name.")
         else:
