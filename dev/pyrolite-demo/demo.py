@@ -20,13 +20,16 @@ dfm = df.mean()
 
 # Generate a contour plot using pyrolite and matplotlib
 fig, ax = plt.subplots(1, 1, figsize=(8, 8), subplot_kw=dict(projection='ternary'))
-cs = df.pyroplot.density(ax=ax, contours=[0.68], mode='density', cmap='viridis')
+cs = df.pyroplot.density(ax=ax, contours=[0.68], fontsize=1, mode='density', cmap='viridis')
+for c in cs.collections:
+    c.set_label(None)
 plt.close(fig)  # Close the plot as we only need the contour data
 
 # Extract the path collections from the matplotlib ContourSet
 contour_paths = cs.collections[0].get_paths()
 #main_contour_path = shift_to_zero(contour_paths[0].vertices)
 main_contour_path = contour_paths[0].vertices
+# INSERT HERE
 main_contour_path[:, 0] *= 0.866 # Weird scale factor, not sure why it works?
 tlr_path = xy_to_tlr(main_contour_path)
 tlr_path[:, 1] -= 0.5 # Weird offsets, not sure why needed?

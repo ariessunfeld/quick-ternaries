@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: quick-ternaries
-Version: 0.0.4
+Version: 0.0.6
 Summary: A tool for making ternary diagrams.
 Author: Ari Essunfeld, Reid Morris
 Author-email: ariessunfeld@gmail.com, reidmorris0419@gmail.com
@@ -17,7 +17,7 @@ Requires-Dist: plotly==5.15.0
 Requires-Dist: pyinstaller==5.12.0
 Requires-Dist: pyside6==6.5.1.1
 Requires-Dist: tqdm==4.65.0
-Requires-Dist: kaleido==1.0.1.post1; sys_platform == "win32"
+Requires-Dist: kaleido==0.1.0.post1; sys_platform == "win32"
 Requires-Dist: kaleido==0.2.1; sys_platform == "linux"
 Requires-Dist: kaleido==0.2.1; sys_platform == "darwin"
 
