@@ -508,7 +508,7 @@ class TraceEditor(QWidget):
         self.heatmap_range_info_button.setVisible(is_heatmap)
 
 
-class StartSetup:
+class StartSetup(QWidget):
     LOAD_DATA_FILE = "Add files"
     TERNARY_TYPES = [
         "Al2O3 CaO+Na2O+K2O FeOT+MgO", 
@@ -517,6 +517,7 @@ class StartSetup:
         "Custom"]
 
     def __init__(self):
+        super().__init__()
         self.start_setup_layout  = QVBoxLayout()  # Start menu layout
         self.data_library = {}
         self.setup_file_loader_layout()
