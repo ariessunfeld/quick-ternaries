@@ -25,4 +25,3 @@ class MainWindow(QMainWindow):
     
     def switch_to_trace_view(self):
         self.dynamic_content_area.setCurrentWidget(self.trace_view)
-        
