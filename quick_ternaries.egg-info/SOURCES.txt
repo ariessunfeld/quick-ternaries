@@ -25,3 +25,9 @@ quick_ternaries/gui/__init__.py
 quick_ternaries/gui/classes/__init__.py
 quick_ternaries/gui/classes/trace.py
 quick_ternaries/utils/__init__.py
+src/__init__.py
+src/main.py
+src/controllers/__init__.py
+src/models/__init__.py
+src/utils/__init__.py
+src/views/__init__.py
