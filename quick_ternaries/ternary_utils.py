@@ -288,7 +288,7 @@ class TernaryGraph:
         """
         Configure the layout of the ternary plot.
         """
-        line_style = dict(linecolor='grey', min=0.01, linewidth=2, ticks='outside')
+        line_style = dict(linecolor='grey', linewidth=1, ticks='outside')
         
         if self.enable_darkmode:
             line_style.update(tickcolor='white', linecolor='white')
