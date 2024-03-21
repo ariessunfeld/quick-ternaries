@@ -2,6 +2,8 @@ from pathlib import Path
 import sys
 import os
 
+from typing import Dict
+
 import numpy as np
 import pandas as pd
 import plotly.io as pio
@@ -85,7 +87,7 @@ class TabManager(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tab_counter = 0
-        self.trace_editors = {}
+        self.trace_editors: Dict[str, TraceEditor] = {}
         self.setup_scroll_area()
 
     def setup_scroll_area(self):
@@ -115,7 +117,7 @@ class TabManager(QWidget):
         self.tab_layout.setAlignment(Qt.AlignTop)
 
         # Add the start setup tab
-        self.start_setup = StartSetup()
+        self.start_setup = StartSetup(self)
         self.add_start_setup_tab()
 
         # New tab button
@@ -226,6 +228,10 @@ class TabManager(QWidget):
             editor_data = editor.get_data()
             data[tab_id] = editor_data
         return data
+    
+    def update_trace_data(self):
+        for trace in self.trace_editors.values():
+            trace.update_data()
 
 
 class TraceEditor(QWidget):
@@ -236,8 +242,8 @@ class TraceEditor(QWidget):
 
     def __init__(self, start_setup):
         super().__init__()
-        data_library = start_setup.data_library
-        self.data_library = {filename: df.copy() for filename, df in data_library.items()}
+        self.start_setup_data_library = start_setup.data_library # live reference to data lib in start setup
+        self.data_library = {filename: df.copy() for filename, df in self.start_setup_data_library.items()} # deep copy
         self.trace_config_layout = QVBoxLayout()
         self._setup_data_selector()
 
@@ -253,6 +259,11 @@ class TraceEditor(QWidget):
         self._setup_filter_options()
         self._update_visibility()
         self.current_color = '#636EFA' # Default color
+
+    def update_data(self):
+        self.data_library = self.start_setup_data_library.copy()
+        selected_file = self.selected_data.currentText()
+        self.df = self.data_library[selected_file].copy()
 
     def get_data(self):
         df_current = self.df
@@ -516,10 +527,12 @@ class StartSetup(QWidget):
         "Al2O3 CaO+Na2O K2O", 
         "Custom"]
 
-    def __init__(self):
+    def __init__(self, parent):
         super().__init__()
         self.start_setup_layout  = QVBoxLayout()  # Start menu layout
         self.data_library = {}
+        self.conversion_mapping = {}
+        self.parent = parent # keeps a reference to the Tab Manager
         self.setup_file_loader_layout()
         self.setup_ternary_type_selection_layout()
         self.setup_custom_type_selection_widgets()
@@ -551,11 +564,41 @@ class StartSetup(QWidget):
         
         self.start_setup_layout.addLayout(file_loader_layout)
 
-    def read_data(self,filepath):
+    def read_data(self, filepath):
+        """Returns dataframe and sheet name (if xlsx), otherwise dataframe and None"""
+        
+        sheet = None
+
+        def parse_header_val_from_choice(choice: str):
+            return int(choice.split('|')[0].split()[1].strip()) - 1 # choices are 1-index for readability
+
         if filepath.endswith('.csv'):
             try:
                 header = find_header_row_csv(filepath, 16)
-                dataframe = pd.read_csv(filepath, header=header)
+                
+                # Popup prompts user to select the header row. 
+                # `find_header_row_csv` is used for default (suggested) value
+                # TODO make this its own function so code isn't repeated directly below
+                max_cols = 8
+                max_rows = 16
+                _df = pd.read_csv(filepath)
+                column_info = {} # int keys, list[str] values
+                first_row = list(_df.columns)
+                first_row = first_row[:min(len(first_row), max_cols)]
+                column_info[0] = first_row
+                for row in range(min(max_rows, len(_df))):
+                    colnames =  list(_df.iloc[row])
+                    column_info[row+1] = colnames[:min(max_cols, len(colnames))]
+                column_info_display = [
+                    f'Row {k+1} | Columns: {", ".join(str(c) for c in v)}' for k, v in sorted(column_info.items())]
+                chosen_header, _ = QInputDialog.getItem(
+                    self, "Select Header Row", 
+                    f"Choose a header row from {Path(filepath).name}", 
+                    column_info_display, header, False)  # header is index for suggested header value
+                chosen_header = parse_header_val_from_choice(chosen_header)
+
+                dataframe = pd.read_csv(filepath, header=chosen_header)
+
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
                 return
@@ -568,11 +611,34 @@ class StartSetup(QWidget):
                 else:
                     sheet = sheets[0]
                 header = find_header_row_excel(filepath, 16, sheet)
-                dataframe = excel_file.parse(sheet, header=header)  # Load the data and store in dataframe
+
+                # Popup prompts user to select the header row. 
+                # `find_header_row_csv` is used for default (suggested) value
+                # TODO make own function so code isn't repeated above
+                max_cols = 8
+                max_rows = 16
+                _df = excel_file.parse(sheet, header=0)
+                column_info = {} # int keys, list[str] values
+                first_row = list(_df.columns)
+                first_row = first_row[:min(len(first_row), max_cols)]
+                column_info[0] = first_row
+                for row in range(min(max_rows, len(_df))):
+                    colnames =  list(_df.iloc[row])
+                    column_info[row+1] = colnames[:min(max_cols, len(colnames))]
+                column_info_display = [
+                    f'Row {k+1} | Columns: {", ".join(str(c) for c in v)}' for k, v in sorted(column_info.items())]
+                chosen_header, _ = QInputDialog.getItem(
+                    self, "Select Header Row", 
+                    f"Choose a header row from {Path(filepath).name}", 
+                    column_info_display, header, False)  # header is index for suggested header value
+                chosen_header = parse_header_val_from_choice(chosen_header)
+
+                dataframe = excel_file.parse(sheet, header=chosen_header)  # Load the data and store in dataframe
+
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
                 return
-        return dataframe
+        return dataframe, sheet
 
     def load_data_file(self):
 
@@ -585,9 +651,13 @@ class StartSetup(QWidget):
             if file_path.is_file():
                 dev_data = True
                 file_name = file_path.name
+                # This is an example of coupling, where the file reading, matching, and displaying
+                # logic is all tangled together. Should separate out according to MVC principles
+                dataframe, sheet = self.read_data(str(file_path))
+                if sheet: # Add the sheet name to the filename if not None
+                    file_name = f'{file_name} ({sheet})'
+                self.data_library[file_name] = dataframe
                 if not self.file_list.findItems(file_name, Qt.MatchExactly):
-                    dataframe = self.read_data(str(file_path))
-                    self.data_library[file_name] = dataframe
                     self.file_list.addItem(file_name)
 
         if not dev_data:
@@ -595,9 +665,13 @@ class StartSetup(QWidget):
         
             if filepath:
                 file_name = filepath.split(os.sep)[-1]
+                # This is an example of coupling, where the file reading, matching, and displaying
+                # logic is all tangled together. Should separate out according to MVC principles
+                dataframe, sheet = self.read_data(filepath)
+                if sheet: # Add the sheet name to the filename if not None
+                    file_name = f'{file_name} ({sheet})'
+                self.data_library[file_name] = dataframe
                 if not self.file_list.findItems(file_name, Qt.MatchExactly):
-                    dataframe = self.read_data(filepath)
-                    self.data_library[file_name] = dataframe
                     self.file_list.addItem(file_name)
 
         all_files = sorted(self.data_library.keys())
@@ -612,6 +686,7 @@ class StartSetup(QWidget):
         self.available_columns_list.addItems(sorted(common_columns))
         self.available_columns_list_hover_data.addItems(sorted(common_columns))
         self.update_visibility()
+        self.parent.update_trace_data() # tells traces to update their data
 
     def setup_ternary_type_selection_layout(self):
         """
@@ -991,6 +1066,9 @@ class LeftSide(QWidget):
 
 
 class RenderTernary:
+    def __init__(self, start_setup_reference):
+        self.start_setup = start_setup_reference
+    
     def parse_start_setup_data(self, start_setup_data):
         formula_list = start_setup_data['ternary type']
         apex_names = get_apex_names(formula_list,
@@ -1012,7 +1090,7 @@ class RenderTernary:
         title        = start_setup_data["title"]
 
         graph = TernaryGraph(title, apex_names, enable_darkmode=False)
-        data = Trace(formula_list, apex_names)
+        data = Trace(formula_list, apex_names, self.start_setup.conversion_mapping)
 
         all_trace_ids = list(all_data.keys())
         all_trace_ids = [i for i in all_trace_ids if i!="StartSetup"]
@@ -1116,9 +1194,11 @@ class MainWindow(QMainWindow):
     def generate_diagram(self):
         all_data = self.left_side.tab_manager.get_all_data()
         # Only generate the diagram if there is trace data
-        if len(all_data)!=1:
-            ternary = RenderTernary()
+        if len(all_data) != 1:
+            ternary = RenderTernary(self.left_side.tab_manager.start_setup) #  Apologies for crazy coupling here...
             graph = ternary.make_graph(all_data)
+            if graph is None:
+                return # stop if something went wrong
             self.current_figure = graph.fig
             ternary_html = ternary.write_html(graph)
 
@@ -1193,6 +1273,21 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    def custom_exception_hook(exctype, value, traceback):
+        """
+        Custom exception hook to display uncaught exceptions as message boxes.
+        """
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Error")
+        msgBox.setText(f"An error occurred:\n{value}")
+        msgBox.setIcon(QMessageBox.Critical)
+        msgBox.exec()
+
+    sys.excepthook = custom_exception_hook
+
+    # Disable qt.pointer.dispatch logging
+    os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false"
+
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()

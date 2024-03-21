@@ -9,35 +9,69 @@ from molmass.molmass import FormulaError
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from PySide6.QtWidgets import QInputDialog
+
 class MolarMassCalculator:
-    def __init__(self, formula_list):
+    def __init__(self, formula_list: list, conversion_mapping: dict):
         self.formula_list = formula_list
+        self.conversion_mapping = conversion_mapping
         # Flatten the list of formulas for easier processing
         self.all_formulae = [formula for apex in formula_list for formula in apex]
 
-    def _get_molar_mass(self, formula) -> float:
-        """
-        Obtain the molar mass of an oxide
+    # def _get_molar_mass(self, formula) -> float:
+    #     """
+    #     Obtain the molar mass of an oxide
 
-        Arguments:
-            formula: some oxide formula (ex: Al2O3, MnO, etc.)
+    #     Arguments:
+    #         formula: some oxide formula (ex: Al2O3, MnO, etc.)
+    #     Returns:
+    #         formula_mass: molar mass of input formula
+
+    #     Raises:
+    #         Exception: Propagates any exception raised during molar mass calculation.
+    #     """
+
+    #     formula_mass = np.nan # Default value if formula not recognized
+
+    #     if formula == 'FeOT':
+    #         formula_mass = Formula('FeO').mass
+    #     else:
+    #         try:
+    #             formula_mass = Formula(formula).mass
+    #         except FormulaError as e:
+    #             print(f'Error processing "{formula}": {e}')
+    #     return formula_mass
+    
+    def _get_molar_mass(self, initial_formula):
+        """
+        Attempts to parse a chemical formula. If parsing fails, prompts the user
+        to input a correct formula via a GUI dialog.
+
+        Parameters:
+        - initial_formula: Initial formula string to parse.
+
         Returns:
-            formula_mass: molar mass of input formula
-
-        Raises:
-            Exception: Propagates any exception raised during molar mass calculation.
+        - A valid Formula object, or None if the user cancels the input dialog.
         """
-
-        formula_mass = np.nan # Default value if formula not recognized
-
-        if formula == 'FeOT':
-            formula_mass = Formula('FeO').mass
-        else:
-            try:
-                formula_mass = Formula(formula).mass
-            except Exception as e:
-                raise Exception(f'Error processing "{formula}": {e}')
-        return formula_mass
+        try:
+            # FeOT special case (use molar mass of FeO)
+            if initial_formula == 'FeOT':
+                return Formula('FeO').mass
+            # User override special case
+            if initial_formula in self.conversion_mapping:
+                return Formula(self.conversion_mapping[initial_formula]).mass
+            # Generic case
+            return Formula(initial_formula).mass
+        except FormulaError:
+            # Show input dialog to ask user for a correct formula
+            corrected_formula, ok = QInputDialog.getText(None, "Correct the Formula",
+                                                        "Could not parse the formula. Please enter a valid formula:",
+                                                        text=initial_formula)
+            if ok and corrected_formula:
+                self.conversion_mapping[initial_formula] = corrected_formula
+                return self._get_molar_mass(corrected_formula)  # Recursively validate the new input
+            else:
+                return None
         
     def add_molar_columns(self, dataframe: pd.DataFrame) -> pd.DataFrame:
         """
@@ -46,8 +80,8 @@ class MolarMassCalculator:
 
         # Add molar mass columns
         for formula in self.all_formulae:
+            formula_mass = self._get_molar_mass(formula)
             try:
-                formula_mass = self._get_molar_mass(formula)
                 molar_col_name = f'__{formula}_molar'
                 dataframe[molar_col_name] = dataframe[formula] / formula_mass
             except KeyError:
@@ -92,19 +126,21 @@ class MolarMassCalculator:
 class Trace:
     def __init__(self,
                  formula_list: list,
-                 apex_names: list):
+                 apex_names: list,
+                 conversion_mapping: dict):
         """
-        Initialize the Trace object with a dataframe, a list of formulas, and apex names.
+        Initialize the Trace object with a list of formulas, a list of apex names, and a mapping for conversions
 
         Args:
-            dataframe: The master datafile with oxide compositions.
             formula_list: List of elemental formulas for top, left, and right apices.
             apex_names: Names of the apices.
+            conversion_mapping: Dict mapping column names to molar-convertible formulae
         """
 
         self.formula_list = formula_list
         self.apex_names = apex_names
-        self.molar_mass_calculator = MolarMassCalculator(formula_list)
+        self.conversion_mapping = conversion_mapping
+        self.molar_mass_calculator = MolarMassCalculator(formula_list, conversion_mapping)
 
     def _trace_data(self,
                     dataframe: pd.DataFrame,
@@ -120,6 +156,12 @@ class Trace:
         formula_list = self.formula_list
         apex_names = self.apex_names
     
+        for apex in formula_list:
+            for formula in apex: 
+                if formula not in list(dataframe.columns):
+                    raise KeyError(f"{formula} not found in data columns. Please check data or change Ternary Type.")
+        # if any(formula not in list(dataframe.columns) for formula in formula_list):
+        #     raise KeyError("")
         data_preprocess = self.molar_mass_calculator
         if convert_wtp_to_molar:
             dataframe = data_preprocess.add_molar_columns(dataframe)
