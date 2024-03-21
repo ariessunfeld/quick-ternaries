@@ -29,5 +29,12 @@ src/__init__.py
 src/main.py
 src/controllers/__init__.py
 src/models/__init__.py
+src/models/application_state.py
+src/models/navigation_model.py
+src/models/setup_model.py
+src/models/trace_model.py
 src/utils/__init__.py
 src/views/__init__.py
+src/views/main_window.py
+src/views/setup_view.py
+src/views/trace_view.py
