@@ -31,7 +31,7 @@ echo "Checking for updates..."
 python updater.py
 
 # After updates, run the main program
-echo "Launching Quick Ternaries..."
+echo "Launching Quick Ternaries... (please keep this window open)"
 
 # Silence QT Logging from Terminal output
 export QT_LOGGING_RULES='*.debug=false; qt.*.debug=false'
