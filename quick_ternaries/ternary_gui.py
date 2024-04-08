@@ -11,10 +11,14 @@ import plotly.io as pio
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QFileDialog, QFontDialog, QGridLayout,
     QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox,
-    QPushButton, QScrollArea, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
-
-from PySide6.QtCore import Slot, Qt, QObject, QSize, QUrl
-from PySide6.QtGui import QDesktopServices, QFont, QFontDatabase, QIcon, QPalette
+    QPushButton, QScrollArea, QSpinBox, QStackedWidget, QVBoxLayout, QWidget
+    )
+from PySide6.QtCore import (
+    Slot, Qt, QObject, QSize, QUrl, QByteArray, QMimeData, Signal
+    )
+from PySide6.QtGui import (
+    QDesktopServices, QFont, QFontDatabase, QIcon, QPalette, QPixmap, QDrag
+    )
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
@@ -26,43 +30,43 @@ from quick_ternaries.ternary_utils import TernaryGraph, Trace, get_apex_names, c
 #GITHUB_LINK = "https://github.com/ariessunfeld/quick-ternaries"
 GITHUB_LINK = "https://gitlab.lanl.gov"
 
+class DragTargetIndicator(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setContentsMargins(25, 5, 25, 5)
+        self.setStyleSheet(
+            "QLabel { background-color: #ccc; border: 1px solid black; }"
+        )
+
 class CustomTabButton(QWidget):
     def __init__(self,
-                 name: str,
-                 identifier: str,
-                 index: int,
+                 name,
+                 identifier,
                  change_tab_callback,
-                 remove_tab_callback,
+                 remove_tab_callback=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.identifier = identifier
+        self.change_tab_callback = change_tab_callback
 
-        self.tab_button = QHBoxLayout(self)
+        # Setup the tab button layout
+        self.tab_button_layout = QHBoxLayout(self)
+        self.label = QLabel(name, self)
+        self.tab_button_layout.addWidget(self.label)
 
-        self.label = QLabel(name)
-        self.tab_button.addWidget(self.label)
-
-        # If the tab is removable, render with '✕' button
         if remove_tab_callback:
-            self.close_button = QPushButton("✕")
+            self.close_button = QPushButton("✕", self)
             self.close_button.setFixedSize(QSize(20, 20))
             self.close_button.clicked.connect(lambda: remove_tab_callback(self))
-            self.tab_button.addWidget(self.close_button)
+            self.tab_button_layout.addWidget(self.close_button)
 
-        self.tab_button.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.tab_button)
-
-        # Store the callbacks and index for later use
-        self.change_tab_callback = change_tab_callback
-        self.identifier = str(identifier)
-        self.index = index
-        
+        self.tab_button_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.tab_button_layout)
         self.setFixedHeight(30)
-        self.setCursor(Qt.PointingHandCursor)  # Set the cursor to a pointer
-
+        self.setCursor(Qt.PointingHandCursor)
         self.applyStyles()
 
     def applyStyles(self):
-        # Set the styles for the whole widget (outline here)
         self.setStyleSheet("""
             CustomTabButton {
                 border: 1px solid gray;
@@ -71,23 +75,38 @@ class CustomTabButton(QWidget):
             }
         """)
         if hasattr(self, 'close_button'):
-            self.close_button.setStyleSheet("border: none; background-color: transparent; ")
+            self.close_button.setStyleSheet("border: none; background-color: transparent;")
 
     def mousePressEvent(self, event):
-        """
-        Display the contents of the last clicked tab.
+        if event.button() == Qt.LeftButton:
+            self.change_tab_callback(self.parentWidget().layout().indexOf(self))
 
-        Args:
-            event:
-        """
-        self.change_tab_callback(self.index)
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton and self.identifier != "StartSetup":
+            drag = QDrag(self)
+            mime = QMimeData()
+            drag.setMimeData(mime)
+
+            pixmap = QPixmap(self.size().width() * 2, self.size().height() * 2)
+            pixmap.setDevicePixelRatio(2)
+            self.render(pixmap)
+            drag.setPixmap(pixmap)
+
+            drag.exec(Qt.DropAction.MoveAction)
+            self.show()  # Show this widget again if it's dropped outside
+
+    def dragEnterEvent(self, event):
+        event.accept()
 
 
 class TabManager(QWidget):
+    orderChanged = Signal(list)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
         self.tab_counter = 0
-        self.trace_editors: Dict[str, TraceEditor] = {}
+        self.trace_editors: Dict[str, tuple[int, TraceEditor]] = {}
         self.setup_scroll_area()
 
     def setup_scroll_area(self):
@@ -95,37 +114,32 @@ class TabManager(QWidget):
         self.controls_layout = QHBoxLayout(self)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Scroll area for tabs
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_area.setStyleSheet("border: none; ")
+        self.scroll_area.setMaximumWidth(150)
+        self.scroll_area.setMinimumWidth(100)
 
-        # Set a maximum width for the scroll area
-        self.scroll_area.setMaximumWidth(150)  # Adjust this value as needed
-        self.scroll_area.setMinimumWidth(100)  # Adjust this value as needed
-
-        # Container widget for scroll area
         self.scroll_widget = QWidget()
         self.scroll_area.setWidget(self.scroll_widget)
 
-        # Layout for the container widget
         self.tab_layout = QVBoxLayout(self.scroll_widget)
         self.tab_layout.setContentsMargins(0, 0, 0, 0)
         self.tab_layout.setSpacing(5)
         self.tab_layout.setAlignment(Qt.AlignTop)
 
-        # Add the start setup tab
+        self._drag_target_indicator = DragTargetIndicator()
+        self.tab_layout.addWidget(self._drag_target_indicator)
+        self._drag_target_indicator.hide()
+
         self.start_setup = StartSetup(self)
         self.add_start_setup_tab()
 
-        # New tab button
         self.new_tab_button = QPushButton("+ Add Trace")
         self.new_tab_button.setCursor(Qt.PointingHandCursor)
         self.new_tab_button.clicked.connect(self.add_trace)
-
-        # Add new tab button to the tab layout
         self.tab_layout.addWidget(self.new_tab_button)
 
         self.controls_layout.addWidget(self.scroll_area)
@@ -133,13 +147,13 @@ class TabManager(QWidget):
 
     def add_start_setup_tab(self):
         start_setup_widget = QWidget()
+        start_setup_widget.setProperty("identifier", "StartSetup")  # Set the identifier property
         start_setup_widget.setLayout(self.start_setup.start_setup_layout)
         self.content_stack.addWidget(start_setup_widget)
-        start_setup_tab = CustomTabButton(name = "Start Setup",
-                                            identifier = "StartSetup",
-                                            index = 0,
-                                            change_tab_callback = lambda index: self.change_tab(index),
-                                            remove_tab_callback = None)
+        start_setup_tab = CustomTabButton(name="Start Setup",
+                                        identifier="StartSetup",
+                                        change_tab_callback=lambda index: self.change_tab(index),
+                                        remove_tab_callback=None)
         self.tab_layout.addWidget(start_setup_tab)
         self.change_tab(0)
 
@@ -152,58 +166,53 @@ class TabManager(QWidget):
 
             new_trace_editor = TraceEditor(self.start_setup)
 
-            tab_id = str(self.tab_counter)  # Unique identifier for the tab
-            self.trace_editors[tab_id] = new_trace_editor
+            tab_id = str(self.tab_counter)  # Unique identifier for the tabr
+            tab_index = self.tab_layout.count() - 2
+            self.trace_editors[tab_id] = (tab_index, new_trace_editor)
             self.add_tab(f"Trace {tab_id}", new_trace_editor.trace_config_layout)
 
     def add_tab(self, name, custom_layout):
         tab_index = self.tab_layout.count() - 1
-        tab_id    = self.tab_counter
+        tab_id = str(self.tab_counter)
 
         tab_button = CustomTabButton(name,
-                                     identifier = tab_id,
-                                     index = tab_index,
-                                     change_tab_callback = lambda index: self.change_tab(index),
-                                     remove_tab_callback = self.remove_tab)
+                                    identifier=tab_id,
+                                    change_tab_callback=lambda index: self.change_tab(index),
+                                    remove_tab_callback=self.remove_tab)
         self.tab_layout.insertWidget(tab_index, tab_button)
 
         content_widget = QWidget()
+        content_widget.setProperty("identifier", tab_id)  # Set the identifier property
         content_widget.setLayout(custom_layout)
         self.content_stack.addWidget(content_widget)
-        self.change_tab(tab_index) # Change tabs to the newly created one
+        self.change_tab(tab_index)
 
     def remove_tab(self, tab):
-        # Confirm before removing the tab
         if QMessageBox.question(self, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
-            all_ids = list(self.trace_editors.keys())
-            all_ids.sort()
-            tab_index = all_ids.index(tab.identifier) + 1
+            tab_widget_to_remove = self.tab_layout.takeAt(self.tab_layout.indexOf(tab)).widget()
+            if tab_widget_to_remove:
+                tab_widget_to_remove.deleteLater()
 
-            # Remove the tab button
-            tab_button_to_remove = self.tab_layout.takeAt(tab_index).widget()
-            if tab_button_to_remove:
-                tab_button_to_remove.deleteLater()
+            content_widget_to_remove = self.content_stack.findChild(QWidget, tab.identifier)
+            if content_widget_to_remove:
+                self.content_stack.removeWidget(content_widget_to_remove)
+                content_widget_to_remove.deleteLater()
 
-            # Remove the corresponding widget from the content stack
-            widget_to_remove = self.content_stack.widget(tab_index)
-            if widget_to_remove:
-                self.content_stack.removeWidget(widget_to_remove)
-                widget_to_remove.deleteLater()
-
-            # Update the indices of subsequent tabs
-            for i in range(tab_index, self.tab_layout.count() - 1):  # Exclude the new tab button
-                tab_button = self.tab_layout.itemAt(i).widget()
-                if isinstance(tab_button, CustomTabButton):
-                    tab_button.index -= 1  # Decrement the index
-
-            # Update trace editors
-            del self.trace_editors[tab.identifier] # Delete the TraceEditor instance
-
-            # TODO: Only change tabs if the deleted tab index is <= the current tab index
-            self.change_tab(tab_index - 1)
+            del self.trace_editors[tab.identifier]  # Update the trace editors dictionary
+            # Change to another tab, typically the previous one
+            new_index = max(0, self.content_stack.currentIndex() - 1)
+            self.change_tab(new_index)
 
     def change_tab(self, index):
-        self.content_stack.setCurrentIndex(index)
+        tab_button = self.tab_layout.itemAt(index).widget()
+        if isinstance(tab_button, CustomTabButton):
+            identifier = tab_button.identifier
+            for i in range(self.content_stack.count()):
+                content_widget = self.content_stack.widget(i)
+                if content_widget.property("identifier") == identifier:
+                    self.content_stack.setCurrentIndex(i)
+                    break
+
         # Update the visual style of all tabs
         for i in range(self.tab_layout.count()):
             tab_button = self.tab_layout.itemAt(i).widget()
@@ -211,27 +220,108 @@ class TabManager(QWidget):
                 if i == index:
                     # Style for selected tab
                     tab_button.setStyleSheet("font-weight: bold; \
-                                              background-color: lightgray; \
-                                              border: 1px solid gray;\
-                                              border-radius: 4px")
+                                            background-color: lightgray; \
+                                            border: 1px solid gray;\
+                                            border-radius: 4px")
                 else:
                     # Style for unselected tabs
                     tab_button.setStyleSheet("font-weight: normal; \
-                                              background-color: transparent; \
-                                              border: 1px solid gray;\
-                                              border-radius: 4px;")
+                                            background-color: transparent; \
+                                            border: 1px solid gray;\
+                                            border-radius: 4px;")
 
     def get_all_data(self):
-        # Collect data from all TraceEditors
-        data = {'StartSetup': self.start_setup.get_data()}  # Include StartSetup data
-        for tab_id, editor in self.trace_editors.items():
-            editor_data = editor.get_data()
-            data[tab_id] = editor_data
+        data = {'StartSetup': self.start_setup.get_data()}
+        trace_tabs_data = []
+
+        for i in range(0, self.tab_layout.count()):
+            widget = self.tab_layout.itemAt(i).widget()
+            if isinstance(widget, CustomTabButton) and widget.identifier != "StartSetup":
+                index, editor = self.trace_editors[widget.identifier]
+                trace_tabs_data.append(editor.get_data())
+
+        data["TraceTabs"] = trace_tabs_data
         return data
+
+
+    def get_tabs_in_order(self):
+        """
+        Retrieve tabs in the order they appear in the layout.
+        """
+        tabs = []
+        for i in range(self.tab_layout.count()):
+            widget = self.tab_layout.itemAt(i).widget()
+            if isinstance(widget, CustomTabButton):
+                tabs.append(widget)
+        return tabs
     
     def update_trace_data(self):
-        for trace in self.trace_editors.values():
-            trace.update_data()
+        for tab_index, editor in self.trace_editors.values():
+            editor.update_data()
+
+    def dragEnterEvent(self, e):
+        e.accept()
+
+    def dragLeaveEvent(self, e):
+        self._drag_target_indicator.hide()
+        e.accept()
+
+    def dragMoveEvent(self, e):
+        index = self._find_drop_location(e)
+        if index is not None:
+            self.tab_layout.insertWidget(index, self._drag_target_indicator)
+            e.source().hide()
+            self._drag_target_indicator.show()
+        e.accept()
+
+    def dropEvent(self, e):
+        widget = e.source()
+        if isinstance(widget, CustomTabButton):
+            self._drag_target_indicator.hide()
+            new_index = self.tab_layout.indexOf(self._drag_target_indicator)
+
+            if 0 <= new_index < self.tab_layout.count() - 1:  # Check if the drop location is valid
+                self.tab_layout.removeWidget(widget)
+                self.tab_layout.insertWidget(new_index, widget)
+
+            widget.show()
+            self.update_tab_order()
+            e.accept()
+
+    def update_tab_order(self):
+        # Emit the updated order based on the current UI layout
+        ordered_identifiers = [self.tab_layout.itemAt(i).widget().identifier
+                               for i in range(self.tab_layout.count())
+                               if isinstance(self.tab_layout.itemAt(i).widget(), CustomTabButton)]
+        self.orderChanged.emit(ordered_identifiers)
+
+    def _find_drop_location(self, e):
+        pos = e.position()
+        spacing = self.tab_layout.spacing() / 2
+
+        # Exclude the "Start Setup" tab and the "+ Add Trace" button
+        for n in range(1, self.tab_layout.count() - 1):
+            w = self.tab_layout.itemAt(n).widget()
+            drop_here = (
+                pos.y() >= w.y() - spacing
+                and 
+                pos.y() <= w.y() + w.size().height() + spacing
+            )
+            if drop_here:
+                break
+
+        return n
+
+    def get_item_data(self):
+        """
+        A list of all tab IDs in order of their vertical index
+        """
+        data = []
+        for n in range(self.tab_layout.count()):
+            w = self.tab_layout.itemAt(n).widget()
+            if hasattr(w, "identifier"):
+                data.append(w.identifier)
+        return data
 
 
 class TraceEditor(QWidget):
@@ -641,50 +731,47 @@ class StartSetup(QWidget):
         return dataframe, sheet
 
     def load_data_file(self):
-
-        # Create the "data" directory relative to the current script location
         data_directory = Path(__file__).parent / 'data'
         data_directory.mkdir(parents=True, exist_ok=True)
-        dev_data = False
 
-        for file_path in data_directory.glob('*'):
-            if file_path.is_file():
-                dev_data = True
-                file_name = file_path.name
-                # This is an example of coupling, where the file reading, matching, and displaying
-                # logic is all tangled together. Should separate out according to MVC principles
-                dataframe, sheet = self.read_data(str(file_path))
-                if sheet: # Add the sheet name to the filename if not None
-                    file_name = f'{file_name} ({sheet})'
-                self.data_library[file_name] = dataframe
-                if not self.file_list.findItems(file_name, Qt.MatchExactly):
-                    self.file_list.addItem(file_name)
+        dev_data = True
+        files_to_load = []
 
-        if not dev_data:
+        if dev_data:
+            files_to_load.extend(data_directory.glob("*"))
+        else:
             filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
-        
             if filepath:
-                file_name = filepath.split(os.sep)[-1]
-                # This is an example of coupling, where the file reading, matching, and displaying
-                # logic is all tangled together. Should separate out according to MVC principles
-                dataframe, sheet = self.read_data(filepath)
-                if sheet: # Add the sheet name to the filename if not None
-                    file_name = f'{file_name} ({sheet})'
-                self.data_library[file_name] = dataframe
-                if not self.file_list.findItems(file_name, Qt.MatchExactly):
-                    self.file_list.addItem(file_name)
+                files_to_load.append(Path(filepath))
 
+        for file_path in files_to_load:
+            if file_path.is_file() and not file_path.name.endswith(".DS_Store"):
+                try:
+                    file_name = file_path.name
+                    dataframe, sheet = self.read_data(str(file_path))
+                    if sheet:
+                        file_name = f'{file_name} ({sheet})'
+                    self.data_library[file_name] = dataframe
+                    if not self.file_list.findItems(file_name, Qt.MatchExactly):
+                        self.file_list.addItem(file_name)
+                except Exception as e:
+                    print(f"Error processing {file_path}: {e}")
+        self.update_ui()
+
+    def update_ui(self):
         all_files = sorted(self.data_library.keys())
-        # Initialize the set of common columns with the columns of the first DataFrame
-        common_columns = set(self.data_library[all_files[0]].columns)
-        # Find the intersection with the columns of each subsequent DataFrame
-        for file in all_files[1:]:
-            df = self.data_library[file]
-            common_columns.intersection_update(df.columns)
-        self.available_columns_list.clear()
-        self.available_columns_list_hover_data.clear()
-        self.available_columns_list.addItems(sorted(common_columns))
-        self.available_columns_list_hover_data.addItems(sorted(common_columns))
+        if all_files:
+            # Initialize the set of common columns with the columns of the first DataFrame
+            common_columns = set(self.data_library[all_files[0]].columns)
+            # Find the intersection with the columns of each subsequent DataFrame
+            for file in all_files[1:]:
+                common_columns.intersection_update(self.data_library[file].columns)
+
+            self.available_columns_list.clear()
+            self.available_columns_list_hover_data.clear()
+            self.available_columns_list.addItems(sorted(common_columns))
+            self.available_columns_list_hover_data.addItems(sorted(common_columns))
+            
         self.update_visibility()
         self.parent.update_trace_data() # tells traces to update their data
 
@@ -1064,7 +1151,6 @@ class LeftSide(QWidget):
             '</a>'
         )
 
-
 class RenderTernary:
     def __init__(self, start_setup_reference):
         self.start_setup = start_setup_reference
@@ -1092,12 +1178,8 @@ class RenderTernary:
         graph = TernaryGraph(title, apex_names, enable_darkmode=False)
         data = Trace(formula_list, apex_names, self.start_setup.conversion_mapping)
 
-        all_trace_ids = list(all_data.keys())
-        all_trace_ids = [i for i in all_trace_ids if i!="StartSetup"]
-        all_trace_ids.sort()
         # TODO: Create better method of sorting tab IDs to allow for point plot order customizability
-        for trace_id in all_trace_ids:
-            trace_data = all_data[trace_id]
+        for trace_data in all_data["TraceTabs"]:
             if trace_data is not None:
                 trace = data.make_trace(trace_data["dataframe"],
                                         name       = trace_data["name"],
@@ -1108,7 +1190,6 @@ class RenderTernary:
                                         hover_cols = None,
                                         convert_wtp_to_molar = trace_data["convert_wtp_to_molar"])
                 graph.add_trace(trace)
-
         return graph
 
     def write_html(self, graph):
@@ -1161,8 +1242,7 @@ class PlotlyInterface(QObject):
 
     def applyColorChange(self):
         all_data = self.main_window.left_side.tab_manager.get_all_data()
-        all_traces = [all_data[dict_key] for dict_key in all_data.keys() if dict_key!="StartSetup"]
-        for trace in all_traces:
+        for trace in all_data["TraceTabs"]:
             trace_data = trace['dataframe']
             for index in self.selectedIndices:
                 if 0 <= index < len(trace_data):
@@ -1194,7 +1274,7 @@ class MainWindow(QMainWindow):
     def generate_diagram(self):
         all_data = self.left_side.tab_manager.get_all_data()
         # Only generate the diagram if there is trace data
-        if len(all_data) != 1:
+        if all_data["TraceTabs"]:
             ternary = RenderTernary(self.left_side.tab_manager.start_setup) #  Apologies for crazy coupling here...
             graph = ternary.make_graph(all_data)
             if graph is None:
