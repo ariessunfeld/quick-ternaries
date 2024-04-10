@@ -1108,7 +1108,9 @@ class LeftSide(QWidget):
         """
         Update the settings icon based on the current theme.
         """
-        icon_path = './assets/icons/settings_icon.png'
+        current_directory = Path(__file__).resolve().parent
+        icon_path = current_directory / 'assets' / 'icons' / 'settings_icon.png'
+        icon_path = str(icon_path)
         icon = QIcon(icon_path)
         button.setIcon(icon)
 
