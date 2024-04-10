@@ -734,7 +734,7 @@ class StartSetup(QWidget):
         data_directory = Path(__file__).parent / 'data'
         data_directory.mkdir(parents=True, exist_ok=True)
 
-        dev_data = True
+        dev_data = False
         files_to_load = []
 
         if dev_data:
