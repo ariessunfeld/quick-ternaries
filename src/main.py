@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QApplication
 
 from src.views.main_window import MainWindow
 
-from src.models.start_setup_model import StartSetupModel
-from src.controllers.setup_controller import StartSetupController
+from src.models.start_setup.start_setup_model import StartSetupModel
+from src.controllers.start_setup.start_setup_controller import StartSetupController
 
 def main():
     app = QApplication(sys.argv)

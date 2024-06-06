@@ -13,92 +13,14 @@ import pandas as pd
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget
 
-from src.models.setup_model import StartSetupModel, CustomHoverDataSelectionModel
-from src.models.custom_apex_selection_model import CustomApexSelectionModel
-
+from src.models.start_setup.start_setup_model import StartSetupModel
 from src.views.start_setup.start_setup_view import StartSetupView
-from src.views.start_setup.custom_apex_selection_view import CustomApexSelectionView
-from src.views.start_setup.custom_hover_data_selection_view import CustomHoverDataSelectionView
 
-from src.controllers.custom_hover_data_selection_controller import CustomHoverDataSelectionController
+from src.controllers.start_setup.custom_apex_selection_controller import CustomApexSelectionController
+from src.controllers.start_setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
-
-class CustomApexSelectionController:
-    def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):
-        
-        # models and views are instantiated outside this class
-        # hence, they get passed to the initialization method
-        self.model = model
-        self.view = view
-
-        self.setup_connections()
-        
-    def setup_connections(self):
-        # Add/remove button connections
-        self.view.add_remove_list_top_apex_columns.button_add.clicked.connect(self.clicked_top_apex_button_add)
-        self.view.add_remove_list_top_apex_columns.button_remove.clicked.connect(self.clicked_top_apex_button_remove)
-        self.view.add_remove_list_right_apex_columns.button_add.clicked.connect(self.clicked_right_apex_button_add)
-        self.view.add_remove_list_right_apex_columns.button_remove.clicked.connect(self.clicked_right_apex_button_remove)
-        self.view.add_remove_list_left_apex_columns.button_add.clicked.connect(self.clicked_left_apex_button_add)
-        self.view.add_remove_list_left_apex_columns.button_remove.clicked.connect(self.clicked_left_apex_button_remove)
-
-    def clicked_top_apex_button_add(self):
-        """Gets selected column from view's available_columns,
-        adds to model's top_apex_columns and removes from model's available columns"""
-        selected_column = self.view.list_widget_available_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.add_top_apex_column(col)
-            self.model.remove_available_column(col)
-
-    def clicked_top_apex_button_remove(self):
-        """Gets selected column from view's top_apex columns,
-        adds to model's available columns and removes from model's top_apex columns"""
-        selected_column = self.view.add_remove_list_top_apex_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.remove_top_apex_column(col)
-            self.model.add_available_column(col)
-
-    def clicked_right_apex_button_add(self):
-        """Gets selected column from view's available_columns,
-        adds to model's right_apex_columns and removes from model's available columns"""
-        selected_column = self.view.list_widget_available_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.add_right_apex_column(col)
-            self.model.remove_available_column(col)
-
-    def clicked_right_apex_button_remove(self):
-        """Gets selected column from view's right_apex columns,
-        adds to model's available columns and removes from model's right_apex columns"""
-        selected_column = self.view.add_remove_list_right_apex_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.remove_right_apex_column(col)
-            self.model.add_available_column(col)
-
-    def clicked_left_apex_button_add(self):
-        """Gets selected column from view's available_columns,
-        adds to model's left_apex_columns and removes from model's available columns"""
-        selected_column = self.view.list_widget_available_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.add_left_apex_column(col)
-            self.model.remove_available_column(col)
-
-    def clicked_left_apex_button_remove(self):
-        """Gets selected column from view's left_apex columns,
-        adds to model's available columns and removes from model's left_apex columns"""
-        selected_column = self.view.add_remove_list_left_apex_columns.currentItem()
-        if selected_column is not None:
-            col = selected_column.text()
-            self.model.remove_left_apex_column(col)
-            self.model.add_available_column(col)
-
-
-
+from src.utils.ternary_types import TERNARY_TYPES
 
 
 class StartSetupController(QWidget):
@@ -225,6 +147,17 @@ class StartSetupController(QWidget):
         self.model.set_left_apex_display_name(self.view.labeled_line_edit_left_apex_display_name.line_edit.text())
 
     def combobox_ternarytype_changed(self):
+        """
+        Update the model so it knows the current selected ternary type
+        If 'Custom' is selected, make the custom apex selection view visible
+        Otherwise, ensure it is invisible
+        """
         selected_ternary_type_name = self.view.combobox_ternary_type.currentText()
-        selected_ternary_type = self.model.
+        selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
+        self.model.set_selected_ternary_type(selected_ternary_type)
+        if selected_ternary_type == 'Custom':
+            self.view.update_custom_apex_selection_view_visibility(True)
+        else:
+            self.view.update_custom_apex_selection_view_visibility(False)
+
 
