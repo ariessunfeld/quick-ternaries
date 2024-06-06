@@ -337,10 +337,10 @@ class TernaryGraph:
 
         self.fig.update_layout(
             ternary={
-                'sum': 1,
+                'sum': 100,
                 'aaxis': dict(title=self.apex_names[0], **line_style),
-                'baxis': dict(title=self.apex_names[1], **line_style),
-                'caxis': dict(title=self.apex_names[2], **line_style),
+                'baxis': dict(title=self.apex_names[1], **line_style) | dict(tickangle=60),
+                'caxis': dict(title=self.apex_names[2], **line_style) | dict(tickangle=-60),
                 # 'bgcolor':'rgba(0, 0, 0, 0)',
             },
             title=dict(
@@ -402,7 +402,7 @@ def get_apex_names(t_type: list[str],
         if not apex_names[i]:
             apex_names[i] = "+".join(t_type[i])
 
-    return apex_names
+    return ['<br>'+str(s) if i != 0 else str(s) for i, s in enumerate(apex_names)]
 
 def create_title(formula_list: list[list[str]], title: str=None)->str:
     """
