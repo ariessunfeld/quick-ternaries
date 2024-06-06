@@ -2,8 +2,8 @@
 
 from typing import List
 
-from src.models.custom_apex_selection_model import CustomApexSelectionModel
-from src.models.custom_hover_data_selection_model import CustomHoverDataSelectionModel
+from src.models.start_setup.custom_apex_selection_model import CustomApexSelectionModel
+from src.models.start_setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
 from src.models.data_models import DataLibrary
 from src.models.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 from src.utils.ternary_types import TERNARY_TYPES
@@ -56,14 +56,14 @@ class TernaryType:
         Example: self.top = ['Al2O3', 'SiO2']; self.left = ['Cao', 'Na2O', 'K2O']; self.right = ['FeOT']
             returns: 'AS CNK F'
         """
-        return "".join(s[0] for s in self.top) + " " + \
-            "".join(s[0] for s in self.left) + " " + \
-            "".join(s[0] for s in self.right)
+        return "".join(s[0] if s else '' for s in self.top) + " " + \
+            "".join(s[0] if s else '' for s in self.left) + " " + \
+            "".join(s[0] if s else '' for s in self.right)
     
     def get_combobox_formatted_name(self):
-        return "+".join(s[0] for s in self.top) + "  " + \
-            "+".join(s[0] for s in self.left) + "  " + \
-            "+".join(s[0] for s in self.right)
+        return "+".join(s[0] if s else '' for s in self.top) + "  " + \
+            "+".join(s[0] if s else '' for s in self.left) + "  " + \
+            "+".join(s[0] if s else '' for s in self.right)
 
 
 

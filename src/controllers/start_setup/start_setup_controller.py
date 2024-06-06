@@ -45,6 +45,10 @@ class StartSetupController(QWidget):
         self.view.labeled_line_edit_right_apex_display_name.line_edit.textChanged.connect(self.right_apex_display_name_changed)
         self.view.labeled_line_edit_left_apex_display_name.line_edit.textChanged.connect(self.left_apex_display_name_changed)
 
+        # Populate the ternary type combobox
+        available_ternary_types = [x.name for x in self.model.available_ternary_types]
+        self.view.combobox_ternary_type.addItems(available_ternary_types)
+
         # Handle changes to the ternary type
         self.view.combobox_ternary_type.currentTextChanged.connect(self.combobox_ternarytype_changed)
 
@@ -54,7 +58,8 @@ class StartSetupController(QWidget):
             self.view.custom_apex_selection_view)
         
         self.custom_hover_data_selection_controller = CustomHoverDataSelectionController(
-
+            self.model.custom_hover_data_selection_model,
+            self.view.custom_hover_data_selection_view
         )
 
     def load_data(self):
@@ -155,7 +160,8 @@ class StartSetupController(QWidget):
         selected_ternary_type_name = self.view.combobox_ternary_type.currentText()
         selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
         self.model.set_selected_ternary_type(selected_ternary_type)
-        if selected_ternary_type == 'Custom':
+        if selected_ternary_type_name == 'Custom':
+            print('Custom')
             self.view.update_custom_apex_selection_view_visibility(True)
         else:
             self.view.update_custom_apex_selection_view_visibility(False)

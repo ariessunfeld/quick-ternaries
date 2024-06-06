@@ -1,6 +1,5 @@
 
-from src.models.setup_model import CustomHoverDataSelectionModel
-
+from src.models.start_setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
 from src.views.start_setup.custom_hover_data_selection_view import  CustomHoverDataSelectionView
 
 class CustomHoverDataSelectionController:
