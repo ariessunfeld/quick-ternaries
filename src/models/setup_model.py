@@ -82,6 +82,12 @@ class BaseSetupModel:
         self.controller = None
         self.view = None
 
+    def add_data(self, filepath: str, sheet: int | None, header: list[str]):
+        self.data_library.add_data(filepath, sheet, header)
+
+    def remove_data(self, filepath, sheet):
+        self.data_library.remove_data(filepath, sheet)
+
     def set_controller(self, controller):
         self.controller = controller
 

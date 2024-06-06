@@ -99,7 +99,6 @@ class CustomHoverDataSelectionController:
 
 class BaseSetupController(QWidget):
     def __init__(self, model: BaseSetupModel, view: BaseSetupView):
-        
         super().__init__()
 
         # models and views are instantiated outside this class
@@ -128,11 +127,19 @@ class BaseSetupController(QWidget):
         
         Connected to self.view.button_add_data.clicked
         """
-        filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
+        filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         if filepath:
             sheet = self.get_sheet(filepath)
             header = self.get_header(filepath, sheet)
-            self.model.data_library.add_data(filepath, sheet, header)
+            self.model.add_data(filepath, sheet, header)
+            title = f"File: {filepath}, Sheet: {sheet}, Header: {header}"
+            list_item, button = self.view.loaded_data_scroll_view.add_item(title)
+            button.clicked.connect(lambda: self.remove_data(list_item, filepath, sheet))
+
+
+    def remove_data(self, item, filepath, sheet):
+        self.model.remove_data(filepath, sheet)
+        self.view.loaded_data_scroll_view.remove_item(item)
             
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""
@@ -150,7 +157,7 @@ class BaseSetupController(QWidget):
         else:
             raise ValueError(f"Unsupported filetype: {filepath.suffix}")
             
-    def get_header(self, filepath: str, sheet: str) -> str|None:
+    def get_header(self, filepath: str, sheet: str) -> int|None:
         """Returns the user-selected header row for filepath"""
         filepath = Path(filepath)
         if filepath.suffix == '.csv':
@@ -187,7 +194,7 @@ class BaseSetupController(QWidget):
         column_info_display = [  # Format the column/row pairs for display
             f'Row {k+1} | Columns: {", ".join(str(c) for c in v)}' for k, v in sorted(column_info.items())]
         chosen_header, _ = QInputDialog.getItem(  # Ask the user to pick a row
-            self, "Select Header Row", 
+            self, "Select Header Row",
             f"Choose a header row from {Path(filepath).name}", 
             column_info_display, suggested_header, False)
         return parse_header_val_from_choice(chosen_header)

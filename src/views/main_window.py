@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.central_widget.setLayout(self.main_layout)
         self.setCentralWidget(self.central_widget)
 
-        self.base_setup_view.button_add_data.clicked.connect(self.switch_to_trace_view)
+        # self.base_setup_view.button_add_data.clicked.connect(self.switch_to_trace_view)
 
 
     def switch_to_base_setup_view(self):

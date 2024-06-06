@@ -10,20 +10,73 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QListWidget,
     QComboBox,
-    QCheckBox
+    QCheckBox,
+    QScrollArea,
+    QListWidgetItem
 )
 
+from PySide6.QtCore import Qt
+
+class ListItemWidget(QWidget):
+    def __init__(self, title, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.layout = QHBoxLayout(self)
+
+        self.set_title(title)
+        self.layout.addStretch()
+        self.create_close_button()
+
+        self.setLayout(self.layout)
+
+    def set_title(self, title):
+        label = QLabel(title)
+        self.layout.addWidget(label)
+
+    def create_close_button(self):
+        self.close_button = QPushButton("X")
+        self.close_button.setMaximumWidth(20)
+        self.layout.addWidget(self.close_button)
+
+
+
 class LoadedDataScrollView(QWidget):
-    # This is where loaded data will be shown
-    # Like the tabs for traces, loaded data should
-    # have little Xs that allow for removal
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    def add_item(self, *args):
-        pass
+        self.layout = QVBoxLayout(self)
+        self.file_list = QListWidget(self)
+        self.set_style()
+        
+        self.layout.addWidget(self.file_list)
+        self.setLayout(self.layout)
 
-    def remove_item(self, identifier, *args):
-        pass
+    def set_style(self):
+        self.file_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid gray;
+                background-color: transparent;
+            }
+            QListWidget::item {
+                margin: 2px;
+                padding: 2px;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+                color: black;
+            }
+        """)
+
+    def add_item(self, title):
+        list_item = QListWidgetItem(self.file_list)
+        item_widget = ListItemWidget(title)
+        list_item.setSizeHint(item_widget.sizeHint())
+        self.file_list.addItem(list_item)
+        self.file_list.setItemWidget(list_item, item_widget)
+        return list_item, item_widget.close_button
+
+    def remove_item(self, item):
+        self.file_list.takeItem(self.file_list.row(item))
 
 
 class AddRemoveList(QWidget):
@@ -46,7 +99,7 @@ class AddRemoveList(QWidget):
         self.layout.addWidget(self.inner_layout_widget)
         self.layout.addWidget(self.list)
 
-    # Direct access to self.list methods (QListWidget methods) 
+    # Direct access to self.list methods (QListWidget methods)
     def currentItem(self):
         return self.list.currentItem()
     
@@ -169,9 +222,9 @@ class BaseSetupView(QWidget):
         self.custom_apex_selection_view.setVisible(False)  # Hide the CustomApexSelectionView at first
 
         self.labeled_line_edit_ternary_title = LeftLabeledLineEdit('Title:')
-        self.labeled_line_edit_top_apex_display_name = LeftLabeledLineEdit('Top Apex (display name):')
+        self.labeled_line_edit_top_apex_display_name   = LeftLabeledLineEdit('Top Apex (display name):')
         self.labeled_line_edit_right_apex_display_name = LeftLabeledLineEdit('Right Apex (display name):')
-        self.labeled_line_edit_left_apex_display_name = LeftLabeledLineEdit('Left Apex (display name):')
+        self.labeled_line_edit_left_apex_display_name  = LeftLabeledLineEdit('Left Apex (display name):')
 
         self.labeled_checkbox_customize_hover_data = LeftLabeledCheckbox('Customize Cursor-Hover Data:')
         self.custom_hover_data_selection_view = CustomHoverDataSelectionView()
