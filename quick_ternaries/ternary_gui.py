@@ -734,7 +734,7 @@ class StartSetup(QWidget):
         data_directory = Path(__file__).parent / 'data'
         data_directory.mkdir(parents=True, exist_ok=True)
 
-        dev_data = True
+        dev_data = False
         files_to_load = []
 
         if dev_data:
@@ -1163,10 +1163,13 @@ class RenderTernary:
                                     start_setup_data['apex custom names'])
         
         title = create_title(formula_list, start_setup_data['title'])
+        
+        hoverdata = start_setup_data['hover data']
 
         data = {"formula list": formula_list,
                 "apex names": apex_names,
-                "title": title}
+                "title": title,
+                "hover data": hoverdata}
 
         return data
 
@@ -1176,6 +1179,7 @@ class RenderTernary:
         formula_list = start_setup_data["formula list"]
         apex_names   = start_setup_data["apex names"]
         title        = start_setup_data["title"]
+        hoverdata    = start_setup_data['hover data']
 
         graph = TernaryGraph(title, apex_names, enable_darkmode=False)
         data = Trace(formula_list, apex_names, self.start_setup.conversion_mapping)
@@ -1189,7 +1193,7 @@ class RenderTernary:
                                         size       = trace_data["size"],
                                         cmin       = trace_data["cmin"],
                                         cmax       = trace_data["cmax"],
-                                        hover_cols = None,
+                                        hover_cols = hoverdata, #None,
                                         convert_wtp_to_molar = trace_data["convert_wtp_to_molar"])
                 graph.add_trace(trace)
         return graph
@@ -1208,7 +1212,9 @@ class RenderTernary:
                         var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
                         plotElement.on('plotly_selected', function(eventData) {
                             if (eventData) {
-                                var indices = eventData.points.map(function(pt) { return pt.pointIndex; });
+                                var indices = eventData.points.map(function(pt) {
+                                    return {pointIndex: pt.pointIndex, curveNumber: pt.curveNumber};
+                                });
                                 window.plotlyInterface.receiveSelectedIndices(indices);
                             }
                         });
@@ -1244,12 +1250,28 @@ class PlotlyInterface(QObject):
 
     def applyColorChange(self):
         all_data = self.main_window.left_side.tab_manager.get_all_data()
-        for trace in all_data["TraceTabs"]:
-            trace_data = trace['dataframe']
-            for index in self.selectedIndices:
-                if 0 <= index < len(trace_data):
-                    trace_data.at[index, 'color'] = self.selectedColor
-        self.main_window.generate_diagram()  # Re-plot with updated colors
+        valid_tracenums = range(len(all_data['TraceTabs']))
+        for inner_dict in self.selectedIndices:
+            print('Processing', inner_dict)
+            tracenum, idx = inner_dict['curveNumber'], inner_dict['pointIndex']
+            if tracenum in valid_tracenums:
+                print(f'{tracenum} in valid_tracenums')
+                trace_data = all_data['TraceTabs'][tracenum]['dataframe']
+                if 0 <= idx < len(trace_data):
+                    print(f'{idx} in valid range')
+                    trace_data.at[idx, 'color'] = self.selectedColor
+                else:
+                    print(f'{idx} not in valid range')
+            else:
+                print(f'{tracenum} not in valid_tracenums')
+        self.main_window.generate_diagram()
+
+        # for trace in all_data["TraceTabs"]:
+        #     trace_data = trace['dataframe']
+        #     for index in self.selectedIndices:
+        #         if 0 <= index < len(trace_data):
+        #             trace_data.at[index, 'color'] = self.selectedColor
+        # self.main_window.generate_diagram()  # Re-plot with updated colors
 
 
 class MainWindow(QMainWindow):
@@ -1306,6 +1328,10 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def changeColor(self):
+        """Prompts the user to select a color with a QColorDialog
+        If the color is valid, sets the plotlyInterface selectedColor to this color
+        and then calls the plotlyInterface applyColorChange method
+        """
         color = QColorDialog.getColor()
         if color.isValid():
             self.plotlyInterface.selectedColor = color.name()
