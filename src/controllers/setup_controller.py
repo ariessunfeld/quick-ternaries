@@ -11,13 +11,13 @@ User --> View --> Controller --> Model --> View
 from pathlib import Path
 import pandas as pd
 
-from PySide6.QtWidgets import QFileDialog, QInputDialog
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget
 
-from models.setup_model import BaseSetupModel
-from models.custom_apex_selection_model import CustomApexSelectionModel
-from views.setup_view import BaseSetupView
-from views.setup_view import CustomApexSelectionView
-from utils.file_handling_utils import find_header_row_csv, find_header_row_excel
+from src.models.setup_model import BaseSetupModel
+from src.models.custom_apex_selection_model import CustomApexSelectionModel
+from src.views.setup_view import BaseSetupView
+from src.views.setup_view import CustomApexSelectionView
+from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 
 class CustomApexSelectionController:
     def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):
@@ -92,10 +92,16 @@ class CustomApexSelectionController:
             self.model.remove_left_apex_column(col)
             self.model.add_available_column(col)
 
-        
-class BaseSetupController:
+
+class CustomHoverDataSelectionController:
+    pass
+
+
+class BaseSetupController(QWidget):
     def __init__(self, model: BaseSetupModel, view: BaseSetupView):
         
+        super().__init__()
+
         # models and views are instantiated outside this class
         # hence, they get passed to the initialization method
         self.model = model
@@ -131,7 +137,7 @@ class BaseSetupController:
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""
         filepath = Path(filepath)
-        if filepath.sufffix == '.csv':
+        if filepath.suffix == '.csv':
             return None
         elif filepath.suffix == '.xlsx':
             xlsx_file = pd.ExcelFile(filepath)

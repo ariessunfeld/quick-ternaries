@@ -2,17 +2,24 @@
 
 from typing import Dict, List
 
-from custom_apex_selection_model import CustomApexSelectionModel
-from data_models import DataFile, DataLibrary
-from selection_models import HeaderRowSelectionModel, SheetSelectionModel
+from src.models.custom_apex_selection_model import CustomApexSelectionModel
+from src.models.data_models import DataFile, DataLibrary
+from src.models.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 
 class TernaryType:
     def __init__(self, name: str, top: List[str], left: List[str], right: List[str]):
+        """
+        Arguments:
+            name: a string with the display name of the ternary type
+            top: a list of chemical formulae to use for the top apex
+            left: a list of chemical formulae to use for the left apex
+            right: a list of chemical formulae to use for the right apex
+        """
         self.name: str = name
         self.top: list = top
         self.right: list = right
         self.left: list = left
-        self.formatted_name = self.get_formatted_name()
+        self.formatted_name = self.get_short_formatted_name()
 
     def get_name(self):
         return self.name
@@ -59,12 +66,15 @@ class TernaryType:
     
 
 class BaseSetupModel:
+
+    DEFAULT_TERNARY_TYPE = ['', [], [], []]
+
     def __init__(self):
         self.data_library: DataLibrary = DataLibrary()
-        self.ternary_type: TernaryType = TernaryType()
+        self.ternary_type: TernaryType = TernaryType(*self.DEFAULT_TERNARY_TYPE)
         self.custom_apex_selection_model: CustomApexSelectionModel = CustomApexSelectionModel()
-        self.header_row_selection_model: HeaderRowSelectionModel = HeaderRowSelectionModel()
-        self.sheet_selection_model: SheetSelectionModel = SheetSelectionModel()
+        self.header_row_selection_model: HeaderRowSelectionModel = HeaderRowSelectionModel([])
+        self.sheet_selection_model: SheetSelectionModel = SheetSelectionModel([''])
         self.title: str = ''
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''

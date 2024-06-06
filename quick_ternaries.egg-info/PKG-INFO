@@ -1,6 +1,10 @@
 Metadata-Version: 2.1
 Name: quick-ternaries
+<<<<<<< HEAD
 Version: 0.0.9
+=======
+Version: 0.0.10
+>>>>>>> origin/ari
 Summary: A tool for making ternary diagrams.
 Author: Ari Essunfeld, Reid Morris
 Author-email: ariessunfeld@gmail.com, reidmorris0419@gmail.com

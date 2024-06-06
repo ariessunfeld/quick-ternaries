@@ -2,8 +2,8 @@
 
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget
 
-from views.setup_view import BaseSetupView
-from views.trace_view import TraceView
+from src.views.setup_view import BaseSetupView
+from src.views.trace_view import TraceView
 
 class MainWindow(QMainWindow):
     def __init__(self):
