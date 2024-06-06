@@ -6,16 +6,16 @@ from PySide6.QtWidgets import QApplication
 
 from src.views.main_window import MainWindow
 
-from src.models.setup_model import BaseSetupModel
-from src.controllers.setup_controller import BaseSetupController
+from src.models.setup_model import StartSetupModel
+from src.controllers.setup_controller import StartSetupController
 
 def main():
     app = QApplication(sys.argv)
     main_window = MainWindow()
     # instantiate and connect models and controllers
 
-    setup_model = BaseSetupModel()
-    setup_controller = BaseSetupController(setup_model, main_window.base_setup_view)
+    start_setup_model = StartSetupModel()
+    start_setup_controller = StartSetupController(start_setup_model, main_window.start_setup_view)
 
     main_window.show()
     sys.exit(app.exec())
