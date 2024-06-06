@@ -18,15 +18,25 @@ from PySide6.QtWidgets import (
     QPushButton, 
     QListWidget,
     QComboBox,
-    QCheckBox
+    QCheckBox,
+    QScrollArea
 )
 
 class StartSetupView(QWidget):
-    def __init__(self, parent:QWidget|None=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
         self.setMaximumWidth(500)
+
+        # Scroll area to hold the content layout
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+
+        # Widget to hold all the content
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.scroll_area.setWidget(self.content_widget)
 
         # Scroll area to display filenames for loaded data
         self.loaded_data_scroll_view = LoadedDataScrollView()
@@ -37,11 +47,14 @@ class StartSetupView(QWidget):
         # Combobox to select ternary type
         self.combobox_ternary_type: QComboBox = QComboBox()
 
-        # Menu with columns for each apex, only displayed if combobox choice is "Custom"
+        # Menu with columns for each apex, only displayed if 
+        # combobox choice is "Custom"
         self.custom_apex_selection_view = CustomApexSelectionView()
-        self.custom_apex_selection_view.setVisible(False)  # Hide the CustomApexSelectionView at first
+        # Hide the CustomApexSelectionView at first
+        self.custom_apex_selection_view.setVisible(False)
 
-        # Line-edits for title, top apex name, left apex name, right apex name
+        # Line-edits for title, top apex name, left apex name, 
+        # right apex name
         self.labeled_line_edit_ternary_title = \
             LeftLabeledLineEdit('Title:')
         self.labeled_line_edit_top_apex_display_name = \
@@ -55,23 +68,27 @@ class StartSetupView(QWidget):
         self.labeled_checkbox_customize_hover_data = \
             LeftLabeledCheckbox('Customize Cursor-Hover Data:')
         
-        # Menu for picking columns from available data for displaying as metadata
+        # Menu for picking columns from available data for 
+        # displaying as metadata
         self.custom_hover_data_selection_view = \
             CustomHoverDataSelectionView()
-        self.custom_hover_data_selection_view.setVisible(False) # Hide the CustomApexSelectionView at first
+        # Hide the CustomApexSelectionView at first
+        self.custom_hover_data_selection_view.setVisible(False) 
 
-        # Add widgets to the layout
-        self.layout.addWidget(self.loaded_data_scroll_view)
-        self.layout.addWidget(self.button_add_data)
-        self.layout.addWidget(self.combobox_ternary_type)
-        self.layout.addWidget(self.custom_apex_selection_view)
-        self.layout.addWidget(self.labeled_line_edit_ternary_title)
-        self.layout.addWidget(self.labeled_line_edit_top_apex_display_name)
-        self.layout.addWidget(self.labeled_line_edit_right_apex_display_name)
-        self.layout.addWidget(self.labeled_line_edit_left_apex_display_name)
-        self.layout.addWidget(self.labeled_checkbox_customize_hover_data)
-        self.layout.addWidget(self.custom_hover_data_selection_view)
+        # Add widgets to the content layout
+        self.content_layout.addWidget(self.loaded_data_scroll_view)
+        self.content_layout.addWidget(self.button_add_data)
+        self.content_layout.addWidget(self.combobox_ternary_type)
+        self.content_layout.addWidget(self.custom_apex_selection_view)
+        self.content_layout.addWidget(self.labeled_line_edit_ternary_title)
+        self.content_layout.addWidget(self.labeled_line_edit_top_apex_display_name)
+        self.content_layout.addWidget(self.labeled_line_edit_right_apex_display_name)
+        self.content_layout.addWidget(self.labeled_line_edit_left_apex_display_name)
+        self.content_layout.addWidget(self.labeled_checkbox_customize_hover_data)
+        self.content_layout.addWidget(self.custom_hover_data_selection_view)
 
+        # Add the scroll area to the main layout
+        self.main_layout.addWidget(self.scroll_area)
 
     def update_loaded_data_scroll_view(self, update):
         pass

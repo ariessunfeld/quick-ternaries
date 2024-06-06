@@ -52,11 +52,15 @@ class StartSetupController(QWidget):
         # Handle changes to the ternary type
         self.view.combobox_ternary_type.currentTextChanged.connect(self.combobox_ternarytype_changed)
 
+        # Handle changes to the custom hover data checkbox
+        self.view.labeled_checkbox_customize_hover_data.stateChanged.connect(self.checkbox_hoverdata_changed)
+
         # Set up custom apex selection connections
         self.custom_apex_selection_controller = CustomApexSelectionController(
             self.model.custom_apex_selection_model, 
             self.view.custom_apex_selection_view)
         
+        # Set up custom hover data selection connections
         self.custom_hover_data_selection_controller = CustomHoverDataSelectionController(
             self.model.custom_hover_data_selection_model,
             self.view.custom_hover_data_selection_view
@@ -161,9 +165,18 @@ class StartSetupController(QWidget):
         selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
         self.model.set_selected_ternary_type(selected_ternary_type)
         if selected_ternary_type_name == 'Custom':
-            print('Custom')
             self.view.update_custom_apex_selection_view_visibility(True)
         else:
             self.view.update_custom_apex_selection_view_visibility(False)
+
+    def checkbox_hoverdata_changed(self):
+        """
+        Update the model so it knows the current state of the checkbox
+        If checked, set Custom Hover Data Selection View to visible
+        Else, set to invisible
+        """
+        is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
+        self.model.custom_hover_data_is_checked = is_checked
+        self.view.update_custom_hover_data_selection_view_visibility(is_checked)
 
 

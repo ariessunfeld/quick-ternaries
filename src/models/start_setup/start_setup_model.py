@@ -88,6 +88,8 @@ class StartSetupModel:
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
+
+        self.custom_hover_data_is_checked = False
         
         self.controller = None
         self.view = None

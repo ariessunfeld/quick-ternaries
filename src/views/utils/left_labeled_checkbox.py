@@ -6,8 +6,12 @@ from PySide6.QtWidgets import (
     QCheckBox
 )
 
+from PySide6.QtCore import Signal
+
 class LeftLabeledCheckbox(QWidget):
     """A labeled CheckBox megawidget, for check boxes with QLabels to their left"""
+
+    stateChanged = Signal(int)
 
     def __init__(self, label:str='', parent:QWidget|None=None):
         super().__init__(parent)
@@ -17,6 +21,9 @@ class LeftLabeledCheckbox(QWidget):
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.checkbox)
         self.setLayout(self.layout)
-
+        
+        # Connect the internal checkbox's stateChanged signal to the new signal
+        self.checkbox.stateChanged.connect(self.stateChanged)
+        
     def isChecked(self):
         return self.checkbox.isChecked()
