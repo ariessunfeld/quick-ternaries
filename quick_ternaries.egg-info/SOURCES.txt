@@ -28,12 +28,17 @@ quick_ternaries/utils/__init__.py
 src/__init__.py
 src/main.py
 src/controllers/__init__.py
+src/controllers/setup_controller.py
 src/models/__init__.py
 src/models/application_state.py
+src/models/custom_apex_selection_model.py
+src/models/data_models.py
 src/models/navigation_model.py
+src/models/selection_models.py
 src/models/setup_model.py
 src/models/trace_model.py
 src/utils/__init__.py
+src/utils/file_handling_utils.py
 src/views/__init__.py
 src/views/main_window.py
 src/views/setup_view.py
