@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 
 from src.views.main_window import MainWindow
 
-from src.models.setup_model import StartSetupModel
+from src.models.start_setup_model import StartSetupModel
 from src.controllers.setup_controller import StartSetupController
 
 def main():

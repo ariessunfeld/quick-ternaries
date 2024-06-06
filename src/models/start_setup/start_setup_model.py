@@ -3,8 +3,10 @@
 from typing import List
 
 from src.models.custom_apex_selection_model import CustomApexSelectionModel
+from src.models.custom_hover_data_selection_model import CustomHoverDataSelectionModel
 from src.models.data_models import DataLibrary
 from src.models.selection_models import HeaderRowSelectionModel, SheetSelectionModel
+from src.utils.ternary_types import TERNARY_TYPES
 
 class TernaryType:
     def __init__(self, name: str, top: List[str], left: List[str], right: List[str]):
@@ -67,18 +69,26 @@ class TernaryType:
 
 class StartSetupModel:
 
-    DEFAULT_TERNARY_TYPE = ['', [], [], []]
-
     def __init__(self):
         self.data_library: DataLibrary = DataLibrary()
-        self.ternary_type: TernaryType = TernaryType(*self.DEFAULT_TERNARY_TYPE)
-        self.custom_apex_selection_model: CustomApexSelectionModel = CustomApexSelectionModel()
-        self.header_row_selection_model: HeaderRowSelectionModel = HeaderRowSelectionModel([])
-        self.sheet_selection_model: SheetSelectionModel = SheetSelectionModel([''])
-        self.title: str = ''
+        self.available_ternary_types: List[TernaryType] = \
+            [TernaryType(**tt) for tt in TERNARY_TYPES]
+        self.selected_ternary_type: TernaryType = \
+            self.available_ternary_types[0]
+        self.custom_apex_selection_model: CustomApexSelectionModel = \
+            CustomApexSelectionModel()
+        self.custom_hover_data_selection_model: CustomHoverDataSelectionModel = \
+            CustomHoverDataSelectionModel([], [])
+        self.header_row_selection_model: HeaderRowSelectionModel = \
+            HeaderRowSelectionModel([])
+        self.sheet_selection_model: SheetSelectionModel = \
+            SheetSelectionModel([''])
+        
+        self.title: str = 'Untitled'
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
+        
         self.controller = None
         self.view = None
 
@@ -89,10 +99,10 @@ class StartSetupModel:
         self.view = view
 
     def get_ternary_type(self) -> TernaryType:
-        return self.ternary_type
+        return self.selected_ternary_type
     
-    def set_ternary_type(self, ttype: TernaryType):
-        self.ternary_type = ttype
+    def set_selected_ternary_type(self, ttype: TernaryType):
+        self.selected_ternary_type = ttype
 
     def set_title(self, title: str):
         self.title = title
@@ -117,7 +127,3 @@ class StartSetupModel:
     
     def get_left_apex_display_name(self):
         return self.left_apex_display_name
-
-    
-    
-    
