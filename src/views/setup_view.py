@@ -88,6 +88,7 @@ class CustomApexSelectionView(QWidget):
         self.right_layout.addWidget(self.add_remove_list_left_apex_columns)
         self.layout.addWidget(self.right_layout_widget)
 
+
 class CustomHoverDataSelectionView(QWidget):
     """A megawidget containing the ListWidgets and buttons for custom hover data selection"""
 
@@ -136,6 +137,7 @@ class LeftLabeledLineEdit(QWidget):
     def text(self):
         return self.line_edit.text()
 
+
 class LeftLabeledCheckbox(QWidget):
     """A labeled CheckBox megawidget, for check boxes with QLabels to their left"""
 
@@ -150,6 +152,7 @@ class LeftLabeledCheckbox(QWidget):
 
     def isChecked(self):
         return self.checkbox.isChecked()
+
 
 class BaseSetupView(QWidget):
     def __init__(self, parent:QWidget|None=None):

@@ -68,6 +68,7 @@ class DataLibrary:
             return None
         
     def get_all_filenames(self) -> List[str]:
+        """Returns minimally disambiguated list of filename/sheet strings for all files in library"""
         # Step 1: Extract filenames and sheets
         name_sheet_list = [(df.name, df.sheet, df.filepath) for df in self.data_library.values()]
         

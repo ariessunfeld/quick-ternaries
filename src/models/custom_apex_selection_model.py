@@ -2,7 +2,7 @@
 
 from typing import List
 
-from views.setup_view import CustomApexSelectionView
+from src.views.setup_view import CustomApexSelectionView
 
 class CustomApexSelectionModel:
     def __init__(self):
