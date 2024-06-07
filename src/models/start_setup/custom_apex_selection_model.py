@@ -2,7 +2,7 @@
 
 from typing import List
 
-from src.views.setup_view import CustomApexSelectionView
+from src.views.start_setup.custom_apex_selection_view import CustomApexSelectionView
 
 class CustomApexSelectionModel:
     def __init__(self):
@@ -22,10 +22,14 @@ class CustomApexSelectionModel:
         self.view.add_remove_list_right_apex_columns.clear()
         self.view.add_remove_list_left_apex_columns.clear()
 
-        self.view.list_widget_available_columns.addItems(self.get_available_columns())
-        self.view.add_remove_list_top_apex_columns.addItems(self.get_top_apex_selected_columns())
-        self.view.add_remove_list_right_apex_columns.addItems(self.get_right_apex_selected_columns())
-        self.view.add_remove_list_left_apex_columns.addItems(self.get_left_apex_selected_columns())
+        self.view.list_widget_available_columns.addItems(
+            self.get_available_columns())
+        self.view.add_remove_list_top_apex_columns.addItems(
+            self.get_top_apex_selected_columns())
+        self.view.add_remove_list_right_apex_columns.addItems(
+            self.get_right_apex_selected_columns())
+        self.view.add_remove_list_left_apex_columns.addItems(
+            self.get_left_apex_selected_columns())
 
     def add_available_column(self, col: str):
         if col not in self.available_columns:

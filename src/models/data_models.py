@@ -127,10 +127,15 @@ class DataLibrary:
         result = []
         for name, sheet, path in name_sheet_list:
             if name_count[(name,)] > 1:
-                disambiguated_name = f".../{minimal_paths[(path, (name,))]}/{name} | {sheet}"
-                result.append(disambiguated_name)
+                disambiguated_name = f".../{minimal_paths[(path, (name,))]}/{name}"
+                if sheet is not None:
+                    disambiguated_name += f" | {sheet}"
+                result.append((disambiguated_name, sheet, path))
             else:
-                result.append(f"{name} | {sheet}")
+                to_append = f"{name}"
+                if sheet is not None:
+                    to_append += f" | {sheet}"
+                result.append((to_append, sheet, path))
         
         return result
 
