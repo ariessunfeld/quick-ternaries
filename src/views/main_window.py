@@ -42,7 +42,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from src.views.start_setup.start_setup_view import StartSetupView
-from src.views.trace_view import TraceView
+from src.views.trace.trace_view import TraceView
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
@@ -58,6 +58,7 @@ class MainWindow(QMainWindow):
         self.app_name_label = QLabel("Quick Ternaries")
         self.settings_button = QPushButton("Settings")
         
+        # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
         self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
@@ -68,6 +69,7 @@ class MainWindow(QMainWindow):
         self.top_bar.addWidget(self.settings_button)
 
         # Left Scroll Area for Trace Tabs
+        # TODO replace this with src.views.trace.trace_scroll_area.TraceScrollArea()
         self.trace_tabs_scroll_area = QScrollArea()
         self.trace_tabs_scroll_area.setWidgetResizable(True)
         self.trace_tabs_widget = QWidget()
@@ -75,15 +77,21 @@ class MainWindow(QMainWindow):
         self.trace_tabs_scroll_area.setWidget(self.trace_tabs_widget)
         
         # Example trace tab buttons
+        # TODO remove these after replacing with draggable traces
         for i in range(5):  # Add 5 example trace tabs
             trace_button = QPushButton(f"Trace Tab {i+1}")
             self.trace_tabs_layout.addWidget(trace_button)
 
         # Dynamic Content Area
         self.dynamic_content_area = QStackedWidget()
-        self.dynamic_content_area.setContentsMargins(0, 0, 0, 0)
         self.start_setup_view = StartSetupView()
         self.trace_view = TraceView()
+        # TODO eventually we will rename TraceView --> TernaryTraceView
+        # We will probably also rename StartSetupView --> TernaryStartSetupView
+        # We will then have classes for CartesianTraceView, ZMapTraceView, etc.
+        # In these classes we can have the trace-level customization options for these other plot modes
+        # This might involve a file tree refactor where now we have src.views.ternary.start_setup and src.views.ternary.trace
+        # Will have to think about how we handle controllers etc, maybe the app has a "main controller" which changes for diff plot modes
         self.dynamic_content_area.addWidget(self.start_setup_view)
         self.dynamic_content_area.addWidget(self.trace_view)
         self.dynamic_content_area.setCurrentWidget(self.start_setup_view)

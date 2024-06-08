@@ -66,33 +66,9 @@ class StartSetupController(QWidget):
             self.view.custom_hover_data_selection_view
         )
 
-    # def load_data(self):
-    #     """Adds user-selected data file to model's data library
-        
-    #     Connected to self.view.button_add_data.clicked
-    #     """
-    #     filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
-    #     if filepath:
-    #         sheet = self.get_sheet(filepath)
-    #         header = self.get_header(filepath, sheet)
-    #         self.model.data_library.add_data(filepath, sheet, header)
-    #         loaded_data = self.model.data_library.get_all_filenames()
-    #         self.view.loaded_data_scroll_view.clear()
-    #         for _shortname, _sheet, _path in loaded_data:
-    #             list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname)
-    #             close_button.clicked.connect(lambda: self.remove_data(list_item, _path, _sheet))
-
-    # def remove_data(self, item, filepath, sheet):
-    #     self.model.data_library.remove_data(filepath, sheet)
-    #     self.view.loaded_data_scroll_view.clear()
-    #     loaded_data = self.model.data_library.get_all_filenames()
-    #     for _shortname, _sheet, _path in loaded_data:
-    #         list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname)
-    #         close_button.clicked.connect(lambda: self.remove_data(list_item, _path, _sheet))
-
     def load_data(self):
         """Adds user-selected data file to model's data library
-        
+
         Connected to self.view.button_add_data.clicked
         """
         filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
@@ -104,7 +80,7 @@ class StartSetupController(QWidget):
             self.view.loaded_data_scroll_view.clear()
             for _shortname, _sheet, _path in loaded_data:
                 list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-                close_button.clicked.connect(lambda: self.remove_data(list_item, _path, _sheet))
+                close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
 
     def remove_data(self, item, filepath, sheet):
         self.model.data_library.remove_data(filepath, sheet)
@@ -112,8 +88,8 @@ class StartSetupController(QWidget):
         loaded_data = self.model.data_library.get_all_filenames()
         for _shortname, _sheet, _path in loaded_data:
             list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-            close_button.clicked.connect(lambda: self.remove_data(list_item, _path, _sheet))
-            
+            close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""
         filepath = Path(filepath)
