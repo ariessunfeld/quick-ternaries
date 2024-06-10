@@ -32,8 +32,7 @@ class TabController:
         self.model.add_trace(trace_editor)
         tab_counter = self.model.tab_counter
         tab_id = str(tab_counter)
-        self.view.add_trace_tab_to_view(f'Untitled Trace {tab_id}', tab_id)
-        print(self.model)
+        self.view.add_trace_tab_to_view(f'Untitled {tab_id}', tab_id)
 
     def remove_tab(self, tab_id: str):
         if QMessageBox.question(self.view, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:

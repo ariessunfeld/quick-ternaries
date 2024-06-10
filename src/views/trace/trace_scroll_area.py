@@ -29,7 +29,7 @@ class DragTargetIndicator(QLabel):
         )
 
 class DraggableTab(QWidget):
-    tab_clicked = Signal(int)
+    tab_clicked = Signal(str)
     tab_closed = Signal(str)
 
     def __init__(self, name, identifier, *args, **kwargs):
@@ -57,7 +57,7 @@ class DraggableTab(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.tab_clicked.emit(self.parentWidget().layout().indexOf(self))
+            self.tab_clicked.emit(self.identifier)
 
     def mouseMoveEvent(self, event):
         if self.identifier == 'StartSetup':
@@ -82,7 +82,7 @@ class TabView(QWidget):
     """
     Megawidget containing the tab add/remove/scroll area
     """
-    tab_changed = Signal(int)
+    tab_changed = Signal(str)
     tab_removed = Signal(str)
 
     def __init__(self, *args, **kwargs):
@@ -124,7 +124,7 @@ class TabView(QWidget):
 
         # initialize the view with just a start setup tab
         self.add_start_setup_tab_to_view()
-        self.set_selected_tab(0)
+        self.set_selected_tab('StartSetup')
 
     def add_tab_to_view(self, name: str, identifier: str):
         tab_button = DraggableTab(name, identifier)
@@ -137,7 +137,7 @@ class TabView(QWidget):
     def add_trace_tab_to_view(self, name: str, tab_id: str):
         self.add_tab_to_view(name, tab_id)
         # switch to the newly created tab
-        self.set_selected_tab(self.tab_layout.count() - 2)
+        self.set_selected_tab(tab_id)
     
     def add_start_setup_tab_to_view(self):
         start_setup_tab = DraggableTab("Start Setup", "StartSetup")
@@ -185,4 +185,3 @@ class TabView(QWidget):
                 ret.append(item)
 
         return ret
-
