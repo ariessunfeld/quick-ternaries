@@ -1,9 +1,9 @@
 """Contains the model for the Trace"""
 
 from typing import List, Optional
-from src.models.data_models import DataFile
-from src.models.trace.heatmap_model import HeatmapModel
-from src.models.trace.filter.model import FilterModel
+from src.models.utils.data_models import DataFile
+from src.models.ternary.trace.heatmap_model import HeatmapModel
+from src.models.ternary.trace.filter.model import FilterModel
 
 class TraceModel:
 

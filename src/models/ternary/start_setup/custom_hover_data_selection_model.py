@@ -1,6 +1,6 @@
 from typing import List
 
-from src.views.start_setup.custom_hover_data_selection_view import CustomHoverDataSelectionView
+from src.views.ternary.start_setup.custom_hover_data_selection_view import CustomHoverDataSelectionView
 
 class CustomHoverDataSelectionModel:
     def __init__(self, available_attrs: List[str], selected_attrs: List[str]):

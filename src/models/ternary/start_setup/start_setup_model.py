@@ -2,10 +2,10 @@
 
 from typing import List
 
-from src.models.start_setup.custom_apex_selection_model import CustomApexSelectionModel
-from src.models.start_setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
-from src.models.data_models import DataLibrary
-from src.models.selection_models import HeaderRowSelectionModel, SheetSelectionModel
+from src.models.ternary.start_setup.custom_apex_selection_model import CustomApexSelectionModel
+from src.models.ternary.start_setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
+from src.models.utils.data_models import DataLibrary
+from src.models.utils.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 from src.utils.ternary_types import TERNARY_TYPES
 
 class TernaryType:

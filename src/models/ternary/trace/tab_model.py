@@ -1,4 +1,4 @@
-"""MODEL"""
+"""Contains the model for the trace tab scroll area"""
 
 class TabModel:
     def __init__(self):

@@ -1,10 +1,10 @@
 """Controller for the Tab (trace scroll area) sections"""
 
-from src.models.trace.tab_model import TabModel
-from src.views.trace.trace_scroll_area import TabView
-from src.views.trace.trace_scroll_area import DraggableTab
+from src.models.ternary.trace.tab_model import TabModel
+from src.views.ternary.trace.trace_scroll_area import TabView
+from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
-from src.models.trace.model import TraceModel
+from src.models.ternary.trace.model import TraceModel
 
 from PySide6.QtWidgets import QWidget, QMessageBox
 

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QVBoxLayout
 )
-class TraceView(QWidget):
+class TernaryTraceEditorView(QWidget):
     def __init__(self, parent:QWidget|None=None):
         super().__init__(parent)
         self.layout = QVBoxLayout()
