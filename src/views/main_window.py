@@ -37,12 +37,8 @@ class MainWindow(QMainWindow):
         self.top_bar.addWidget(self.plot_type_combo)
         self.top_bar.addWidget(self.settings_button)
 
-        # ------------------------------------------------------------------------
-
         # Left Scroll Area for Trace Tabs
         self.tab_view = TabView()
-
-        # ------------------------------------------------------------------------
 
         # Dynamic Content Area
         self.dynamic_content_area = QStackedWidget()
@@ -63,7 +59,7 @@ class MainWindow(QMainWindow):
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         
         # Load local HTML file
-        html_file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'background.html')
+        html_file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'blank_ternary_plot.html')
         self.plot_view.setUrl(f'file://{html_file_path}')
 
         # Main Layout
