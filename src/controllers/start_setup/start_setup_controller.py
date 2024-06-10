@@ -25,14 +25,14 @@ from src.utils.ternary_types import TERNARY_TYPES
 
 class StartSetupController(QWidget):
     def __init__(self, model: StartSetupModel, view: StartSetupView):
-        
+
         super().__init__()
 
         # models and views are instantiated outside this class
         # hence, they get passed to the initialization method
         self.model = model
         self.view = view
-        
+
         self.setup_connections()
 
     def setup_connections(self):
@@ -105,7 +105,7 @@ class StartSetupController(QWidget):
                 return sheet_names[0]
         else:
             raise ValueError(f"Unsupported filetype: {filepath.suffix}")
-            
+
     def get_header(self, filepath: str, sheet: str) -> str|None:
         """Returns the user-selected header row for filepath"""
         filepath = Path(filepath)
@@ -120,15 +120,15 @@ class StartSetupController(QWidget):
             return self.select_header(filepath, _df, suggested_header)
         else:
             raise ValueError(f"Unsupported filetype: {filepath.suffix}")
-        
+
     def select_header(self, filepath: str|Path|None, df: pd.DataFrame, suggested_header:int=0):
         """Prompts user to select a header row for filepath"""
-        
+
         def parse_header_val_from_choice(choice: str):
             """Utility function for parsing user choice from input dialog repr"""
             # choices are 1-index for readability
             return int(choice.split('|')[0].split()[1].strip()) - 1
-        
+
         max_columns_to_display = 8 # to display in input dialog
         max_rows_to_display = 16
 
@@ -148,23 +148,23 @@ class StartSetupController(QWidget):
             column_info_display, suggested_header, False)
         return parse_header_val_from_choice(chosen_header)
 
-    
+
     def update_text(self):
         pass
         # Connected to text-update signal from BaseSetupView
         # This is an optimistic method that would allow efficient and rapid
         # updating of ternary in GUI if there's a way to update title without
         # re-rendering (which there probably is with update_layout or something like that)
-    
+
     def title_changed(self):
         self.model.set_title(self.view.labeled_line_edit_ternary_title.line_edit.text())
 
     def top_apex_display_name_changed(self):
         self.model.set_top_apex_display_name(self.view.labeled_line_edit_top_apex_display_name.line_edit.text())
-    
+
     def right_apex_display_name_changed(self):
         self.model.set_right_apex_display_name(self.view.labeled_line_edit_right_apex_display_name.line_edit.text())
-    
+
     def left_apex_display_name_changed(self):
         self.model.set_left_apex_display_name(self.view.labeled_line_edit_left_apex_display_name.line_edit.text())
 
@@ -191,5 +191,3 @@ class StartSetupController(QWidget):
         is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
         self.model.custom_hover_data_is_checked = is_checked
         self.view.update_custom_hover_data_selection_view_visibility(is_checked)
-
-
