@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QApplication
 
 from src.views.main_window import MainWindow
 
-from src.models.ternary.start_setup.start_setup_model import StartSetupModel
-from src.controllers.ternary.start_setup.start_setup_controller import StartSetupController
+from src.models.ternary.setup.start_setup_model import StartSetupModel
+from src.controllers.ternary.setup.start_setup_controller import StartSetupController
 
 from src.models.ternary.trace.tab_model import TabModel
 from src.controllers.ternary.trace.tab_controller import TabController

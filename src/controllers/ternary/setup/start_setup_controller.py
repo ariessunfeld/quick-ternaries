@@ -13,11 +13,11 @@ import pandas as pd
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget
 
-from src.models.ternary.start_setup.start_setup_model import StartSetupModel
+from src.models.ternary.setup.start_setup_model import StartSetupModel
 from src.views.ternary.start_setup.start_setup_view import StartSetupView
 
-from src.controllers.ternary.start_setup.custom_apex_selection_controller import CustomApexSelectionController
-from src.controllers.ternary.start_setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
+from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
+from src.controllers.ternary.setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 from src.utils.ternary_types import TERNARY_TYPES
