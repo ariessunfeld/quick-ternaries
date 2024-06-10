@@ -26,3 +26,10 @@ class TabModel:
 
     def get_all_traces(self):
         return {id: self.traces[id] for id in self.order}
+    
+
+    def __str__(self):
+        return f"""traces: {self.traces},
+order: {self.order},
+tab_counter: {self.tab_counter}
+"""

@@ -4,6 +4,8 @@ from src.models.trace.tab_model import TabModel
 from src.views.trace.trace_scroll_area import TabView
 from src.views.trace.trace_scroll_area import DraggableTab
 
+from src.models.trace.model import TraceModel
+
 from PySide6.QtWidgets import QWidget, QMessageBox
 
 class TabController:
@@ -11,7 +13,7 @@ class TabController:
         self.model = model
         self.view = view
 
-        
+        self.setup_connections()
 
     def setup_connections(self):
         self.view.tab_changed.connect(self.change_tab)
@@ -26,20 +28,21 @@ class TabController:
         self.view.new_tab_button.clicked.connect(self.add_trace)
 
     def add_trace(self, trace_editor = None):
-        trace_editor = QWidget()  # Placeholder for actual TraceEditor
+        trace_model = TraceModel()  # Placeholder for actual TraceModel
         self.model.add_trace(trace_editor)
         tab_counter = self.model.tab_counter
         tab_id = str(tab_counter)
-        self.view.add_trace_tab_to_view(f'Untitled Trace {tab_id}', tab_id, trace_editor)
+        self.view.add_trace_tab_to_view(f'Untitled Trace {tab_id}', tab_id)
+        print(self.model)
 
-    def remove_tab(self, tab):
+    def remove_tab(self, tab_id: str):
         if QMessageBox.question(self.view, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
-            self.view.remove_tab_from_view(tab)
-            self.model.remove_trace(tab.identifier)
-            self.change_tab(max(0, self.view.get_current_tab_index() - 1))
+            self.view.remove_tab_from_view(tab_id)
+            self.model.remove_trace(tab_id)
+            self.change_tab('StartSetup') # always change back to start setup after deleting a trace tab
 
-    def change_tab(self, index):
-        self.view.set_selected_tab(index)
+    def change_tab(self, tab_id: str):
+        self.view.set_selected_tab(tab_id)
 
     def drag_enter_event(self, e):
         e.accept()

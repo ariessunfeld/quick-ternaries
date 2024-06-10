@@ -30,7 +30,7 @@ class DragTargetIndicator(QLabel):
 
 class DraggableTab(QWidget):
     tab_clicked = Signal(int)
-    tab_closed = Signal(QWidget)
+    tab_closed = Signal(str)
 
     def __init__(self, name, identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,7 +52,7 @@ class DraggableTab(QWidget):
         close_button = QPushButton("✕", self)
         close_button.setFixedSize(QSize(20, 20))
         close_button.setStyleSheet("border: none; background-color: transparent;")
-        close_button.clicked.connect(lambda: self.tab_closed.emit(self))
+        close_button.clicked.connect(lambda: self.tab_closed.emit(self.identifier))
         self.tab_button_layout.addWidget(close_button)
 
     def mousePressEvent(self, event):
@@ -83,15 +83,15 @@ class TabView(QWidget):
     Megawidget containing the tab add/remove/scroll area
     """
     tab_changed = Signal(int)
-    tab_removed = Signal(QWidget)
+    tab_removed = Signal(str)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.content_stack = QStackedWidget()
         self.controls_layout = QHBoxLayout(self)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Set up the tab scroll area
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -108,19 +108,21 @@ class TabView(QWidget):
         self.tab_layout.setSpacing(5)
         self.tab_layout.setAlignment(Qt.AlignTop)
 
+        # Setup a drag-and-drop indicator widget
         self._drag_target_indicator = DragTargetIndicator()
         self.tab_layout.addWidget(self._drag_target_indicator)
         self._drag_target_indicator.hide()
 
+        # Add the "Add Trace" button to the layout
         self.new_tab_button = QPushButton("+ Add Trace")
         self.new_tab_button.setCursor(Qt.PointingHandCursor)
         self.tab_layout.addWidget(self.new_tab_button)
 
+        # Add the scroll area to the layout
         self.controls_layout.addWidget(self.scroll_area)
-        self.controls_layout.addWidget(self.content_stack)
         self.setLayout(self.controls_layout)
 
-        # initialize the view with a start setup tab
+        # initialize the view with just a start setup tab
         self.add_start_setup_tab_to_view()
         self.set_selected_tab(0)
 
@@ -132,9 +134,8 @@ class TabView(QWidget):
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, tab_button)
         return tab_button
     
-    def add_trace_tab_to_view(self, name, tab_id, trace_editor):
+    def add_trace_tab_to_view(self, name: str, tab_id: str):
         self.add_tab_to_view(name, tab_id)
-        self.add_content_widget(trace_editor, tab_id)
         # switch to the newly created tab
         self.set_selected_tab(self.tab_layout.count() - 2)
     
@@ -144,56 +145,34 @@ class TabView(QWidget):
         self.tab_layout.insertWidget(0, start_setup_tab)
         return start_setup_tab
 
-    def add_content_widget(self, widget, identifier):
-        widget.setProperty("identifier", identifier)
-        self.content_stack.addWidget(widget)
-
-    def remove_tab_from_view(self, tab):
-        self.tab_layout.removeWidget(tab)
-        self.remove_content_widget(tab.identifier)
-        tab.deleteLater()
-
-    def remove_content_widget(self, identifier):
-        for i in range(self.content_stack.count()):
-            widget = self.content_stack.widget(i)
-            if widget.property("identifier") == identifier:
-                self.content_stack.removeWidget(widget)
-                widget.deleteLater()
+    def remove_tab_from_view(self, tab_id: str):
+        for i in range(self.tab_layout.count()):
+            tab_widget = self.tab_layout.itemAt(i).widget()
+            if isinstance(tab_widget, DraggableTab) and tab_widget.identifier == tab_id:
+                self.tab_layout.removeWidget(tab_widget)
+                tab_widget.deleteLater()
                 break
 
-    def set_selected_tab(self, index):
+    def set_selected_tab(self, tab_id: str):
         """
-        Given an index, get the identifier, set this widget to "current",
-        update appearances of other widgets to reflect this one's current-ness
+        Given an identifier, set the corresponding tab appearance to "current"
+        and set all others to "deselected"
         """
-
-        # Get the identifier from the widget
-        tab_button = self.tab_layout.itemAt(index).widget()
-        identifier = tab_button.identifier
-
-        # Find the selected tab by its identifier
-        for i in range(self.content_stack.count()):
-            content_widget = self.content_stack.widget(i)
-            if content_widget.property("identifier") == identifier:
-                self.content_stack.setCurrentIndex(i)
-                break
 
         # Update appearances to reflect which tab is selected
-        for i in range(self.tab_layout.count()):
-            tab_button = self.tab_layout.itemAt(i).widget()
-            if isinstance(tab_button, DraggableTab):
-                if i == index:
-                    # "current" stylesheet
-                    tab_button.setStyleSheet("""font-weight: bold;
-                                             background-color: lightgray;
-                                             border: 1px solid gray;
-                                             border-radius: 4px""")
-                else:
-                    # "non-current" stylesheet
-                    tab_button.setStyleSheet("""font-weight: normal;
-                                             background-color: transparent;
-                                             border: 1px solid gray;
-                                             border-radius: 4px;""")
+        for tab_button in self.get_tab_buttons():
+            if tab_button.identifier == tab_id:
+                # "current" stylesheet
+                tab_button.setStyleSheet("""font-weight: bold;
+                                            background-color: lightgray;
+                                            border: 1px solid gray;
+                                            border-radius: 4px""")
+            else:
+                # "non-current" stylesheet
+                tab_button.setStyleSheet("""font-weight: normal;
+                                            background-color: transparent;
+                                            border: 1px solid gray;
+                                            border-radius: 4px;""")
     
     def get_tab_buttons(self) -> List[DraggableTab]:
         """Returns a list of draggable tab widgets"""
@@ -207,7 +186,3 @@ class TabView(QWidget):
 
         return ret
 
-
-    def get_current_tab_index(self) -> int:
-        """Returns index of current tab"""
-        return self.content_stack.currentIndex()
