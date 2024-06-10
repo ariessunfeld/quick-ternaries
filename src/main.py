@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QApplication
 
 from src.views.main_window import MainWindow
 
-from src.models.ternary.setup.start_setup_model import StartSetupModel
-from src.controllers.ternary.setup.start_setup_controller import StartSetupController
+from src.models.ternary.setup.model import TernaryStartSetupModel
+from src.controllers.ternary.setup.controller import TernaryStartSetupController
 
 from src.models.ternary.trace.tab_model import TabModel
 from src.controllers.ternary.trace.tab_controller import TabController
@@ -17,8 +17,8 @@ def main():
     main_window = MainWindow()
     # instantiate and connect models and controllers
 
-    start_setup_model = StartSetupModel()
-    start_setup_controller = StartSetupController(start_setup_model, main_window.start_setup_view)
+    start_setup_model = TernaryStartSetupModel()
+    start_setup_controller = TernaryStartSetupController(start_setup_model, main_window.start_setup_view)
 
     tab_model = TabModel()
     tab_controller = TabController(tab_model, main_window.tab_view)

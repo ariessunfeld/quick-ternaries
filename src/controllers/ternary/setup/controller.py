@@ -13,7 +13,7 @@ import pandas as pd
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget
 
-from src.models.ternary.setup.start_setup_model import StartSetupModel
+from src.models.ternary.setup.model import TernaryStartSetupModel
 from src.views.ternary.start_setup.start_setup_view import StartSetupView
 
 from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
@@ -23,8 +23,8 @@ from src.utils.file_handling_utils import find_header_row_csv, find_header_row_e
 from src.utils.ternary_types import TERNARY_TYPES
 
 
-class StartSetupController(QWidget):
-    def __init__(self, model: StartSetupModel, view: StartSetupView):
+class TernaryStartSetupController(QWidget):
+    def __init__(self, model: TernaryStartSetupModel, view: StartSetupView):
         
         super().__init__()
 

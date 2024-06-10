@@ -67,7 +67,7 @@ class TernaryType:
 
 
 
-class StartSetupModel:
+class TernaryStartSetupModel:
 
     def __init__(self):
         self.data_library: DataLibrary = DataLibrary()
