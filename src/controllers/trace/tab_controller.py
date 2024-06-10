@@ -2,7 +2,7 @@
 
 from src.models.trace.tab_model import TabModel
 from src.views.trace.trace_scroll_area import TabView
-from src.views.trace.trace_scroll_area import CustomTabButton
+from src.views.trace.trace_scroll_area import DraggableTab
 
 from PySide6.QtWidgets import QWidget, QMessageBox
 
@@ -11,6 +11,9 @@ class TabController:
         self.model = model
         self.view = view
 
+        
+
+    def setup_connections(self):
         self.view.tab_changed.connect(self.change_tab)
         self.view.tab_removed.connect(self.remove_tab)
 
@@ -27,16 +30,16 @@ class TabController:
         self.model.add_trace(trace_editor)
         tab_counter = self.model.tab_counter
         tab_id = str(tab_counter)
-        self.view.add_trace(tab_id, trace_editor)
+        self.view.add_trace_tab_to_view(f'Untitled Trace {tab_id}', tab_id, trace_editor)
 
     def remove_tab(self, tab):
         if QMessageBox.question(self.view, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
-            self.view.remove_trace(tab)
+            self.view.remove_tab_from_view(tab)
             self.model.remove_trace(tab.identifier)
             self.change_tab(max(0, self.view.get_current_tab_index() - 1))
 
     def change_tab(self, index):
-        self.view.change_tab(index)
+        self.view.set_selected_tab(index)
 
     def drag_enter_event(self, e):
         e.accept()
@@ -55,7 +58,7 @@ class TabController:
 
     def drop_event(self, e):
         widget = e.source()
-        if isinstance(widget, CustomTabButton):
+        if isinstance(widget, DraggableTab):
             self.view._drag_target_indicator.hide()
             new_index = self.view.tab_layout.indexOf(self.view._drag_target_indicator)
 
@@ -86,5 +89,5 @@ class TabController:
     def update_tab_order(self):
         ordered_identifiers = [self.view.tab_layout.itemAt(i).widget().identifier
                                for i in range(self.view.tab_layout.count())
-                               if isinstance(self.view.tab_layout.itemAt(i).widget(), CustomTabButton)]
+                               if isinstance(self.view.tab_layout.itemAt(i).widget(), DraggableTab)]
         self.model.update_order(ordered_identifiers)
