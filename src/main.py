@@ -9,6 +9,9 @@ from src.views.main_window import MainWindow
 from src.models.start_setup.start_setup_model import StartSetupModel
 from src.controllers.start_setup.start_setup_controller import StartSetupController
 
+from src.models.trace.tab_model import TabModel
+from src.controllers.trace.tab_controller import TabController
+
 def main():
     app = QApplication(sys.argv)
     main_window = MainWindow()
@@ -16,6 +19,9 @@ def main():
 
     start_setup_model = StartSetupModel()
     start_setup_controller = StartSetupController(start_setup_model, main_window.start_setup_view)
+
+    tab_model = TabModel()
+    tab_controller = TabController(tab_model, main_window.tab_view)
 
     main_window.show()
     sys.exit(app.exec())

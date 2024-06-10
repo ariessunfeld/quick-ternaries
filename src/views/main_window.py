@@ -43,6 +43,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from src.views.start_setup.start_setup_view import StartSetupView
 from src.views.trace.trace_view import TraceView
+from src.views.trace.trace_scroll_area import TabView
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
@@ -69,18 +70,7 @@ class MainWindow(QMainWindow):
         self.top_bar.addWidget(self.settings_button)
 
         # Left Scroll Area for Trace Tabs
-        # TODO replace this with src.views.trace.trace_scroll_area.TraceScrollArea()
-        self.trace_tabs_scroll_area = QScrollArea()
-        self.trace_tabs_scroll_area.setWidgetResizable(True)
-        self.trace_tabs_widget = QWidget()
-        self.trace_tabs_layout = QVBoxLayout(self.trace_tabs_widget)
-        self.trace_tabs_scroll_area.setWidget(self.trace_tabs_widget)
-        
-        # Example trace tab buttons
-        # TODO remove these after replacing with draggable traces
-        for i in range(5):  # Add 5 example trace tabs
-            trace_button = QPushButton(f"Trace Tab {i+1}")
-            self.trace_tabs_layout.addWidget(trace_button)
+        self.tab_view = TabView()
 
         # Dynamic Content Area
         self.dynamic_content_area = QStackedWidget()
@@ -108,7 +98,8 @@ class MainWindow(QMainWindow):
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
-        self.main_layout.addWidget(self.trace_tabs_scroll_area, 1)
+        self.main_layout.addWidget(self.tab_view, 1)
+       #self.main_layout.addWidget(self.trace_tabs_scroll_area, 1)
         self.main_layout.addWidget(self.dynamic_content_area, 3)
         self.main_layout.addWidget(self.plot_view, 3)
 
