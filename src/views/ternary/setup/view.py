@@ -5,9 +5,9 @@ from typing import List
 from src.views.utils.add_remove_list import AddRemoveList
 from src.views.utils.left_labeled_checkbox import LeftLabeledCheckbox
 from src.views.utils.left_labeled_line_edit import LeftLabeledLineEdit
-from src.views.ternary.start_setup.custom_apex_selection_view import CustomApexSelectionView
-from src.views.ternary.start_setup.custom_hover_data_selection_view import CustomHoverDataSelectionView
-from src.views.ternary.start_setup.loaded_data_scroll_view import LoadedDataScrollView
+from src.views.ternary.setup import CustomApexSelectionView
+from src.views.ternary.setup import CustomHoverDataSelectionView
+from src.views.ternary.setup import LoadedDataScrollView
 
 from PySide6.QtWidgets import (
     QWidget, 

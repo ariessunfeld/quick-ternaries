@@ -5,3 +5,6 @@ Also an "import from file" button that will open a filepicker, and space to disp
 A tooltip next to this button explains the format needed for this errors file to be loaded appropriately
 A radiobutton to select accuracy or precision
 """
+
+class TernaryErrorBarSelectionView:
+    pass

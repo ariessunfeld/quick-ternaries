@@ -1,6 +1,6 @@
 
 from src.models.ternary.setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
-from src.views.ternary.start_setup.custom_hover_data_selection_view import  CustomHoverDataSelectionView
+from src.views.ternary.setup import  CustomHoverDataSelectionView
 
 class CustomHoverDataSelectionController:
     def __init__(

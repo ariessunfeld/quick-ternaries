@@ -1,5 +1,5 @@
 from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
-from src.views.ternary.start_setup.custom_apex_selection_view import CustomApexSelectionView
+from src.views.ternary.setup import CustomApexSelectionView
 
 class CustomApexSelectionController:
     def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):

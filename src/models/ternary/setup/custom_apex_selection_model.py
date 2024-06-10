@@ -2,7 +2,7 @@
 
 from typing import List
 
-from src.views.ternary.start_setup.custom_apex_selection_view import CustomApexSelectionView
+from src.views.ternary.setup import CustomApexSelectionView
 
 class CustomApexSelectionModel:
     def __init__(self):

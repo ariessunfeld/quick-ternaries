@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
-from src.views.ternary.start_setup.start_setup_view import StartSetupView
+from src.views.ternary.setup.view import StartSetupView
 from src.views.ternary.trace.trace_view import TernaryTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
 
