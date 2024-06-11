@@ -26,21 +26,29 @@ class TernaryTraceEditorController(QObject):
         self.setup_connections()
 
     def setup_connections(self):
+        self.view.select_data.valueChanged.connect(self._selected_data_event)
         self.view.convert_wtp_molar_checkbox.stateChanged.connect(self._wtp_molar_checkbox_changed_event)
         self.view.name_line_edit.textChanged.connect(self._name_changed_event)
+        self.view.point_size_spinbox.valueChanged.connect(self._size_changed_event)
+        self.view.select_point_shape.valueChanged.connect(self._shape_changed_event)
+        self.view.color_picker.colorChanged.connect(self._color_changed_event)
+        self.view.use_heatmap_checkbox.stateChanged.connect(self._heatmap_checkbox_statechanged_event)
+        self.view.use_filter_checkbox.stateChanged.connect(self._filter_checkbox_statechanged_event)
 
         #self.view.select_data.valueChanged.connect(self.select_data_value_changed)
 
     def change_tab(self, trace_model: TernaryTraceEditorModel):
-        # Take the values from the trace model and populate the view
+        # Take the values from the trace model and populate the view accordingly
         self.view.select_data.clear()
         self.view.select_data.addItems(trace_model.available_data_file_names)
         self.view.select_data.setCurrentText(trace_model.selected_data_file_name)
         self.view.convert_wtp_molar_checkbox.setChecked(trace_model.wtp_to_molar_checked)
         self.view.name_line_edit.setText(trace_model.legend_name)
         self.view.point_size_spinbox.setValue(trace_model.point_size)
-        #self.view.select_point_shape.addItems(trace_model.available_point_shapes)
         self.view.select_point_shape.setCurrentText(trace_model.selected_point_shape)
+        self.view.color_picker.setColor(trace_model.color)
+        self.view.use_heatmap_checkbox.setChecked(trace_model.add_heatmap_checked)
+        self.view.use_filter_checkbox.setChecked(trace_model.filter_data_checked)
 
     def select_data_value_changed(self, seleced_data: str):
         # Look up the data file in the data library by the string
@@ -48,11 +56,26 @@ class TernaryTraceEditorController(QObject):
         data_file = self.manager.start_setup_model.data_library.get_data_from_shortname(seleced_data)
         # Set the current model's selected data file to this file
 
+    def _selected_data_event(self, value: str):
+        self.model.current_tab.selected_data_file_name = value
+
     def _name_changed_event(self, value: str):
         self.model.current_tab.legend_name = value
 
     def _wtp_molar_checkbox_changed_event(self, value: int):
         self.model.current_tab.wtp_to_molar_checked = self.view.convert_wtp_molar_checkbox.isChecked()
 
+    def _size_changed_event(self, value: int):
+        self.model.current_tab.point_size = value
 
+    def _shape_changed_event(self, value: str):
+        self.model.current_tab.selected_point_shape = value
 
+    def _color_changed_event(self, value: str):
+        self.model.current_tab.color = value
+
+    def _heatmap_checkbox_statechanged_event(self, event):
+        self.model.current_tab.add_heatmap_checked = self.view.use_heatmap_checkbox.isChecked()
+    
+    def _filter_checkbox_statechanged_event(self, event):
+        self.model.current_tab.filter_data_checked = self.view.use_filter_checkbox.isChecked()

@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (
     QListWidget,
     QComboBox,
     QCheckBox,
-    QSizePolicy
+    QSizePolicy,
+    QSpacerItem
 )
 
 from PySide6.QtCore import Signal
@@ -27,14 +28,15 @@ class LeftLabeledLineEdit(QWidget):
         self.line_edit = QLineEdit()
 
         # Set size policies
-        #self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        #self.line_edit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # self.line_edit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         
         # Ensure consistent padding
         #self.layout.setContentsMargins(10, 5, 10, 5)
         #self.layout.setSpacing(10)
 
         self.layout.addWidget(self.label)
+        #self.layout.addItem(QSpacerItem(1, 1))
         self.layout.addWidget(self.line_edit)
         self.setLayout(self.layout)
 
