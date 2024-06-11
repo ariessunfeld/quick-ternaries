@@ -18,14 +18,11 @@ class TernaryController:
     def setup_connections(self):
 
         self.start_setup_controller = TernaryStartSetupController(
-            self.model.start_setup_model, self.view.ternary_start_setup_view
-        )
+            self.model.start_setup_model, self.view.ternary_start_setup_view)
         self.trace_controller = TernaryTraceEditorController(
-            self.model.tab_model, self.view.ternary_trace_editor_view
-        )
+            self.model.tab_model, self.view.ternary_trace_editor_view)
         self.tab_controller = TabController(
-            self.model.tab_model, self.view.tab_view
-        )
+            self.model.tab_model, self.view.tab_view)
 
         self.tab_controller.change_tab_signal.connect(lambda tm: self._change_tab(tm))
         self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
