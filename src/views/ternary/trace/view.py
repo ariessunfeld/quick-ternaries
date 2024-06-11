@@ -4,6 +4,8 @@ which contains the widgets needed for configuring individual traces,
 and is used in the dynamic content area of the MainWindow
 """
 
+from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
+
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -78,6 +80,11 @@ class TernaryTraceEditorView(QWidget):
         # Use Heatmap
         self.use_heatmap_checkbox = LeftLabeledCheckbox('Use Heatmap')
         self.content_layout.addWidget(self.use_heatmap_checkbox)
+
+        # Heatmap view (hide at first)
+        self.heatmap_view = TernaryHeatmapEditorView()
+        self.content_layout.addWidget(self.heatmap_view)
+        self.heatmap_view.setVisible(False)
 
         # Use Filter(s)
         self.use_filter_checkbox = LeftLabeledCheckbox('Use Filter(s)')

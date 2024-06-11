@@ -75,7 +75,10 @@ class TernaryTraceEditorController(QObject):
         self.model.current_tab.color = value
 
     def _heatmap_checkbox_statechanged_event(self, event):
-        self.model.current_tab.add_heatmap_checked = self.view.use_heatmap_checkbox.isChecked()
+        is_checked = self.view.use_heatmap_checkbox.isChecked()
+        self.model.current_tab.add_heatmap_checked = is_checked
+        self.view.heatmap_view.setVisible(is_checked)
+
     
     def _filter_checkbox_statechanged_event(self, event):
         self.model.current_tab.filter_data_checked = self.view.use_filter_checkbox.isChecked()

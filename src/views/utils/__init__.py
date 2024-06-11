@@ -5,6 +5,7 @@ from .removable_list_item import ListItemWidget
 from .left_labeled_combobox import LeftLabeledComboBox
 from .left_labeled_spinbox import LeftLabeledSpinBox
 from .left_labeled_color_picker import LeftLabeledColorPicker
+from .info_button import InfoButton
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -13,5 +14,6 @@ __all__ = [
     "ListItemWidget",
     "LeftLabeledComboBox",
     "LeftLabeledSpinBox",
-    "LeftLabeledColorPicker"
+    "LeftLabeledColorPicker",
+    "InfoButton"
 ]
