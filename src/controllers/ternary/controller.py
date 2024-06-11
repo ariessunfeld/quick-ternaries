@@ -27,9 +27,13 @@ class TernaryController:
             self.model.tab_model, self.view.tab_view
         )
 
-        self.tab_controller.change_tab_signal.connect(lambda tm: self.change_tab(tm))
+        self.tab_controller.change_tab_signal.connect(lambda tm: self._change_tab(tm))
+        self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
 
-    def change_tab(self, trace_model: TernaryTraceEditorModel):
-        print('ternary change tab method called')
+    def _change_tab(self, trace_model: TernaryTraceEditorModel):
         self.view.switch_to_trace_view()
         self.trace_controller.change_tab(trace_model)
+
+    def _change_to_start_setup(self):
+        print('ternary controller change to start setup called')
+        self.view.switch_to_start_setup_view()

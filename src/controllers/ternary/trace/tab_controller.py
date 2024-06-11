@@ -14,6 +14,7 @@ from PySide6.QtCore import Signal, QObject
 class TabController(QObject):
     
     change_tab_signal = Signal(TernaryTraceEditorModel)
+    change_to_start_setup_signal = Signal()
 
     def __init__(self, model: TabModel, view: TabView):
         super().__init__()
@@ -40,7 +41,7 @@ class TabController(QObject):
 
     def _add_trace_button_event(self, event: bool):
         self.add_trace()
-        
+
     def add_trace(self, trace_model: Optional[TernaryTraceEditorModel] = None):
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
@@ -56,15 +57,22 @@ class TabController(QObject):
             self.change_tab('StartSetup') # always change back to start setup after deleting a trace tab
 
     def change_tab(self, tab_id: str):
-        print('tab controller change_tab called')
-        # Set the selected tab to the one just clicked
-        self.view.set_selected_tab(tab_id)
-        self.model.set_current_tab(tab_id)
-        current_trace_model = self.model.get_trace(tab_id)
-        print(f'{current_trace_model=}')
-        self.emit_change_tab(current_trace_model)
-        # Change the main window widget to trace view
-        # Populate the trace view widgets with this model's info
+        print('\n\ntab controller change_tab called')
+        print(f'{tab_id=}')
+        if tab_id == 'StartSetup':
+            # Emit back to start setup
+            self.change_to_start_setup_signal.emit()
+            self.view.set_selected_tab(tab_id)
+            self.model.set_current_tab(tab_id)
+        else:
+            # Set the selected tab to the one just clicked visually
+            self.view.set_selected_tab(tab_id)
+            # Tell the model about this change
+            self.model.set_current_tab(tab_id)
+            # Get the current trace model from the tab model
+            current_trace_model = self.model.get_trace(tab_id)
+            # Emit a signal with the trace model
+            self.emit_change_tab(current_trace_model)
 
     def emit_change_tab(self, trace_model: TernaryTraceEditorModel):
         self.change_tab_signal.emit(trace_model)

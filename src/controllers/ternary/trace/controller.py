@@ -39,6 +39,8 @@ class TernaryTraceEditorController(QObject):
         self.view.convert_wtp_molar_checkbox.setChecked(trace_model.wtp_to_molar_checked)
         self.view.name_line_edit.setText(trace_model.legend_name)
         self.view.point_size_spinbox.setValue(trace_model.point_size)
+        #self.view.select_point_shape.addItems(trace_model.available_point_shapes)
+        self.view.select_point_shape.setCurrentText(trace_model.selected_point_shape)
 
     def select_data_value_changed(self, seleced_data: str):
         # Look up the data file in the data library by the string
