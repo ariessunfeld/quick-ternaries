@@ -8,9 +8,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
-from src.views.start_setup.start_setup_view import StartSetupView
-from src.views.trace.trace_view import TraceView
-from src.views.trace.trace_scroll_area import TabView
+from src.views.ternary.setup.view import TernaryStartSetupView
+from src.views.ternary.trace.view import TernaryTraceEditorView
+from src.views.ternary.trace.trace_scroll_area import TabView
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
@@ -25,33 +25,42 @@ class MainWindow(QMainWindow):
         self.top_bar = QHBoxLayout()
         self.app_name_label = QLabel("Quick Ternaries")
         self.settings_button = QPushButton("Settings")
+
+        # Bottom Bar
+        self.bottom_bar = QHBoxLayout()
+        self.preview_button = QPushButton("Preview")
+        self.save_button = QPushButton("Save")
         
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
         self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
         
+        # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
         self.top_bar.addStretch(1)
         self.top_bar.addWidget(self.plot_type_combo)
         self.top_bar.addWidget(self.settings_button)
+
+        # Add widgets to bottom bar
+        self.bottom_bar.addWidget(self.preview_button)
+        self.bottom_bar.addWidget(self.save_button)
+        self.bottom_bar.addStretch(1)
 
         # Left Scroll Area for Trace Tabs
         self.tab_view = TabView()
 
         # Dynamic Content Area
         self.dynamic_content_area = QStackedWidget()
-        self.start_setup_view = StartSetupView()
-        self.trace_view = TraceView()
-        # TODO eventually we will rename TraceView --> TernaryTraceView
-        # We will probably also rename StartSetupView --> TernaryStartSetupView
+        self.ternary_start_setup_view = TernaryStartSetupView()
+        self.ternary_trace_editor_view = TernaryTraceEditorView()
         # We will then have classes for CartesianTraceView, ZMapTraceView, etc.
         # In these classes we can have the trace-level customization options for these other plot modes
         # This might involve a file tree refactor where now we have src.views.ternary.start_setup and src.views.ternary.trace
         # Will have to think about how we handle controllers etc, maybe the app has a "main controller" which changes for diff plot modes
-        self.dynamic_content_area.addWidget(self.start_setup_view)
-        self.dynamic_content_area.addWidget(self.trace_view)
-        self.dynamic_content_area.setCurrentWidget(self.start_setup_view)
+        self.dynamic_content_area.addWidget(self.ternary_start_setup_view)
+        self.dynamic_content_area.addWidget(self.ternary_trace_editor_view)
+        self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
 
         # Right Area for Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
@@ -73,16 +82,19 @@ class MainWindow(QMainWindow):
         self.central_layout = QVBoxLayout()
         self.central_layout.addLayout(self.top_bar)
         self.central_layout.addLayout(self.main_layout)
+        self.central_layout.addLayout(self.bottom_bar)
 
+        # Set central widget
         self.central_widget = QWidget()
         self.central_widget.setLayout(self.central_layout)
         self.setCentralWidget(self.central_widget)
 
     def switch_to_start_setup_view(self):
-        self.dynamic_content_area.setCurrentWidget(self.start_setup_view)
+        self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
     
     def switch_to_trace_view(self):
-        self.dynamic_content_area.setCurrentWidget(self.trace_view)
+        print('switch to trace view called in main window')
+        self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
 
     def switch_plot_type(self, index):
         plot_type = self.plot_type_combo.itemText(index)
