@@ -8,25 +8,22 @@ from PySide6.QtWidgets import (
     QLabel, 
     QPushButton, 
     QVBoxLayout, 
-    QScrollArea, 
-    QStackedWidget, 
-    QMessageBox)
+    QScrollArea)
 from PySide6.QtCore import (
     Qt, 
     QSize, 
     Signal, 
-    QMimeData)
+    QMimeData,
+    QPoint)
 from PySide6.QtGui import (
     QDrag, 
-    QPixmap)
+    QPixmap,
+    QPainter)
 
 class DragTargetIndicator(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setContentsMargins(25, 5, 25, 5)
-        self.setStyleSheet(
-            "QLabel { background-color: #ccc; border: 1px solid black; }"
-        )
 
 class DraggableTab(QWidget):
     tab_clicked = Signal(str)
@@ -34,14 +31,18 @@ class DraggableTab(QWidget):
 
     def __init__(self, name, identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
         self.identifier = identifier
-    
+
+        self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
+
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
+        self.label.setStyleSheet("background: transparent;")
         self.tab_button_layout.addWidget(self.label)
 
-        self.setup_close_button()
+        if self.identifier != "StartSetup":
+            self.setup_close_button()
 
         self.tab_button_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.tab_button_layout)
@@ -51,32 +52,59 @@ class DraggableTab(QWidget):
     def setup_close_button(self):
         close_button = QPushButton("✕", self)
         close_button.setFixedSize(QSize(20, 20))
-        close_button.setStyleSheet("border: none; background-color: transparent;")
+        close_button.setStyleSheet("""
+            QPushButton {
+                border: none;
+                background-color: lightgray;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: red;
+            }
+        """)
         close_button.clicked.connect(lambda: self.tab_closed.emit(self.identifier))
         self.tab_button_layout.addWidget(close_button)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.tab_clicked.emit(self.identifier)
+            self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):
         if self.identifier == 'StartSetup':
             return
-        if event.buttons() == Qt.MouseButton.LeftButton:
+        if event.buttons() == Qt.LeftButton:
             drag = QDrag(self)
             mime = QMimeData()
             drag.setMimeData(mime)
 
-            pixmap = QPixmap(self.size().width() * 2, self.size().height() * 2)
-            pixmap.setDevicePixelRatio(2)
-            self.render(pixmap)
-            drag.setPixmap(pixmap)
+            # Create a pixmap of the label only
+            pixmap = QPixmap(self.label.size())
+            pixmap.fill(Qt.transparent)  # Set the background to transparent
 
-            drag.exec(Qt.DropAction.MoveAction)
+            painter = QPainter(pixmap)
+            self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
+            painter.end()
+
+            drag.setPixmap(pixmap)
+            drag.setHotSpot(event.pos() - self.label.pos())
+
+            drag.exec(Qt.MoveAction)
             self.show()
+
+    def enterEvent(self, event):
+        self.label.setStyleSheet("background: lightgray;")
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.label.setStyleSheet("background: transparent;")
+        super().leaveEvent(event)
 
     def dragEnterEvent(self, event):
         event.accept()
+
+    def dragMoveEvent(self, event):
+        event.ignore()
 
 class TabView(QWidget):
     """
@@ -164,12 +192,14 @@ class TabView(QWidget):
             if tab_button.identifier == tab_id:
                 # "current" stylesheet
                 tab_button.setStyleSheet("""font-weight: bold;
+                                            color: black;
                                             background-color: lightgray;
                                             border: 1px solid gray;
                                             border-radius: 4px""")
             else:
                 # "non-current" stylesheet
                 tab_button.setStyleSheet("""font-weight: normal;
+                                            color: black;
                                             background-color: transparent;
                                             border: 1px solid gray;
                                             border-radius: 4px;""")

@@ -6,7 +6,7 @@ from src.views.trace.trace_scroll_area import DraggableTab
 
 from src.models.trace.model import TraceModel
 
-from PySide6.QtWidgets import QWidget, QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 class TabController:
     def __init__(self, model: TabModel, view: TabView):

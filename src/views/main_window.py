@@ -4,9 +4,8 @@ import os
 
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget,
-    QHBoxLayout, QLabel, QScrollArea, QComboBox, QToolBar, QMenu, QSizePolicy
+    QHBoxLayout, QLabel, QComboBox, QSizePolicy
 )
-from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from src.views.start_setup.start_setup_view import StartSetupView

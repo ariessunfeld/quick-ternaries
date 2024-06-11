@@ -8,7 +8,6 @@ from src.views.main_window import MainWindow
 
 from src.models.start_setup.start_setup_model import StartSetupModel
 from src.controllers.start_setup.start_setup_controller import StartSetupController
-from src.views.trace.trace_scroll_area import TabModel, TabController
 
 from src.models.trace.tab_model import TabModel
 from src.controllers.trace.tab_controller import TabController
