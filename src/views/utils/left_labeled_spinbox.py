@@ -13,12 +13,12 @@ class LeftLabeledSpinBox(QWidget):
         self.spinbox = QSpinBox()
         
         # Set size policies
-        self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.spinbox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        #self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        #self.spinbox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Mimimum)
         
         # Ensure consistent padding
-        self.layout.setContentsMargins(10, 5, 10, 5)
-        self.layout.setSpacing(10)
+        # self.layout.setContentsMargins(10, 5, 10, 5)
+        # self.layout.setSpacing(10)
         
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.spinbox)

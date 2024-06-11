@@ -34,7 +34,7 @@ class TernaryTraceEditorView(QWidget):
 
         # Select Data
         self.select_data = LeftLabeledComboBox('Select Data:')
-        self.select_data.combobox.addItem('DATA.csv')  # Example item
+        #self.select_data.combobox.addItem('DATA.csv')  # Example item
         self.layout.addWidget(self.select_data)
 
         # Convert from wt% to molar

@@ -27,3 +27,6 @@ class LeftLabeledCheckbox(QWidget):
         
     def isChecked(self):
         return self.checkbox.isChecked()
+    
+    def setChecked(self, val: bool):
+        self.checkbox.setChecked(val)

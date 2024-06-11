@@ -1,38 +1,53 @@
 """Controller for the Tab (trace scroll area) sections"""
 
+from typing import List, Dict, Optional
+
 from src.models.ternary.trace.tab_model import TabModel
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
-from src.models.ternary.trace.model import TraceModel
+from src.models.ternary.trace.model import TernaryTraceEditorModel
 
 from PySide6.QtWidgets import QWidget, QMessageBox
+from PySide6.QtCore import Signal, QObject
 
-class TabController:
+class TabController(QObject):
+    
+    change_tab_signal = Signal(TernaryTraceEditorModel)
+
     def __init__(self, model: TabModel, view: TabView):
+        super().__init__()
         self.model = model
         self.view = view
 
         self.setup_connections()
 
     def setup_connections(self):
+
+        # Signals
         self.view.tab_changed.connect(self.change_tab)
         self.view.tab_removed.connect(self.remove_tab)
 
+        # Mouse events
         self.view.scroll_area.setAcceptDrops(True)
         self.view.scroll_area.dragEnterEvent = self.drag_enter_event
         self.view.scroll_area.dragLeaveEvent = self.drag_leave_event
         self.view.scroll_area.dragMoveEvent = self.drag_move_event
         self.view.scroll_area.dropEvent = self.drop_event
 
-        self.view.new_tab_button.clicked.connect(self.add_trace)
+        # Add trace button
+        self.view.new_tab_button.clicked.connect(self._add_trace_button_event)
 
-    def add_trace(self, trace_editor = None):
-        trace_model = TraceModel()  # Placeholder for actual TraceModel
-        self.model.add_trace(trace_editor)
-        tab_counter = self.model.tab_counter
-        tab_id = str(tab_counter)
+    def _add_trace_button_event(self, event: bool):
+        self.add_trace()
+        
+    def add_trace(self, trace_model: Optional[TernaryTraceEditorModel] = None):
+        if trace_model is None:
+            trace_model = TernaryTraceEditorModel()
+        print(f'Inside tab controller add_trace, and {trace_model=}')
+        tab_id = self.model.add_trace(trace_model)
         self.view.add_trace_tab_to_view(f'Untitled {tab_id}', tab_id)
+        self.change_tab(tab_id)
 
     def remove_tab(self, tab_id: str):
         if QMessageBox.question(self.view, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
@@ -41,7 +56,18 @@ class TabController:
             self.change_tab('StartSetup') # always change back to start setup after deleting a trace tab
 
     def change_tab(self, tab_id: str):
+        print('tab controller change_tab called')
+        # Set the selected tab to the one just clicked
         self.view.set_selected_tab(tab_id)
+        self.model.set_current_tab(tab_id)
+        current_trace_model = self.model.get_trace(tab_id)
+        print(f'{current_trace_model=}')
+        self.emit_change_tab(current_trace_model)
+        # Change the main window widget to trace view
+        # Populate the trace view widgets with this model's info
+
+    def emit_change_tab(self, trace_model: TernaryTraceEditorModel):
+        self.change_tab_signal.emit(trace_model)
 
     def drag_enter_event(self, e):
         e.accept()

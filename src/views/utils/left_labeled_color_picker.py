@@ -13,12 +13,12 @@ class LeftLabeledColorPicker(QWidget):
         self.color_button = QPushButton('Select Color')
         
         # Set size policies
-        self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.color_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        # self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        # self.color_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         
-        # Ensure consistent padding
-        self.layout.setContentsMargins(10, 5, 10, 5)
-        self.layout.setSpacing(10)
+        # # Ensure consistent padding
+        # self.layout.setContentsMargins(10, 5, 10, 5)
+        # self.layout.setSpacing(10)
         
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.color_button)

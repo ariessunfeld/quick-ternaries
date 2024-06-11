@@ -1,14 +1,16 @@
-"""Contains the model for the Trace"""
+"""Contains the model for the Ternary Trace Editor"""
 
 from typing import List, Optional
 from src.models.utils.data_models import DataFile
 from src.models.ternary.trace.heatmap_model import HeatmapModel
 from src.models.ternary.trace.filter.model import FilterModel
 
-class TraceModel:
+class TernaryTraceEditorModel:
 
     def __init__(
             self, 
+            available_data_file_names: Optional[List[str]] = None,
+            selected_data_file_name: Optional[str] = None,
             available_data_files: Optional[List[DataFile]] = None,
             selected_data_file: Optional[DataFile] = None,
             wtp_to_molar_checked: bool = True,
@@ -28,6 +30,8 @@ class TraceModel:
         self.filter_model = filter_model
 
         # Controlled
+        self._available_data_file_names = available_data_file_names
+        self._selected_data_file_name = selected_data_file_name
         self._available_data_files = available_data_files
         self._selected_data_file = selected_data_file
         self._wtp_to_molar_checked = wtp_to_molar_checked
@@ -40,6 +44,22 @@ class TraceModel:
         self._add_heatmap_checked = add_heatmap_checked
         self._filter_data_checked = filter_data_checked
 
+    @property
+    def available_data_file_names(self) -> Optional[List[str]]:
+        return self._available_data_file_names
+    
+    @available_data_file_names.setter
+    def available_data_file_names(self, value: Optional[List[str]]):
+        self._available_data_file_names = value
+
+    @property
+    def selected_data_file_name(self) -> Optional[str]:
+        return self._selected_data_file_name
+    
+    @selected_data_file_name.setter
+    def selected_data_file_name(self, value: Optional[str]):
+        self._selected_data_file_name = value
+        
     @property
     def available_data_files(self) -> Optional[List[DataFile]]:
         return self._available_data_files

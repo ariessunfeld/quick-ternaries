@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 
-class StartSetupView(QWidget):
+class TernaryStartSetupView(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.main_layout = QVBoxLayout()

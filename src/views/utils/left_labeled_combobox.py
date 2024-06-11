@@ -2,9 +2,13 @@ from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QComboBox, QSizePolicy
 )
 
+from PySide6.QtCore import Signal
+
 class LeftLabeledComboBox(QWidget):
     """A labeled ComboBox megawidget, for combo boxes with QLabels to their left"""
     
+    valueChanged = Signal(str)
+
     def __init__(self, label: str = '', parent: QWidget | None = None):
         super().__init__(parent)
         self.layout = QHBoxLayout()
@@ -23,9 +27,13 @@ class LeftLabeledComboBox(QWidget):
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.combobox)
         self.setLayout(self.layout)
+
+        # Connect internal QComboBox signal to the new signal
+        self.combobox.currentIndexChanged.connect(self.emit_value_changed)
         
     def addItems(self, items: list[str]):
-        self.combobox.addItems(items)
+        if items is not None:
+            self.combobox.addItems(items)
         
     def currentText(self):
         return self.combobox.currentText()
@@ -34,3 +42,12 @@ class LeftLabeledComboBox(QWidget):
         index = self.combobox.findText(text)
         if index >= 0:
             self.combobox.setCurrentIndex(index)
+
+    def clear(self):
+        self.combobox.clear()
+
+    def emit_value_changed(self, index):
+        text = self.combobox.itemText(index)
+        self.valueChanged.emit(text)
+
+

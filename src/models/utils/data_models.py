@@ -47,6 +47,7 @@ class DataFile:
 class DataLibrary:
     def __init__(self):
         self.data_library: Dict[int, DataFile] = {}
+        self.disambiguation_list = None
 
     def hash_function(self, filepath: str, sheet: str|None=None):
         return hash(f'{filepath}{sheet}') # Unique up to filepath/sheet combination
@@ -137,7 +138,17 @@ class DataLibrary:
                     to_append += f" | {sheet}"
                 result.append((to_append, sheet, path))
         
+        # Update the disambiguation list
+        self.disambiguation_list = result
         return result
+    
+    def get_data_from_shortname(self, shortname: str) -> DataFile|None:
+        """Returns the DataFile associated with the shortname, or None"""
+        for entry in self.disambiguation_list:
+            name, sheet, path = entry
+            if name == shortname:
+                return self.get_data(path, sheet)
+        return None
 
 
 
