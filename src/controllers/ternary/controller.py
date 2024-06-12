@@ -1,4 +1,7 @@
 from src.models.ternary.model import TernaryModel
+from src.models.ternary.trace.filter.model import FilterModel
+from src.models.ternary.trace.model import TernaryTraceEditorModel
+
 from src.views.main_window import MainWindow
 
 from src.controllers.ternary.setup.controller import TernaryStartSetupController
@@ -6,9 +9,7 @@ from src.controllers.ternary.trace.controller import TernaryTraceEditorControlle
 from src.controllers.ternary.trace.tab_controller import TabController
 from src.controllers.ternary.trace.filter.controller import FilterEditorController
 from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
-from src.models.ternary.trace.filter.model import FilterModel
-
-from src.models.ternary.trace.model import TernaryTraceEditorModel
+from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
 
 class TernaryController:
     
@@ -30,6 +31,8 @@ class TernaryController:
             self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_editor_view)
         self.filter_tab_controller = FilterTabController(
             self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
+        self.heatmap_editor_controller = HeatmapEditorController(
+            self.model.tab_model, self.view.ternary_trace_editor_view.heatmap_view)
 
         self.tab_controller.change_tab_signal.connect(self._change_trace_tab)
         self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
@@ -46,8 +49,11 @@ class TernaryController:
         # Clears current trace view fields, repopulates with information from trace model
         self.trace_controller.change_tab(trace_model)
         
-        #self.filter_editor_controller.change_tab(trace_model.filter_model)
+        # Call the change trace tab method of the filter editor controller
         self.filter_editor_controller.change_trace_tab(trace_model.filter_model)
+
+        # Call the change trace tab method of the heatmap editor controller
+        self.heatmap_editor_controller.change_trace_tab(trace_model.heatmap_model)
         
         # Main window's trace view's dynamic content area switches to filter setup view (away from specific filter configuration)
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()

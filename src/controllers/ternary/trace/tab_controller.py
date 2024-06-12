@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Optional
 
-from src.models.ternary.trace.tab_model import TabModel
+from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
@@ -16,7 +16,7 @@ class TabController(QObject):
     change_tab_signal = Signal(TernaryTraceEditorModel)
     change_to_start_setup_signal = Signal()
 
-    def __init__(self, model: TabModel, view: TabView):
+    def __init__(self, model: TraceTabsPanelModel, view: TabView):
         super().__init__()
         self.model = model
         self.view = view

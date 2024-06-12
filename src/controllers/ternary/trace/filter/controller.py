@@ -1,14 +1,14 @@
 """Contains the FilterEditorController class"""
 
 from PySide6.QtCore import QObject
-from src.models.ternary.trace.tab_model import TabModel
+from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.views.ternary.trace.filter.filter_editor_view import FilterEditorView
 from src.models.ternary.trace.filter.tab_model import FilterTabModel
 from src.models.ternary.trace.filter.model import FilterModel
 
 class FilterEditorController(QObject):
-    def __init__(self, model: TabModel, view: FilterEditorView):
+    def __init__(self, model: TraceTabsPanelModel, view: FilterEditorView):
         super().__init__()
         self.model = model
         self.view = view
@@ -82,22 +82,14 @@ class FilterEditorController(QObject):
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
-            try:
-                value = float(self.view.filter_value_a_line_edit.text())
-                current_filter_tab.filter_value_a = value
-            except ValueError:
-                current_filter_tab.filter_value_a = None
+            current_filter_tab.filter_value_a = self.view.filter_value_a_line_edit.text()
 
     def on_filter_value_b_changed(self):
         trace_model: TernaryTraceEditorModel = self.model.current_tab
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
-            try:
-                value = float(self.view.filter_value_b_line_edit.text())
-                current_filter_tab.filter_value_b = value
-            except ValueError:
-                current_filter_tab.filter_value_b = None
+            current_filter_tab.filter_value_b = self.view.filter_value_b_line_edit.text()
 
 if __name__ == '__main__':
     import sys

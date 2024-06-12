@@ -5,7 +5,7 @@ from PySide6.QtCore import QObject, Signal
 # Type hints
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.models.ternary.trace.tab_model import TabModel
+from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 
 # Instantiations
 from src.controllers.ternary.trace.filter.controller import FilterEditorController
@@ -20,7 +20,7 @@ class TernaryTraceEditorController(QObject):
 
     def __init__(
             self, 
-            model: TabModel, 
+            model: TraceTabsPanelModel, 
             view: TernaryTraceEditorView):
         
         self.model = model
