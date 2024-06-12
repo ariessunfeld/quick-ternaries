@@ -43,7 +43,8 @@ class AddRemoveList(QWidget):
         self.list.addItem(data)
 
     def addItems(self, data: list[str]):
-        self.list.addItems(data)
+        if data is not None:
+            self.list.addItems(data)
 
     def get_items(self):
         ret = []

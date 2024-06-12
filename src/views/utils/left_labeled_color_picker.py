@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QPushButton, QColorDialog, QSizePolicy
 )
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 class LeftLabeledColorPicker(QWidget):
     """A labeled ColorPicker megawidget, for color pickers with QLabels to their left"""
@@ -15,6 +15,7 @@ class LeftLabeledColorPicker(QWidget):
         
         self.label = QLabel(label)
         self.color_button = QPushButton('Select Color')
+        self.color_button.setCursor(Qt.PointingHandCursor)
         
         # Set size policies
         # self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)

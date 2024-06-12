@@ -2,10 +2,14 @@
 
 from PySide6.QtCore import QObject, Signal
 
+# Type hints
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.trace.tab_model import TabModel
 
+# Instantiations
+from src.controllers.ternary.trace.filter.controller import FilterEditorController
+from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
 
 class TernaryTraceEditorController(QObject):
 
@@ -21,9 +25,9 @@ class TernaryTraceEditorController(QObject):
         
         self.model = model
         self.view = view
-        self.manager = None
 
         self.setup_connections()
+        #self.setup_child_controllers()
 
     def setup_connections(self):
         self.view.select_data.valueChanged.connect(self._selected_data_event)
@@ -50,11 +54,12 @@ class TernaryTraceEditorController(QObject):
         self.view.use_heatmap_checkbox.setChecked(trace_model.add_heatmap_checked)
         self.view.use_filter_checkbox.setChecked(trace_model.filter_data_checked)
 
-    def select_data_value_changed(self, seleced_data: str):
-        # Look up the data file in the data library by the string
-        pass
-        data_file = self.manager.start_setup_model.data_library.get_data_from_shortname(seleced_data)
-        # Set the current model's selected data file to this file
+        # Instantiate new filter controllers each time we change a tab
+        # self.view.filter_view.filter_tab_view.clear()
+        # for f in trace_model.filter_tab_model.order:
+        #     self.view.filter_view.filter_tab_view.add_tab_to_view(f'Filter {f}', f)
+        #self.filter_tab_controller = FilterTabController(trace_model.filter_tab_model, self.view.filter_view.filter_tab_view)
+        #self.filter_editor_controller = FilterEditorController(trace_model.filter_tab_model, self.view.filter_view.filter_editor_view)
 
     def _selected_data_event(self, value: str):
         self.model.current_tab.selected_data_file_name = value
@@ -79,6 +84,7 @@ class TernaryTraceEditorController(QObject):
         self.model.current_tab.add_heatmap_checked = is_checked
         self.view.heatmap_view.setVisible(is_checked)
 
-    
     def _filter_checkbox_statechanged_event(self, event):
-        self.model.current_tab.filter_data_checked = self.view.use_filter_checkbox.isChecked()
+        is_checked = self.view.use_filter_checkbox.isChecked()
+        self.model.current_tab.filter_data_checked = is_checked
+        self.view.filter_view.setVisible(is_checked)

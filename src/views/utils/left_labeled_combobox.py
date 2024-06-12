@@ -16,13 +16,13 @@ class LeftLabeledComboBox(QWidget):
         self.label = QLabel(label)
         self.combobox = QComboBox()
         
-        # Set size policies
-        self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.combobox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        # # Set size policies
+        # self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        # self.combobox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         
-        # Ensure consistent padding
-        self.layout.setContentsMargins(10, 5, 10, 5)
-        self.layout.setSpacing(10)
+        # # Ensure consistent padding
+        # self.layout.setContentsMargins(10, 5, 10, 5)
+        # self.layout.setSpacing(10)
         
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.combobox)
@@ -33,7 +33,9 @@ class LeftLabeledComboBox(QWidget):
         
     def addItems(self, items: list[str]):
         if items is not None:
+            self.combobox.blockSignals(True)
             self.combobox.addItems(items)
+            self.combobox.blockSignals(False)
         
     def currentText(self):
         return self.combobox.currentText()
@@ -44,7 +46,9 @@ class LeftLabeledComboBox(QWidget):
             self.combobox.setCurrentIndex(index)
 
     def clear(self):
+        self.combobox.blockSignals(True)
         self.combobox.clear()
+        self.combobox.blockSignals(False)
 
     def emit_value_changed(self, index):
         text = self.combobox.itemText(index)

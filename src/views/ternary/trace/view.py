@@ -5,6 +5,7 @@ and is used in the dynamic content area of the MainWindow
 """
 
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
+from src.views.ternary.trace.filter.view import FilterPanelView
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -89,6 +90,11 @@ class TernaryTraceEditorView(QWidget):
         # Use Filter(s)
         self.use_filter_checkbox = LeftLabeledCheckbox('Use Filter(s)')
         self.content_layout.addWidget(self.use_filter_checkbox)
+
+        # Filter view (hide at first)
+        self.filter_view = FilterPanelView()
+        self.content_layout.addWidget(self.filter_view)
+        self.filter_view.setVisible(False)
 
         # Add the scroll area to the main layout
         self.main_layout.addWidget(self.scroll_area)

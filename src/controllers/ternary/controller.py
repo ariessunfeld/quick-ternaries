@@ -4,6 +4,9 @@ from src.views.main_window import MainWindow
 from src.controllers.ternary.setup.controller import TernaryStartSetupController
 from src.controllers.ternary.trace.controller import TernaryTraceEditorController
 from src.controllers.ternary.trace.tab_controller import TabController
+from src.controllers.ternary.trace.filter.controller import FilterEditorController
+from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
+from src.models.ternary.trace.filter.model import FilterModel
 
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 
@@ -23,14 +26,44 @@ class TernaryController:
             self.model.tab_model, self.view.ternary_trace_editor_view)
         self.tab_controller = TabController(
             self.model.tab_model, self.view.tab_view)
+        self.filter_editor_controller = FilterEditorController(
+            self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_editor_view)
+        self.filter_tab_controller = FilterTabController(
+            self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
 
-        self.tab_controller.change_tab_signal.connect(lambda tm: self._change_tab(tm))
+        self.tab_controller.change_tab_signal.connect(self._change_trace_tab)
         self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
 
-    def _change_tab(self, trace_model: TernaryTraceEditorModel):
+        self.filter_tab_controller.change_filter_tab_signal.connect(self._change_filter_tab)
+        self.filter_tab_controller.change_to_filter_setup_signal.connect(self._change_filter_setup_tab)
+
+    def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
+        
+        # Main window dynamic content area switches to trace view
         self.view.switch_to_trace_view()
+        
+        # Trace controller handles tab change using trace model
+        # Clears current trace view fields, repopulates with information from trace model
         self.trace_controller.change_tab(trace_model)
+        
+        #self.filter_editor_controller.change_tab(trace_model.filter_model)
+        self.filter_editor_controller.change_trace_tab(trace_model.filter_model)
+        
+        # Main window's trace view's dynamic content area switches to filter setup view (away from specific filter configuration)
+        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()
+
+        # Filter tab controller clears existing tab widgets, repopulates with those from trace_model.filter_tab_model
+        self.filter_tab_controller.change_trace_tab(trace_model)
+
+    def _change_filter_tab(self, filter_model: FilterModel):
+        # Main window's trace view's dynamic content area switches to filter view
+        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_editor_view()
+
+        # Filter editor controller clears filter editor widgets and repopulates using model
+        self.filter_editor_controller.change_filter_tab(filter_model)
+
+    def _change_filter_setup_tab(self):
+        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()
 
     def _change_to_start_setup(self):
-        print('ternary controller change to start setup called')
         self.view.switch_to_start_setup_view()

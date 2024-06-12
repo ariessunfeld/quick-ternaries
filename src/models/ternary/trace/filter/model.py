@@ -3,9 +3,9 @@ from typing import Optional, List, Union
 class FilterModel:
     
     CATEGORICAL_OPERATIONS = ['Equals', 'One of']
-    NUMERICAL_OPERATIONS = CATEGORICAL_OPERATIONS + [
-        '<', '≤', '>', '≥', 'a < x < b', 'a ≤ x ≤ b', 'a < x ≤ b', 'a ≤ x < b'
-    ]
+    NUMERICAL_COMPARISON = ['<', '≤', '>', '≥']
+    NUMERICAL_RANGE = ['a < x < b', 'a ≤ x ≤ b', 'a < x ≤ b', 'a ≤ x < b']
+    NUMERICAL_OPERATIONS = CATEGORICAL_OPERATIONS + NUMERICAL_COMPARISON + NUMERICAL_RANGE
 
     def __init__(
             self, 
@@ -100,3 +100,6 @@ class FilterModel:
     @filter_value_b.setter
     def filter_value_b(self, value: Optional[float]):
         self._filter_value_b = value
+
+    def __str__(self) -> str:
+        return str(self.__dict__)
