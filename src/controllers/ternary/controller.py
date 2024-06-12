@@ -1,15 +1,18 @@
+"""Controller for the Ternary models and views"""
+
+# Instantiated
 from src.models.ternary.model import TernaryModel
-from src.models.ternary.trace.filter.model import FilterModel
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-
 from src.views.main_window import MainWindow
-
 from src.controllers.ternary.setup.controller import TernaryStartSetupController
 from src.controllers.ternary.trace.controller import TernaryTraceEditorController
 from src.controllers.ternary.trace.tab_controller import TabController
 from src.controllers.ternary.trace.filter.controller import FilterEditorController
 from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
 from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
+
+# For type hints
+from src.models.ternary.trace.filter.model import FilterModel
+from src.models.ternary.trace.model import TernaryTraceEditorModel
 
 class TernaryController:
     
