@@ -39,14 +39,3 @@ class TernaryHeatmapEditorView(QWidget):
         self.range_layout.addWidget(self.info_button, alignment=Qt.AlignRight)
         
         self.main_layout.addLayout(self.range_layout)
-
-if __name__ == '__main__':
-    import sys
-    from PySide6.QtWidgets import QApplication
-
-    app = QApplication(sys.argv)
-
-    window = TernaryHeatmapEditorView()
-    window.show()
-
-    sys.exit(app.exec())

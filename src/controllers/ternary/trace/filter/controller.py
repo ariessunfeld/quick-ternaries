@@ -90,21 +90,3 @@ class FilterEditorController(QObject):
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
             current_filter_tab.filter_value_b = self.view.filter_value_b_line_edit.text()
-
-if __name__ == '__main__':
-    import sys
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
-
-    app = QApplication(sys.argv)
-
-    model = FilterTabModel()
-    view = FilterEditorView()
-    controller = FilterEditorController(model, view)
-
-    window = QWidget()
-    layout = QVBoxLayout(window)
-    layout.addWidget(view)
-    window.setLayout(layout)
-    window.show()
-
-    sys.exit(app.exec())
