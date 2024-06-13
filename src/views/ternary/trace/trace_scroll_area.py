@@ -172,7 +172,7 @@ class TabView(QWidget):
         self.set_selected_tab(tab_id)
     
     def add_start_setup_tab_to_view(self):
-        start_setup_tab = DraggableTab("Start Setup", "StartSetup", hide_close_button=True)
+        start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup", hide_close_button=True)
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
         self.tab_layout.insertWidget(0, start_setup_tab)
         return start_setup_tab
@@ -196,14 +196,12 @@ class TabView(QWidget):
             if tab_button.identifier == tab_id:
                 # "current" stylesheet
                 tab_button.setStyleSheet("""font-weight: bold;
-                                            color: black;
                                             background-color: lightgray;
                                             border: 1px solid gray;
                                             border-radius: 4px""")
             else:
                 # "non-current" stylesheet
                 tab_button.setStyleSheet("""font-weight: normal;
-                                            color: black;
                                             background-color: transparent;
                                             border: 1px solid gray;
                                             border-radius: 4px;""")
