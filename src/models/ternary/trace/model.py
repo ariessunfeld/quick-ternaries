@@ -4,6 +4,7 @@ from typing import List, Optional
 from src.models.utils.data_models import DataFile
 from src.models.ternary.trace.heatmap_model import HeatmapModel
 from src.models.ternary.trace.filter.model import FilterModel
+from src.models.ternary.trace.filter.tab_model import FilterTabModel
 
 class TernaryTraceEditorModel:
 
@@ -23,13 +24,18 @@ class TernaryTraceEditorModel:
             add_heatmap_checked: bool = False,
             filter_data_checked: bool = False,
             heatmap_model: Optional[HeatmapModel] = None,
-            filter_model: Optional[FilterModel] = None):
+            filter_model: Optional[FilterModel] = None,
+            filter_tab_model: Optional[FilterTabModel] = None):
         
         # Direct access
-        self.heatmap_model = heatmap_model
-        self.filter_model = filter_model
+        if heatmap_model is None:
+            self.heatmap_model = HeatmapModel()
+        if filter_model is None:
+            self.filter_model = FilterModel()
+        if filter_tab_model is None:
+            self.filter_tab_model = FilterTabModel()
 
-        # Controlled
+        # Controlled access
         self._available_data_file_names = available_data_file_names
         self._selected_data_file_name = selected_data_file_name
         self._available_data_files = available_data_files

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QComboBox, QSizePolicy
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import Qt
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -93,7 +94,6 @@ class MainWindow(QMainWindow):
         self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
     
     def switch_to_trace_view(self):
-        print('switch to trace view called in main window')
         self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
 
     def switch_plot_type(self, index):

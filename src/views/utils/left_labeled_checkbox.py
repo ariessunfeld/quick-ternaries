@@ -20,6 +20,7 @@ class LeftLabeledCheckbox(QWidget):
         self.checkbox = QCheckBox()
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.checkbox)
+        self.layout.addStretch(1)
         self.setLayout(self.layout)
         
         # Connect the internal checkbox's stateChanged signal to the new signal

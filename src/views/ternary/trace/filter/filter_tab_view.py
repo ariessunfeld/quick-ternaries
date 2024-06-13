@@ -1,36 +1,31 @@
-"""Contains the TraceScrollArea(QWidget) class and support classes"""
-
 from typing import List
 
 from PySide6.QtWidgets import (
     QWidget,
-    QHBoxLayout, 
-    QLabel, 
-    QPushButton, 
-    QVBoxLayout, 
-    QScrollArea)
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QScrollArea,
+    QStackedWidget,
+    QMessageBox,
+    QStyle,
+    QToolButton,
+    QToolTip
+)
 from PySide6.QtCore import (
-    Qt, 
-    QSize, 
-    Signal, 
-    QMimeData,
-    QPoint)
+    Qt,
+    QSize,
+    Signal,
+)
 from PySide6.QtGui import (
-    QDrag, 
     QPixmap,
-    QPainter)
-    QPixmap,
-    QPainter)
+    QPainter,
+    QCursor,
+)
 
-class DragTargetIndicator(QLabel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setContentsMargins(25, 5, 25, 5)
-        # self.setStyleSheet(
-        #     "QLabel { background-color: #ccc; border: 1px solid black; }"
-        # )
 
-class DraggableTab(QWidget):
+class FilterTab(QWidget):
     tab_clicked = Signal(str)
     tab_closed = Signal(str)
 
@@ -41,20 +36,14 @@ class DraggableTab(QWidget):
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
 
-
-        self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
-
         self.hide_close_button = hide_close_button
-    
+
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
-        self.label.setStyleSheet("background: transparent;")
         self.label.setStyleSheet("background: transparent;")
         self.tab_button_layout.addWidget(self.label)
 
         if identifier != 'StartSetup':
-            self.setup_close_button()
-        if self.identifier != "StartSetup":
             self.setup_close_button()
 
         self.tab_button_layout.setContentsMargins(0, 0, 0, 0)
@@ -65,17 +54,6 @@ class DraggableTab(QWidget):
     def setup_close_button(self):
         close_button = QPushButton("✕" if not self.hide_close_button else '', self)
         close_button.setFixedSize(QSize(20, 20))
-        # close_button.setStyleSheet("border: none; background-color: transparent;")
-        close_button.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background-color: lightgray;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: red;
-            }
-        """)
         close_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -95,44 +73,6 @@ class DraggableTab(QWidget):
         if event.button() == Qt.LeftButton:
             self.tab_clicked.emit(self.identifier)
             self.drag_start_position = event.pos()
-            self.drag_start_position = event.pos()
-
-    def mouseMoveEvent(self, event):
-        if self.identifier == 'StartSetup':
-            return
-        # if event.buttons() == Qt.MouseButton.LeftButton:
-        if event.buttons() == Qt.LeftButton:
-        if event.buttons() == Qt.LeftButton:
-            drag = QDrag(self)
-            mime = QMimeData()
-            drag.setMimeData(mime)
-
-            # pixmap = QPixmap(self.size().width() * 2, self.size().height() * 2)
-            # pixmap.setDevicePixelRatio(2)
-            # self.render(pixmap)
-            # Create a pixmap of the label only
-            pixmap = QPixmap(self.label.size())
-            pixmap.fill(Qt.transparent)  # Set the background to transparent
-
-            painter = QPainter(pixmap)
-            self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
-            painter.end()
-            # Create a pixmap of the label only
-            pixmap = QPixmap(self.label.size())
-            pixmap.fill(Qt.transparent)  # Set the background to transparent
-
-            painter = QPainter(pixmap)
-            self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
-            painter.end()
-
-            drag.setPixmap(pixmap)
-            drag.setHotSpot(event.pos() - self.label.pos())
-            drag.setHotSpot(event.pos() - self.label.pos())
-
-            # drag.exec(Qt.DropAction.MoveAction)
-            drag.exec(Qt.MoveAction)
-            drag.exec(Qt.MoveAction)
-            self.show()
 
     def enterEvent(self, event):
         self.label.setStyleSheet("background: lightgray;")
@@ -142,24 +82,8 @@ class DraggableTab(QWidget):
         self.label.setStyleSheet("background: transparent;")
         super().leaveEvent(event)
 
-    def enterEvent(self, event):
-        self.label.setStyleSheet("background: lightgray;")
-        super().enterEvent(event)
 
-    def leaveEvent(self, event):
-        self.label.setStyleSheet("background: transparent;")
-        super().leaveEvent(event)
-
-    def dragEnterEvent(self, event):
-        event.accept()
-
-    def dragMoveEvent(self, event):
-        event.ignore()
-
-    def dragMoveEvent(self, event):
-        event.ignore()
-
-class TabView(QWidget):
+class FilterTabView(QWidget):
     """
     Megawidget containing the tab add/remove/scroll area
     """
@@ -168,7 +92,7 @@ class TabView(QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.controls_layout = QHBoxLayout(self)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -189,13 +113,8 @@ class TabView(QWidget):
         self.tab_layout.setSpacing(5)
         self.tab_layout.setAlignment(Qt.AlignTop)
 
-        # Setup a drag-and-drop indicator widget
-        self._drag_target_indicator = DragTargetIndicator()
-        self.tab_layout.addWidget(self._drag_target_indicator)
-        self._drag_target_indicator.hide()
-
-        # Add the "Add Trace" button to the layout
-        self.new_tab_button = QPushButton("+ Add Trace")
+        # Add the "Add Filter" button to the layout
+        self.new_tab_button = QPushButton("+ Add Filter")
         self.new_tab_button.setCursor(Qt.PointingHandCursor)
         self.tab_layout.addWidget(self.new_tab_button)
 
@@ -208,20 +127,15 @@ class TabView(QWidget):
         self.set_selected_tab('StartSetup')
 
     def add_tab_to_view(self, name: str, identifier: str):
-        tab_button = DraggableTab(name, identifier)
+        tab_button = FilterTab(name, identifier)
         tab_button.tab_clicked.connect(self.tab_changed.emit)
         tab_button.tab_closed.connect(self.tab_removed.emit)
-        # insert at position n-1 to preserve the position of the Add Tab button
+        # insert at position n-1 to preserve the position of the Add Filter button
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, tab_button)
         return tab_button
-    
-    def add_trace_tab_to_view(self, name: str, tab_id: str):
-        self.add_tab_to_view(name, tab_id)
-        # switch to the newly created tab
-        self.set_selected_tab(tab_id)
-    
+
     def add_start_setup_tab_to_view(self):
-        start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup", hide_close_button=True)
+        start_setup_tab = FilterTab("Filter Setup", "StartSetup", hide_close_button=True)
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
         self.tab_layout.insertWidget(0, start_setup_tab)
         return start_setup_tab
@@ -229,10 +143,17 @@ class TabView(QWidget):
     def remove_tab_from_view(self, tab_id: str):
         for i in range(self.tab_layout.count()):
             tab_widget = self.tab_layout.itemAt(i).widget()
-            if isinstance(tab_widget, DraggableTab) and tab_widget.identifier == tab_id:
+            if isinstance(tab_widget, FilterTab) and tab_widget.identifier == tab_id:
                 self.tab_layout.removeWidget(tab_widget)
                 tab_widget.deleteLater()
                 break
+
+    def clear(self):
+        for i in range(self.tab_layout.count() - 1, -1, -1):
+            tab_widget = self.tab_layout.itemAt(i).widget()
+            if tab_widget is not None and isinstance(tab_widget, FilterTab) and tab_widget.identifier != 'StartSetup':
+                self.tab_layout.removeWidget(tab_widget)
+                tab_widget.deleteLater()
 
     def set_selected_tab(self, tab_id: str):
         """
@@ -254,15 +175,15 @@ class TabView(QWidget):
                                             background-color: transparent;
                                             border: 1px solid gray;
                                             border-radius: 4px;""")
-    
-    def get_tab_buttons(self) -> List[DraggableTab]:
-        """Returns a list of draggable tab widgets"""
+
+    def get_tab_buttons(self) -> List[FilterTab]:
+        """Returns a list of filter tab widgets"""
         ret = []
         n_tabs = self.tab_layout.count()
 
         for i in range(n_tabs):
             item = self.tab_layout.itemAt(i).widget()
-            if isinstance(item, DraggableTab):
+            if isinstance(item, FilterTab):
                 ret.append(item)
 
         return ret

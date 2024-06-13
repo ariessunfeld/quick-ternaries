@@ -5,7 +5,7 @@ This model contains the trace editor models for individual traces
 from typing import Dict, List, Optional
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 
-class TabModel:
+class TraceTabsPanelModel:
     def __init__(self):
         self.traces: Dict[str,TernaryTraceEditorModel] = {}
         self.order: List[str] = []

@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Optional
 
-from src.models.ternary.trace.tab_model import TabModel
+from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
@@ -16,7 +16,7 @@ class TabController(QObject):
     change_tab_signal = Signal(TernaryTraceEditorModel)
     change_to_start_setup_signal = Signal()
 
-    def __init__(self, model: TabModel, view: TabView):
+    def __init__(self, model: TraceTabsPanelModel, view: TabView):
         super().__init__()
         self.model = model
         self.view = view
@@ -45,7 +45,6 @@ class TabController(QObject):
     def add_trace(self, trace_model: Optional[TernaryTraceEditorModel] = None):
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
-        print(f'Inside tab controller add_trace, and {trace_model=}')
         tab_id = self.model.add_trace(trace_model)
         self.view.add_trace_tab_to_view(f'Untitled {tab_id}', tab_id)
         self.change_tab(tab_id)
@@ -57,8 +56,6 @@ class TabController(QObject):
             self.change_tab('StartSetup') # always change back to start setup after deleting a trace tab
 
     def change_tab(self, tab_id: str):
-        print('\n\ntab controller change_tab called')
-        print(f'{tab_id=}')
         if tab_id == 'StartSetup':
             # Emit back to start setup
             self.change_to_start_setup_signal.emit()

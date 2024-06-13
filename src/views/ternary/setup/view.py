@@ -27,7 +27,7 @@ class TernaryStartSetupView(QWidget):
         super().__init__(parent)
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
-        self.setMaximumWidth(500)
+        #self.setMaximumWidth(500)
 
         # Scroll area to hold the content layout
         self.scroll_area = QScrollArea()
