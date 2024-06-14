@@ -56,6 +56,7 @@ class LoadedDataScrollView(QWidget):
         self.layout = QVBoxLayout(self)
         self.file_list = QListWidget(self)
         self.set_style()
+        self.setMinimumHeight(150)
         
         self.layout.addWidget(self.file_list)
         self.setLayout(self.layout)

@@ -81,6 +81,8 @@ class TernaryStartSetupController(QWidget):
             for _shortname, _sheet, _path in loaded_data:
                 list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
                 close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            shared_columns = self.model.data_library.get_shared_columns()
+            self.custom_apex_selection_controller.update_columns(shared_columns)
 
     def remove_data(self, item, filepath, sheet):
         self.model.data_library.remove_data(filepath, sheet)
@@ -89,6 +91,9 @@ class TernaryStartSetupController(QWidget):
         for _shortname, _sheet, _path in loaded_data:
             list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
             close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+        shared_columns = self.model.data_library.get_shared_columns()
+        self.custom_apex_selection_controller.update_columns(shared_columns)
+        # TODO also warn user if removing columns from traces that have this data selected
 
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""
