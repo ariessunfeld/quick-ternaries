@@ -149,6 +149,9 @@ class DataLibrary:
             if name == shortname:
                 return self.get_data(path, sheet)
         return None
+    
+    def list_all_datafiles(self):
+        return list(self.data_library.values())
 
 
 

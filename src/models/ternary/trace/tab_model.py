@@ -46,6 +46,6 @@ class TraceTabsPanelModel:
 
     def __str__(self) -> str:
         return f"""traces: {self.traces},
-order: {self.order},
-tab_counter: {self.tab_counter}
-"""
+        order: {self.order},
+        tab_counter: {self.tab_counter}
+        """

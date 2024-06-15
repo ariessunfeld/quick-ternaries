@@ -47,6 +47,14 @@ class TernaryController:
         
         # Main window dynamic content area switches to trace view
         self.view.switch_to_trace_view()
+
+        # Retrieve the loaded data from the start setup
+        data_library = self.start_setup_controller.model.data_library
+        # Isolate the filenames
+        all_filenames = list(map(lambda x: x[0], data_library.get_all_filenames()))
+        # Provide the trace model with the loaded data library
+        trace_model.available_data_files = data_library.list_all_datafiles()
+        trace_model.available_data_file_names = all_filenames
         
         # Trace controller handles tab change using trace model
         # Clears current trace view fields, repopulates with information from trace model

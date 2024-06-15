@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (
     QLabel, 
     QPushButton, 
     QVBoxLayout, 
-    QScrollArea)
+    QScrollArea,
+    QMessageBox)
 from PySide6.QtCore import (
     Qt, 
     QSize, 
@@ -18,8 +19,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QDrag, 
     QPixmap,
-    QPainter)
-    QPixmap,
+    QIcon,
     QPainter)
 
 class DragTargetIndicator(QLabel):
@@ -36,11 +36,8 @@ class DraggableTab(QWidget):
 
     def __init__(self, name, identifier, *args, hide_close_button=False, **kwargs):
         super().__init__(*args, **kwargs)
-
+    
         self.identifier = identifier
-
-        self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
-
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
 
@@ -49,12 +46,9 @@ class DraggableTab(QWidget):
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
         self.label.setStyleSheet("background: transparent;")
-        self.label.setStyleSheet("background: transparent;")
         self.tab_button_layout.addWidget(self.label)
 
         if identifier != 'StartSetup':
-            self.setup_close_button()
-        if self.identifier != "StartSetup":
             self.setup_close_button()
 
         self.tab_button_layout.setContentsMargins(0, 0, 0, 0)
@@ -76,16 +70,6 @@ class DraggableTab(QWidget):
                 background-color: red;
             }
         """)
-        close_button.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background-color: lightgray;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: red;
-            }
-        """)
         close_button.clicked.connect(lambda: self.tab_closed.emit(self.identifier))
         self.tab_button_layout.addWidget(close_button)
         if self.hide_close_button:
@@ -95,21 +79,16 @@ class DraggableTab(QWidget):
         if event.button() == Qt.LeftButton:
             self.tab_clicked.emit(self.identifier)
             self.drag_start_position = event.pos()
-            self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):
         if self.identifier == 'StartSetup':
             return
-        # if event.buttons() == Qt.MouseButton.LeftButton:
-        if event.buttons() == Qt.LeftButton:
+        
         if event.buttons() == Qt.LeftButton:
             drag = QDrag(self)
             mime = QMimeData()
             drag.setMimeData(mime)
 
-            # pixmap = QPixmap(self.size().width() * 2, self.size().height() * 2)
-            # pixmap.setDevicePixelRatio(2)
-            # self.render(pixmap)
             # Create a pixmap of the label only
             pixmap = QPixmap(self.label.size())
             pixmap.fill(Qt.transparent)  # Set the background to transparent
@@ -117,20 +96,10 @@ class DraggableTab(QWidget):
             painter = QPainter(pixmap)
             self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
             painter.end()
-            # Create a pixmap of the label only
-            pixmap = QPixmap(self.label.size())
-            pixmap.fill(Qt.transparent)  # Set the background to transparent
-
-            painter = QPainter(pixmap)
-            self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
-            painter.end()
-
             drag.setPixmap(pixmap)
-            drag.setHotSpot(event.pos() - self.label.pos())
             drag.setHotSpot(event.pos() - self.label.pos())
 
             # drag.exec(Qt.DropAction.MoveAction)
-            drag.exec(Qt.MoveAction)
             drag.exec(Qt.MoveAction)
             self.show()
 
@@ -142,19 +111,8 @@ class DraggableTab(QWidget):
         self.label.setStyleSheet("background: transparent;")
         super().leaveEvent(event)
 
-    def enterEvent(self, event):
-        self.label.setStyleSheet("background: lightgray;")
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self.label.setStyleSheet("background: transparent;")
-        super().leaveEvent(event)
-
     def dragEnterEvent(self, event):
         event.accept()
-
-    def dragMoveEvent(self, event):
-        event.ignore()
 
     def dragMoveEvent(self, event):
         event.ignore()
