@@ -20,6 +20,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QDrag, 
     QPixmap,
+    QIcon,
     QPainter)
 
 class DragTargetIndicator(QLabel):

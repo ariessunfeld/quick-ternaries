@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Signal
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
+from src.models.utils.data_models import DataLibrary
 
 # Instantiations
 from src.controllers.ternary.trace.filter.controller import FilterEditorController
@@ -18,16 +19,26 @@ class TernaryTraceEditorController(QObject):
     View: Trace Editor View
     """
 
+    selected_data_event = Signal(str)
+
     def __init__(
             self, 
             model: TraceTabsPanelModel, 
             view: TernaryTraceEditorView):
         
+        super().__init__()
+        
         self.model = model
         self.view = view
 
+        self.data_library_reference = None
+
         self.setup_connections()
         #self.setup_child_controllers()
+
+    def set_data_library_reference(self, ref: DataLibrary):
+        # Ideally read-only access to data library
+        self.data_library_reference = ref
 
     def setup_connections(self):
         self.view.select_data.valueChanged.connect(self._selected_data_event)
@@ -62,7 +73,14 @@ class TernaryTraceEditorController(QObject):
         #self.filter_editor_controller = FilterEditorController(trace_model.filter_tab_model, self.view.filter_view.filter_editor_view)
 
     def _selected_data_event(self, value: str):
+        # Set the model's selected data file name to this value
         self.model.current_tab.selected_data_file_name = value
+
+        # Update the model's heatmap_model's available columns
+        self.selected_data_event.emit(value)
+        # available_heatmap_columns = self.data_library_reference.get_data_from_shortname(value).get_columns()
+        # self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
+        # self.model.current_tab.heatmap_model.selected_column = available_heatmap_columns[0]
 
     def _name_changed_event(self, value: str):
         self.model.current_tab.legend_name = value

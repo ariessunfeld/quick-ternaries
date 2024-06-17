@@ -17,6 +17,7 @@ class CustomHoverDataSelectionController:
         """Connects view events to model"""
         self.view.add_remove_list.button_add.clicked.connect(self.clicked_add)
         self.view.add_remove_list.button_remove.clicked.connect(self.clicked_remove)
+        self.model.set_view(self.view)
 
     def clicked_add(self):
         """Gets selected entry from view's available columns, 
@@ -37,3 +38,12 @@ class CustomHoverDataSelectionController:
             col = selected_column.text()
             self.model.add_available_attr(col)
             self.model.rem_selected_attr(col)
+
+    def update_columns(self, new_columns: list[str]):
+        # Set model's available columns to new_columns
+        self.model.set_available_attrs(new_columns)
+        current_selected_attrs = self.model.get_selected_attrs()
+        for col in current_selected_attrs:
+            self.model.rem_available_attr(col)
+            if col not in new_columns:
+                self.model.rem_selected_attr(col)

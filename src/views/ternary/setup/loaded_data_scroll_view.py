@@ -68,7 +68,7 @@ class LoadedDataScrollView(QWidget):
                 background-color: transparent;
             }
             QListWidget::item {
-                margin: 2px;
+                margin: 6px;
                 padding: 2px;
             }
             QListWidget::item:selected {
@@ -76,6 +76,7 @@ class LoadedDataScrollView(QWidget):
                 color: black;
             }
         """)
+        self.file_list.setSpacing(-10) # shrink the vertical spacing between file names
 
     def add_item(self, title, full_path):
         list_item = QListWidgetItem(self.file_list)
