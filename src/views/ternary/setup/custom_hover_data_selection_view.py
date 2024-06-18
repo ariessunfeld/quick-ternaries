@@ -3,9 +3,9 @@ from src.views.utils.add_remove_list import AddRemoveList
 from typing import List
 
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QVBoxLayout, 
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
     QListWidget,
 )
 

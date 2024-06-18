@@ -1,8 +1,8 @@
 
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QLabel, 
+    QWidget,
+    QHBoxLayout,
+    QLabel,
     QCheckBox
 )
 
@@ -22,12 +22,12 @@ class LeftLabeledCheckbox(QWidget):
         self.layout.addWidget(self.checkbox)
         self.layout.addStretch(1)
         self.setLayout(self.layout)
-        
+
         # Connect the internal checkbox's stateChanged signal to the new signal
         self.checkbox.stateChanged.connect(self.stateChanged)
-        
+
     def isChecked(self):
         return self.checkbox.isChecked()
-    
+
     def setChecked(self, val: bool):
         self.checkbox.setChecked(val)

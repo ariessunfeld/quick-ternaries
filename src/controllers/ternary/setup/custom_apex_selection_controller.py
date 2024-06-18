@@ -3,14 +3,14 @@ from src.views.ternary.setup import CustomApexSelectionView
 
 class CustomApexSelectionController:
     def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):
-        
+
         # models and views are instantiated outside this class
         # hence, they get passed to the initialization method
         self.model = model
         self.view = view
 
         self.setup_connections()
-        
+
     def setup_connections(self):
         # Add/remove button connections
         self.view.add_remove_list_top_apex_columns.button_add.clicked.connect(self.clicked_top_apex_button_add)

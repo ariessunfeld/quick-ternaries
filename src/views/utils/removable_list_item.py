@@ -1,9 +1,8 @@
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout,  
-    QLabel, 
-    QPushButton,
-    QToolTip
+    QWidget,
+    QHBoxLayout,
+    QLabel,
+    QPushButton
 )
 
 from PySide6.QtCore import (
@@ -20,7 +19,6 @@ class ListItemWidget(QWidget):
 
         self.set_title(title)
         self.layout.addStretch()
-        # self.create_info_button()
         self.create_close_button()
 
         self.setLayout(self.layout)
@@ -35,17 +33,3 @@ class ListItemWidget(QWidget):
         self.close_button.setCursor(Qt.PointingHandCursor)
         self.close_button.setMaximumWidth(20)
         self.layout.addWidget(self.close_button)
-
-    # def create_info_button(self):
-    #     self.info_button = QPushButton("?")
-    #     self.info_button.setMaximumWidth(20)
-    #     self.info_button.clicked.connect(self.show_full_path)
-    #     self.layout.addWidget(self.info_button)
-    # def create_info_button(self):
-    #     self.info_button = QPushButton("?")
-    #     self.info_button.setMaximumWidth(20)
-    #     self.info_button.clicked.connect(self.show_full_path)
-    #     self.layout.addWidget(self.info_button)
-
-    # def show_full_path(self):
-    #     QToolTip.showText(self.info_button.mapToGlobal(self.info_button.rect().bottomRight()), f"File: {str(self.full_path)}")

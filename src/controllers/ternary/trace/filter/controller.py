@@ -4,7 +4,6 @@ from PySide6.QtCore import QObject
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.views.ternary.trace.filter.filter_editor_view import FilterEditorView
-from src.models.ternary.trace.filter.tab_model import FilterTabModel
 from src.models.ternary.trace.filter.model import FilterModel
 
 class FilterEditorController(QObject):

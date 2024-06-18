@@ -16,14 +16,14 @@ class CustomHoverDataSelectionModel:
 
     def get_selected_attrs(self) -> List[str]:
         return sorted(self.selected_attrs)
-    
+
     def set_available_attrs(self, available_attrs: List[str]):
         self.available_attrs = available_attrs
         self.update_view()
 
     def get_available_attrs(self) -> List[str]:
         return sorted(self.available_attrs)
-    
+
     def add_available_attr(self, attr: str):
         if attr not in self.available_attrs:
             self.available_attrs.append(attr)

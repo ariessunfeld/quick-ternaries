@@ -1,6 +1,6 @@
 """Contains the MainWindow(QWidget) view class, which encompasses the navigation panel, dynamic content area, preview/save buttons, and plot view area"""
 
-import os 
+import os
 
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget,
@@ -31,12 +31,12 @@ class MainWindow(QMainWindow):
         self.bottom_bar = QHBoxLayout()
         self.preview_button = QPushButton("Preview")
         self.save_button = QPushButton("Save")
-        
+
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
         self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
-        
+
         # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
         self.top_bar.addStretch(1)
@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         # Right Area for Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        
+
         # Load local HTML file
         html_file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'blank_ternary_plot.html')
         self.plot_view.setUrl(f'file://{html_file_path}')
@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
 
     def switch_to_start_setup_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
-    
+
     def switch_to_trace_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
 

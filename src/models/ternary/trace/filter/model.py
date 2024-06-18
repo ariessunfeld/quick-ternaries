@@ -1,14 +1,14 @@
 from typing import Optional, List, Union
 
 class FilterModel:
-    
+
     CATEGORICAL_OPERATIONS = ['Equals', 'One of']
     NUMERICAL_COMPARISON = ['<', '≤', '>', '≥']
     NUMERICAL_RANGE = ['a < x < b', 'a ≤ x ≤ b', 'a < x ≤ b', 'a ≤ x < b']
     NUMERICAL_OPERATIONS = CATEGORICAL_OPERATIONS + NUMERICAL_COMPARISON + NUMERICAL_RANGE
 
     def __init__(
-            self, 
+            self,
             available_columns: Optional[List[str]] = None,
             selected_column: Optional[str] = None,
             available_filter_operations: List[str] = None,
@@ -18,7 +18,7 @@ class FilterModel:
             filter_values: Optional[Union[str, float]] = None,
             filter_value_a: Optional[float] = None,
             filter_value_b: Optional[float] = None):
-        
+
         self._available_columns = available_columns
         self._selected_column = selected_column
         self._available_filter_operations = available_filter_operations or self.CATEGORICAL_OPERATIONS

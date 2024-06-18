@@ -4,22 +4,20 @@ from typing import List
 
 from PySide6.QtWidgets import (
     QWidget,
-    QHBoxLayout, 
-    QLabel, 
-    QPushButton, 
-    QVBoxLayout, 
-    QScrollArea,
-    QMessageBox)
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QScrollArea)
 from PySide6.QtCore import (
-    Qt, 
-    QSize, 
-    Signal, 
+    Qt,
+    QSize,
+    Signal,
     QMimeData,
     QPoint)
 from PySide6.QtGui import (
-    QDrag, 
+    QDrag,
     QPixmap,
-    QIcon,
     QPainter)
 
 class DragTargetIndicator(QLabel):
@@ -36,7 +34,7 @@ class DraggableTab(QWidget):
 
     def __init__(self, name, identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
         self.identifier = identifier
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
@@ -78,7 +76,7 @@ class DraggableTab(QWidget):
     def mouseMoveEvent(self, event):
         if self.identifier == 'StartSetup':
             return
-        
+
         if event.buttons() == Qt.LeftButton:
             drag = QDrag(self)
             mime = QMimeData()
@@ -89,7 +87,11 @@ class DraggableTab(QWidget):
             pixmap.fill(Qt.transparent)  # Set the background to transparent
 
             painter = QPainter(pixmap)
-            self.label.render(painter, QPoint(), self.label.rect(), QWidget.RenderFlag.DrawWindowBackground | QWidget.RenderFlag.DrawChildren)
+            self.label.render(painter,
+                              QPoint(),
+                              self.label.rect(),
+                              QWidget.RenderFlag.DrawWindowBackground |
+                              QWidget.RenderFlag.DrawChildren)
             painter.end()
             drag.setPixmap(pixmap)
             drag.setHotSpot(event.pos() - self.label.pos())
@@ -121,7 +123,7 @@ class TabView(QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.controls_layout = QHBoxLayout(self)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -167,12 +169,12 @@ class TabView(QWidget):
         # insert at position n-1 to preserve the position of the Add Tab button
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, tab_button)
         return tab_button
-    
+
     def add_trace_tab_to_view(self, name: str, tab_id: str):
         self.add_tab_to_view(name, tab_id)
         # switch to the newly created tab
         self.set_selected_tab(tab_id)
-    
+
     def add_start_setup_tab_to_view(self):
         start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup")
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
@@ -207,7 +209,7 @@ class TabView(QWidget):
                                             background-color: transparent;
                                             border: 1px solid gray;
                                             border-radius: 4px;""")
-    
+
     def get_tab_buttons(self) -> List[DraggableTab]:
         """Returns a list of draggable tab widgets"""
         ret = []

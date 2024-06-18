@@ -1,15 +1,11 @@
 
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QVBoxLayout, 
-    QLabel, 
-    QLineEdit, 
-    QPushButton, 
-    QGridLayout,
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
     QListWidget,
-    QComboBox,
-    QCheckBox
 )
 
 class AddRemoveList(QWidget):
@@ -32,10 +28,10 @@ class AddRemoveList(QWidget):
         self.layout.addWidget(self.inner_layout_widget)
         self.layout.addWidget(self.list)
 
-    # Direct access to self.list methods (QListWidget methods) 
+    # Direct access to self.list methods (QListWidget methods)
     def currentItem(self):
         return self.list.currentItem()
-    
+
     def clear(self):
         self.list.clear()
 

@@ -100,7 +100,6 @@ class HeatmapEditorController:
         self.view.advanced_options_layout_widget.setVisible(is_checked)
         self.model.current_tab.heatmap_model.advanced_settings_checked = is_checked
 
-    
     def handle_trace_selected_data_event(self, value: str):
         """Handle case when user changes the selected data for the trace holding this heatmap"""
         available_heatmap_columns = self.data_library_reference.get_data_from_shortname(value).get_columns()

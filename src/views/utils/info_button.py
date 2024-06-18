@@ -1,8 +1,11 @@
 from PySide6.QtWidgets import (
-    QVBoxLayout, QToolButton, QToolTip, QStyle, QWidget)
+    QVBoxLayout, 
+    QToolButton, 
+    QToolTip, 
+    QStyle, 
+    QWidget)
 from PySide6.QtGui import QCursor
 from PySide6.QtCore import Qt
-
 
 class InfoButton(QWidget):
     def __init__(self, main_window, msg, *args, **kwargs):

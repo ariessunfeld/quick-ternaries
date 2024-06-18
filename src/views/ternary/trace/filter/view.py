@@ -1,10 +1,13 @@
-"""Contains the FilterMainWidget(QWidget) view class, which encompasses the navigation panel, dynamic content area, and filter view area"""
+"""
+Contains the FilterMainWidget(QWidget) view class, which encompasses the navigation panel,
+dynamic content area, and filter view area
+"""
 
 from PySide6.QtWidgets import (
-    QWidget, 
-    QStackedWidget, 
-    QVBoxLayout, 
-    QHBoxLayout, 
+    QWidget,
+    QStackedWidget,
+    QVBoxLayout,
+    QHBoxLayout,
     QLabel
 )
 
@@ -46,6 +49,6 @@ class FilterPanelView(QWidget):
 
     def switch_to_filter_setup_view(self):
         self.dynamic_content_area.setCurrentWidget(self.filter_start_setup_view)
-    
+
     def switch_to_filter_editor_view(self):
         self.dynamic_content_area.setCurrentWidget(self.filter_editor_view)

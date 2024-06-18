@@ -35,17 +35,17 @@ class CustomApexSelectionModel:
         if col not in self.available_columns:
             self.available_columns.append(col)
             self.update_view()
-        
+
     def remove_available_column(self, col: str):
         if col in self.available_columns:
             self.available_columns.remove(col)
             self.update_view()
-    
+
     def add_top_apex_column(self, col: str):
         if col not in self.top_apex_selected_columns:
             self.top_apex_selected_columns.append(col)
             self.update_view()
-        
+
     def add_right_apex_column(self, col: str):
         if col not in self.right_apex_selected_columns:
             self.right_apex_selected_columns.append(col)
@@ -73,18 +73,18 @@ class CustomApexSelectionModel:
 
     def get_available_columns(self):
         return sorted(self.available_columns)
-    
+
     def get_top_apex_selected_columns(self):
         return sorted(self.top_apex_selected_columns)
-    
+
     def get_right_apex_selected_columns(self):
         return sorted(self.right_apex_selected_columns)
-    
+
     def get_left_apex_selected_columns(self):
         return sorted(self.left_apex_selected_columns)
-    
+
     def get_selected_column(self):
         return self.selected_column
-    
+
     def set_selected_column(self, col: str):
         self.selected_column = col

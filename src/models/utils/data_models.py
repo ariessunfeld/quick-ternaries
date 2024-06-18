@@ -1,6 +1,6 @@
 """Contains models representing data objects (files, libraries)"""
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from collections import defaultdict
 
 import pandas as pd
@@ -67,7 +67,7 @@ class DataLibrary:
             return self.data_library[key]
         else:
             return None
-        
+
     def get_shared_columns(self):
         """Returns set intersection of columns across all data files"""
         all_columns = [df.get_columns() for df in self.data_library.values()]
@@ -77,17 +77,20 @@ class DataLibrary:
         for cols_list in all_columns[1:]:
             intersection_set &= set(cols_list)
         return sorted(list(intersection_set))
-        
+
     def get_all_filenames(self) -> List[str]:
-        """Returns minimally disambiguated list of filename/sheet strings for all files in library"""
+        """
+        Returns minimally disambiguated list of 
+        filename/sheet strings for all files in library
+        """
         # Step 1: Extract filenames and sheets
         name_sheet_list = [(df.name, df.sheet, df.filepath) for df in self.data_library.values()]
-        
+
         # Step 2: Identify duplicate filenames
         name_count = defaultdict(int)
         for name, _, _ in name_sheet_list:
             name_count[(name,)] += 1
-        
+
         # Step 3: Identify minimal disambiguating paths
         def find_minimal_prefix(paths: List[Path]) -> List[str]:
             all_parts = [path.parts[:-1] for path in paths]  # Exclude the filename part
@@ -147,11 +150,11 @@ class DataLibrary:
                 if sheet is not None:
                     to_append += f" | {sheet}"
                 result.append((to_append, sheet, path))
-        
+
         # Update the disambiguation list
         self.disambiguation_list = result
         return result
-    
+
     def get_data_from_shortname(self, shortname: str) -> DataFile|None:
         """Returns the DataFile associated with the shortname, or None"""
         for entry in self.disambiguation_list:
@@ -159,7 +162,7 @@ class DataLibrary:
             if name == shortname:
                 return self.get_data(path, sheet)
         return None
-    
+
     def list_all_datafiles(self):
         return list(self.data_library.values())
 

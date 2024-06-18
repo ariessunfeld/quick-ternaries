@@ -9,23 +9,15 @@ from src.views.ternary.trace.filter.view import FilterPanelView
 
 from PySide6.QtWidgets import (
     QWidget,
-    QLabel,
     QVBoxLayout,
-    QHBoxLayout,
-    QComboBox,
-    QSpinBox,
-    QColorDialog,
-    QPushButton,
-    QCheckBox,
     QApplication,
     QScrollArea
 )
-from PySide6.QtCore import Qt
 from src.views.utils import (
-    LeftLabeledLineEdit, 
-    LeftLabeledCheckbox, 
-    LeftLabeledComboBox, 
-    LeftLabeledSpinBox, 
+    LeftLabeledLineEdit,
+    LeftLabeledCheckbox,
+    LeftLabeledComboBox,
+    LeftLabeledSpinBox,
     LeftLabeledColorPicker
 )
 

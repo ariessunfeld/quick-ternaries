@@ -25,21 +25,21 @@ class TernaryType:
 
     def get_name(self):
         return self.name
-    
+
     def get_top(self):
         return self.top
 
     def get_right(self):
         return self.right
-        
+
     def get_left(self):
         return self.left
-    
+
     def add_to_top(self, col: str):
         """Adds a column (str) to the top apex"""
         if col not in self.top:
             self.top.append(col)
-    
+
     def add_to_right(self, col: str):
         """Adds a column (str) to the right apex"""
         if col not in self.right:
@@ -51,7 +51,8 @@ class TernaryType:
             self.left.append(col)
 
     def get_short_formatted_name(self):
-        """Return space-separated string with first character of each part of each apex
+        """
+        Return space-separated string with first character of each part of each apex
         
         Example: self.top = ['Al2O3', 'SiO2']; self.left = ['Cao', 'Na2O', 'K2O']; self.right = ['FeOT']
             returns: 'AS CNK F'
@@ -59,7 +60,7 @@ class TernaryType:
         return "".join(s[0] if s else '' for s in self.top) + " " + \
             "".join(s[0] if s else '' for s in self.left) + " " + \
             "".join(s[0] if s else '' for s in self.right)
-    
+
     def get_combobox_formatted_name(self):
         return "+".join(s[0] if s else '' for s in self.top) + "  " + \
             "+".join(s[0] if s else '' for s in self.left) + "  " + \
@@ -83,7 +84,7 @@ class TernaryStartSetupModel:
             HeaderRowSelectionModel([])
         self.sheet_selection_model: SheetSelectionModel = \
             SheetSelectionModel([''])
-        
+
         self.title: str = 'Untitled'
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
@@ -108,7 +109,7 @@ class TernaryStartSetupModel:
 
     def get_ternary_type(self) -> TernaryType:
         return self.selected_ternary_type
-    
+
     def set_selected_ternary_type(self, ttype: TernaryType):
         self.selected_ternary_type = ttype
 
@@ -117,7 +118,7 @@ class TernaryStartSetupModel:
 
     def get_title(self) -> str:
         return self.title
-    
+
     def set_top_apex_display_name(self, top_name: str):
         self.top_apex_display_name = top_name
 
@@ -129,9 +130,9 @@ class TernaryStartSetupModel:
 
     def get_top_apex_display_name(self):
         return self.top_apex_display_name
-    
+
     def get_right_apex_display_name(self):
         return self.right_apex_display_name
-    
+
     def get_left_apex_display_name(self):
         return self.left_apex_display_name

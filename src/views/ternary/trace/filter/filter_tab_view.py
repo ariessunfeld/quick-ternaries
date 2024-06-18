@@ -7,21 +7,11 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QScrollArea,
-    QStackedWidget,
-    QMessageBox,
-    QStyle,
-    QToolButton,
-    QToolTip
 )
 from PySide6.QtCore import (
     Qt,
     QSize,
     Signal,
-)
-from PySide6.QtGui import (
-    QPixmap,
-    QPainter,
-    QCursor,
 )
 
 
@@ -147,7 +137,7 @@ class FilterTabView(QWidget):
     def clear(self):
         for i in range(self.tab_layout.count() - 1, -1, -1):
             tab_widget = self.tab_layout.itemAt(i).widget()
-            if tab_widget is not None and isinstance(tab_widget, FilterTab) and tab_widget.identifier != 'StartSetup':
+            if (tab_widget is not None) and isinstance(tab_widget, FilterTab) and (tab_widget.identifier != 'StartSetup'):
                 self.tab_layout.removeWidget(tab_widget)
                 tab_widget.deleteLater()
 

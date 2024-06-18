@@ -2,7 +2,6 @@
 
 from typing import List
 
-from src.views.utils.add_remove_list import AddRemoveList
 from src.views.utils.left_labeled_checkbox import LeftLabeledCheckbox
 from src.views.utils.left_labeled_line_edit import LeftLabeledLineEdit
 from src.views.ternary.setup import CustomApexSelectionView
@@ -10,15 +9,10 @@ from src.views.ternary.setup import CustomHoverDataSelectionView
 from src.views.ternary.setup import LoadedDataScrollView
 
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QVBoxLayout, 
-    QLabel, 
-    QLineEdit, 
-    QPushButton, 
-    QListWidget,
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
     QComboBox,
-    QCheckBox,
     QScrollArea
 )
 
@@ -47,13 +41,13 @@ class TernaryStartSetupView(QWidget):
         # Combobox to select ternary type
         self.combobox_ternary_type: QComboBox = QComboBox()
 
-        # Menu with columns for each apex, only displayed if 
+        # Menu with columns for each apex, only displayed if
         # combobox choice is "Custom"
         self.custom_apex_selection_view = CustomApexSelectionView()
         # Hide the CustomApexSelectionView at first
         self.custom_apex_selection_view.setVisible(False)
 
-        # Line-edits for title, top apex name, left apex name, 
+        # Line-edits for title, top apex name, left apex name,
         # right apex name
         self.labeled_line_edit_ternary_title = \
             LeftLabeledLineEdit('Title:')
@@ -67,13 +61,13 @@ class TernaryStartSetupView(QWidget):
         # Checkbox for whether to customize the hover-over metadata
         self.labeled_checkbox_customize_hover_data = \
             LeftLabeledCheckbox('Customize Cursor-Hover Data:')
-        
-        # Menu for picking columns from available data for 
+
+        # Menu for picking columns from available data for
         # displaying as metadata
         self.custom_hover_data_selection_view = \
             CustomHoverDataSelectionView()
         # Hide the CustomApexSelectionView at first
-        self.custom_hover_data_selection_view.setVisible(False) 
+        self.custom_hover_data_selection_view.setVisible(False)
 
         # Add widgets to the content layout
         self.content_layout.addWidget(self.loaded_data_scroll_view)

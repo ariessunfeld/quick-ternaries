@@ -9,7 +9,7 @@ from src.models.ternary.trace.filter.tab_model import FilterTabModel
 class TernaryTraceEditorModel:
 
     def __init__(
-            self, 
+            self,
             available_data_file_names: Optional[List[str]] = None,
             selected_data_file_name: Optional[str] = None,
             available_data_files: Optional[List[DataFile]] = None,
@@ -26,7 +26,7 @@ class TernaryTraceEditorModel:
             heatmap_model: Optional[HeatmapModel] = None,
             filter_model: Optional[FilterModel] = None,
             filter_tab_model: Optional[FilterTabModel] = None):
-        
+
         # Direct access
         if heatmap_model is None:
             self.heatmap_model = HeatmapModel()
@@ -53,7 +53,7 @@ class TernaryTraceEditorModel:
     @property
     def available_data_file_names(self) -> Optional[List[str]]:
         return self._available_data_file_names
-    
+
     @available_data_file_names.setter
     def available_data_file_names(self, value: Optional[List[str]]):
         self._available_data_file_names = value
@@ -61,11 +61,11 @@ class TernaryTraceEditorModel:
     @property
     def selected_data_file_name(self) -> Optional[str]:
         return self._selected_data_file_name
-    
+
     @selected_data_file_name.setter
     def selected_data_file_name(self, value: Optional[str]):
         self._selected_data_file_name = value
-        
+
     @property
     def available_data_files(self) -> Optional[List[DataFile]]:
         return self._available_data_files

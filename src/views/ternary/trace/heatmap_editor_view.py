@@ -6,7 +6,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout
 )
 from PySide6.QtCore import Qt
-from src.views.utils import LeftLabeledLineEdit, LeftLabeledComboBox, InfoButton, LeftLabeledCheckbox
+from src.views.utils import (
+    LeftLabeledLineEdit, 
+    LeftLabeledComboBox, 
+    InfoButton, 
+    LeftLabeledCheckbox
+)
 from src.services.utils.sequential_color_scales import SEQUENTIAL_COLOR_SCALE_NAMES
 
 class TernaryHeatmapEditorView(QWidget):
@@ -19,10 +24,10 @@ class TernaryHeatmapEditorView(QWidget):
         self.container_widget.setObjectName("containerWidget")  # Set an object name
         self.container_layout = QVBoxLayout()
         self.container_widget.setLayout(self.container_layout)
-        
+
         # add a border to the container widget
         self.container_widget.setStyleSheet("#containerWidget { border: 1px solid #1c1c1c; }")
-        
+
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.container_widget)
 
@@ -32,10 +37,10 @@ class TernaryHeatmapEditorView(QWidget):
 
         # Range Min and Max LineEdits with an InfoButton
         self.range_layout = QHBoxLayout()
-        
+
         self.range_min_line_edit = LeftLabeledLineEdit('Range min:')
         self.range_layout.addWidget(self.range_min_line_edit)
-        
+
         self.range_max_line_edit = LeftLabeledLineEdit('Range max:')
         self.range_layout.addWidget(self.range_max_line_edit)
 
@@ -48,13 +53,13 @@ class TernaryHeatmapEditorView(QWidget):
         )
         self.info_button = InfoButton(self, tooltip_text)
         self.range_layout.addWidget(self.info_button, alignment=Qt.AlignRight)
-        
+
         # Add the range layout to the view
         self.container_layout.addLayout(self.range_layout)
 
         # Create the Advanced... checkbox
         self.show_advanced_checkbox = LeftLabeledCheckbox('Advanced...')
-        
+
         # Add to the main layout
         self.container_layout.addWidget(self.show_advanced_checkbox)
 
@@ -98,12 +103,13 @@ class TernaryHeatmapEditorView(QWidget):
             "y = 0.5 will center the colorbar with respect to the plot height."
         )
         self.position_dimensions_infobutton = InfoButton(self, position_dimensions_tooltip_text)
-        
+
         # Add position/dimensions fields to their layout
         self.position_dimensions_layout.addWidget(self.len_line_edit)
         self.position_dimensions_layout.addWidget(self.x_line_edit)
         self.position_dimensions_layout.addWidget(self.y_line_edit)
-        self.position_dimensions_layout.addWidget(self.position_dimensions_infobutton, alignment=Qt.AlignRight)
+        self.position_dimensions_layout.addWidget(self.position_dimensions_infobutton,
+                                                  alignment=Qt.AlignRight)
 
         self.advanced_options_layout.addLayout(self.position_dimensions_layout)
 

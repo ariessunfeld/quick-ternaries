@@ -2,7 +2,7 @@
 from typing import List, Optional
 
 class HeatmapModel:
-    
+
     def __init__(
             self,
             available_columns: Optional[List[str]] = None,
@@ -21,7 +21,7 @@ class HeatmapModel:
             colorbar_title_font_size: float = 12.0,
             colorbar_tick_font_size: float = 12.0,
             colorbar_orientation: str = 'vertical'):
-        
+
         self._available_columns = available_columns
         self._selected_column = selected_column
         self._range_min = range_min
@@ -74,7 +74,7 @@ class HeatmapModel:
     @property
     def advanced_settings_checked(self) -> bool:
         return self._advanced_settings_checked
-    
+
     @advanced_settings_checked.setter
     def advanced_settings_checked(self, value: bool):
         self._advanced_settings_checked = value

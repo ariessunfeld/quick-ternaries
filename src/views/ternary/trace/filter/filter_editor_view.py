@@ -8,11 +8,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QListWidget,
-    QLabel,
-    QSpacerItem,
-    QSizePolicy
+    QLabel
 )
-from src.views.utils import LeftLabeledLineEdit, LeftLabeledComboBox, AddRemoveList
+from src.views.utils import (
+    LeftLabeledLineEdit, 
+    LeftLabeledComboBox, 
+    AddRemoveList)
 
 class FilterEditorView(QWidget):
     def __init__(self, parent: QWidget | None = None):

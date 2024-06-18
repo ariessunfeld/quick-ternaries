@@ -39,7 +39,7 @@ class TraceTabsPanelModel:
     def get_all_traces(self) -> Dict[str, TernaryTraceEditorModel]:
         """Returns all traces"""
         return {id: self.traces[id] for id in self.order}
-    
+
     def set_current_tab(self, tab_id: str):
         """Points self.current_tab to traces[tab_id]"""
         self.current_tab = self.traces.get(tab_id)

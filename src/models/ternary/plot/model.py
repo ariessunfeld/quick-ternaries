@@ -4,4 +4,3 @@ class TernaryRenderPlotModel:
 
     def set_html_path(self, path: str):
         self.html_path = path
-

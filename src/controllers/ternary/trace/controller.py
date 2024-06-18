@@ -9,8 +9,8 @@ from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.utils.data_models import DataLibrary
 
 # Instantiations
-from src.controllers.ternary.trace.filter.controller import FilterEditorController
-from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
+# from src.controllers.ternary.trace.filter.controller import FilterEditorController
+# from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
 
 class TernaryTraceEditorController(QObject):
 

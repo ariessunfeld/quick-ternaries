@@ -4,13 +4,12 @@ from typing import Optional
 from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QMessageBox
 from src.views.ternary.trace.filter.filter_tab_view import FilterTabView
-from src.models.ternary.trace.filter.tab_model import FilterTabModel
 from src.models.ternary.trace.filter.model import FilterModel
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 
 class FilterTabController(QObject):
-    
+
     change_filter_tab_signal = Signal(FilterModel)
     change_to_filter_setup_signal = Signal()
 

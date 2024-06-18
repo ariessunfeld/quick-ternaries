@@ -4,8 +4,8 @@ from src.views.ternary.setup import  CustomHoverDataSelectionView
 
 class CustomHoverDataSelectionController:
     def __init__(
-            self, 
-            model: CustomHoverDataSelectionModel, 
+            self,
+            model: CustomHoverDataSelectionModel,
             view: CustomHoverDataSelectionView):
         """Initialize the Custom Hover Data Selection controller"""
         self.model = model

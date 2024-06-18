@@ -30,7 +30,7 @@ class TernaryStartSetupController(QWidget):
     'Remove one or more loaded data files to increase the number of shared column names.'
 
     def __init__(self, model: TernaryStartSetupModel, view: TernaryStartSetupView):
-        
+
         super().__init__()
 
         # models and views are instantiated outside this class
@@ -64,7 +64,7 @@ class TernaryStartSetupController(QWidget):
         self.custom_apex_selection_controller = CustomApexSelectionController(
             self.model.custom_apex_selection_model, 
             self.view.custom_apex_selection_view)
-        
+
         # Set up custom hover data selection connections
         self.custom_hover_data_selection_controller = CustomHoverDataSelectionController(
             self.model.custom_hover_data_selection_model,
@@ -76,7 +76,7 @@ class TernaryStartSetupController(QWidget):
 
         Connected to self.view.button_add_data.clicked
         """
-        filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
+        filepath, _ = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         if filepath:
             sheet = self.get_sheet(filepath)  # ask user to pick sheet
             header = self.get_header(filepath, sheet)  # ask user to pick header row
@@ -168,7 +168,7 @@ class TernaryStartSetupController(QWidget):
         column_info_display = [  # Format the column/row pairs for display
             f'Row {k+1} | Columns: {", ".join(str(c) for c in v)}' for k, v in sorted(column_info.items())]
         chosen_header, _ = QInputDialog.getItem(  # Ask the user to pick a row
-            self, "Select Header Row", 
+            self, "Select Header Row",
             f"Choose a header row from {Path(filepath).name}", 
             column_info_display, suggested_header, False)
         return parse_header_val_from_choice(chosen_header)

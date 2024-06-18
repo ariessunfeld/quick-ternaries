@@ -1,6 +1,6 @@
 """Controller for the Tab (trace scroll area) sections"""
 
-from typing import List, Dict, Optional
+from typing import Optional
 
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.views.ternary.trace.trace_scroll_area import TabView
@@ -8,11 +8,11 @@ from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 
-from PySide6.QtWidgets import QWidget, QMessageBox
+from PySide6.QtWidgets import QMessageBox
 from PySide6.QtCore import Signal, QObject
 
 class TabController(QObject):
-    
+
     change_tab_signal = Signal(TernaryTraceEditorModel)
     change_to_start_setup_signal = Signal()
 
