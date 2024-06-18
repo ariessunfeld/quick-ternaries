@@ -103,10 +103,16 @@ class HeatmapEditorController:
     
     def handle_trace_selected_data_event(self, value: str):
         """Handle case when user changes the selected data for the trace holding this heatmap"""
-        available_heatmap_columns = self.data_library_reference.get_data_from_shortname(value).get_columns()
-        self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
-        #self.model.current_tab.heatmap_model.selected_column = available_heatmap_columns[0]
-        self.view.heatmap_column_combobox.clear()
-        self.view.heatmap_column_combobox.addItems(available_heatmap_columns)
-        if self.model.current_tab.heatmap_model.selected_column is not None:
-            self.view.heatmap_column_combobox.setCurrentText(self.model.current_tab.heatmap_model.selected_column)
+        # Get the data file from the data library based on the new name
+        data_file = self.data_library_reference.get_data_from_shortname(value)
+        if data_file:
+            # Get the columns from the new data file
+            available_heatmap_columns = data_file.get_columns()
+            # Update the heatmap model's available columns
+            self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
+            # Clear the view and update it with these columns
+            self.view.heatmap_column_combobox.clear()
+            self.view.heatmap_column_combobox.addItems(available_heatmap_columns)
+            if self.model.current_tab.heatmap_model.selected_column is not None:
+                # Set the selected column if non-None
+                self.view.heatmap_column_combobox.setCurrentText(self.model.current_tab.heatmap_model.selected_column)

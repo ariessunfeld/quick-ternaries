@@ -8,10 +8,6 @@ from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.utils.data_models import DataLibrary
 
-# Instantiations
-from src.controllers.ternary.trace.filter.controller import FilterEditorController
-from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
-
 class TernaryTraceEditorController(QObject):
 
     """
@@ -34,7 +30,6 @@ class TernaryTraceEditorController(QObject):
         self.data_library_reference = None
 
         self.setup_connections()
-        #self.setup_child_controllers()
 
     def set_data_library_reference(self, ref: DataLibrary):
         # Ideally read-only access to data library
@@ -50,8 +45,6 @@ class TernaryTraceEditorController(QObject):
         self.view.use_heatmap_checkbox.stateChanged.connect(self._heatmap_checkbox_statechanged_event)
         self.view.use_filter_checkbox.stateChanged.connect(self._filter_checkbox_statechanged_event)
 
-        #self.view.select_data.valueChanged.connect(self.select_data_value_changed)
-
     def change_tab(self, trace_model: TernaryTraceEditorModel):
         # Take the values from the trace model and populate the view accordingly
         self.view.select_data.clear()
@@ -65,22 +58,13 @@ class TernaryTraceEditorController(QObject):
         self.view.use_heatmap_checkbox.setChecked(trace_model.add_heatmap_checked)
         self.view.use_filter_checkbox.setChecked(trace_model.filter_data_checked)
 
-        # Instantiate new filter controllers each time we change a tab
-        # self.view.filter_view.filter_tab_view.clear()
-        # for f in trace_model.filter_tab_model.order:
-        #     self.view.filter_view.filter_tab_view.add_tab_to_view(f'Filter {f}', f)
-        #self.filter_tab_controller = FilterTabController(trace_model.filter_tab_model, self.view.filter_view.filter_tab_view)
-        #self.filter_editor_controller = FilterEditorController(trace_model.filter_tab_model, self.view.filter_view.filter_editor_view)
-
     def _selected_data_event(self, value: str):
         # Set the model's selected data file name to this value
         self.model.current_tab.selected_data_file_name = value
+        self.model.current_tab.selected_data_file = self.data_library_reference.get_data_from_shortname(value)
 
-        # Update the model's heatmap_model's available columns
+        # Emit the signal so the heatmap and filter(s) can be updated
         self.selected_data_event.emit(value)
-        # available_heatmap_columns = self.data_library_reference.get_data_from_shortname(value).get_columns()
-        # self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
-        # self.model.current_tab.heatmap_model.selected_column = available_heatmap_columns[0]
 
     def _name_changed_event(self, value: str):
         self.model.current_tab.legend_name = value

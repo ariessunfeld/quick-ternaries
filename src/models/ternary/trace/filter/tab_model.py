@@ -5,7 +5,7 @@ This model contains the filter editor models for individual filters
 from typing import Dict, List, Optional
 from src.models.ternary.trace.filter.model import FilterModel
 
-class FilterTabModel:
+class FilterTabsPanelModel:
     def __init__(self):
         self.filters: Dict[str, FilterModel] = {}
         self.order: List[str] = []
@@ -45,7 +45,5 @@ class FilterTabModel:
         self.current_tab = self.filters.get(tab_id)
 
     def __str__(self) -> str:
-        return f"""filters: {self.filters},
-order: {self.order},
-tab_counter: {self.tab_counter}
-"""
+        filters_str = {k: str(v) for k, v in self.filters.items()}
+        return f"filters: {filters_str},\norder: {self.order},\ntab_counter: {self.tab_counter}"

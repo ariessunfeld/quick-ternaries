@@ -216,5 +216,3 @@ class TernaryStartSetupController(QWidget):
         is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
         self.model.custom_hover_data_is_checked = is_checked
         self.view.update_custom_hover_data_selection_view_visibility(is_checked)
-
-
