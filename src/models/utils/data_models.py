@@ -68,6 +68,16 @@ class DataLibrary:
         else:
             return None
         
+    def get_shared_columns(self):
+        """Returns set intersection of columns across all data files"""
+        all_columns = [df.get_columns() for df in self.data_library.values()]
+        if not all_columns:
+            return []
+        intersection_set = set(all_columns[0])
+        for cols_list in all_columns[1:]:
+            intersection_set &= set(cols_list)
+        return sorted(list(intersection_set))
+        
     def get_all_filenames(self) -> List[str]:
         """Returns minimally disambiguated list of filename/sheet strings for all files in library"""
         # Step 1: Extract filenames and sheets

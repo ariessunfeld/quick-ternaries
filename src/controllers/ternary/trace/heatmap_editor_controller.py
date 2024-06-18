@@ -1,11 +1,14 @@
 from src.models.ternary.trace.heatmap_model import HeatmapModel
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
+from src.models.utils.data_models import DataLibrary
 
 class HeatmapEditorController:
     def __init__(self, model: TraceTabsPanelModel, view: TernaryHeatmapEditorView):
         self.model = model
         self.view = view
+
+        self.data_library_reference = None
 
         self.setup_connections()
 
@@ -27,7 +30,12 @@ class HeatmapEditorController:
         self.view.colorbar_tick_font_size_line_edit.textChanged.connect(self._on_tick_font_size_changed)
         self.view.colorbar_orientation_combobox.valueChanged.connect(self._on_orientation_changed)
 
+    def set_data_library_reference(self, ref: DataLibrary):
+        self.data_library_reference = ref
+
     def change_trace_tab(self, heatmap_model: HeatmapModel):
+        self.view.heatmap_column_combobox.clear()
+        self.view.heatmap_column_combobox.addItems(heatmap_model.available_columns)
         self.view.heatmap_column_combobox.setCurrentText(heatmap_model.selected_column)
         self.view.range_min_line_edit.setText(heatmap_model.range_min)
         self.view.range_max_line_edit.setText(heatmap_model.range_max)
@@ -91,3 +99,14 @@ class HeatmapEditorController:
         is_checked = self.view.show_advanced_checkbox.isChecked()
         self.view.advanced_options_layout_widget.setVisible(is_checked)
         self.model.current_tab.heatmap_model.advanced_settings_checked = is_checked
+
+    
+    def handle_trace_selected_data_event(self, value: str):
+        """Handle case when user changes the selected data for the trace holding this heatmap"""
+        available_heatmap_columns = self.data_library_reference.get_data_from_shortname(value).get_columns()
+        self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
+        #self.model.current_tab.heatmap_model.selected_column = available_heatmap_columns[0]
+        self.view.heatmap_column_combobox.clear()
+        self.view.heatmap_column_combobox.addItems(available_heatmap_columns)
+        if self.model.current_tab.heatmap_model.selected_column is not None:
+            self.view.heatmap_column_combobox.setCurrentText(self.model.current_tab.heatmap_model.selected_column)

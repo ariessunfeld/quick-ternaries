@@ -11,7 +11,7 @@ User --> View --> Controller --> Model --> View
 from pathlib import Path
 import pandas as pd
 
-from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget, QMessageBox
 
 from src.models.ternary.setup.model import TernaryStartSetupModel
 from src.views.ternary.setup.view import TernaryStartSetupView
@@ -24,6 +24,11 @@ from src.utils.ternary_types import TERNARY_TYPES
 
 
 class TernaryStartSetupController(QWidget):
+
+    NO_SHARED_COLUMNS_WARNING = 'Warning: there are no shared column names across all currently loaded data.\n\n' +\
+    'Custom apex selection and custom hover data selection will not work.\n\n' +\
+    'Remove one or more loaded data files to increase the number of shared column names.'
+
     def __init__(self, model: TernaryStartSetupModel, view: TernaryStartSetupView):
         
         super().__init__()
@@ -73,22 +78,38 @@ class TernaryStartSetupController(QWidget):
         """
         filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         if filepath:
-            sheet = self.get_sheet(filepath)
-            header = self.get_header(filepath, sheet)
-            self.model.data_library.add_data(filepath, sheet, header)
-            loaded_data = self.model.data_library.get_all_filenames()
-            self.view.loaded_data_scroll_view.clear()
+            sheet = self.get_sheet(filepath)  # ask user to pick sheet
+            header = self.get_header(filepath, sheet)  # ask user to pick header row
+            self.model.data_library.add_data(filepath, sheet, header)  # add data to library
+            loaded_data = self.model.data_library.get_all_filenames()  # get all loaded data
+            self.view.loaded_data_scroll_view.clear()  # clear the loaded data view
+            for _shortname, _sheet, _path in loaded_data:  # repopulate with disambiguated names
+                list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
+                close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            shared_columns = self.model.data_library.get_shared_columns()
+            self.custom_apex_selection_controller.update_columns(shared_columns)
+            self.custom_hover_data_selection_controller.update_columns(shared_columns)
+            if not shared_columns:
+                QMessageBox.warning(
+                    self.view, 
+                    'No shared columns', 
+                    self.NO_SHARED_COLUMNS_WARNING)
+
+    def remove_data(self, item, filepath, sheet):
+        if QMessageBox.question(
+            self.view, 
+            'Confirm Delete', 
+            "Do you really want to remove this data?") \
+        == QMessageBox.Yes:
+            self.model.data_library.remove_data(filepath, sheet)  # remove data from library
+            self.view.loaded_data_scroll_view.clear()  # clear loaded data view
+            loaded_data = self.model.data_library.get_all_filenames()  # repopulate from library
             for _shortname, _sheet, _path in loaded_data:
                 list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
                 close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
-
-    def remove_data(self, item, filepath, sheet):
-        self.model.data_library.remove_data(filepath, sheet)
-        self.view.loaded_data_scroll_view.clear()
-        loaded_data = self.model.data_library.get_all_filenames()
-        for _shortname, _sheet, _path in loaded_data:
-            list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-            close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            shared_columns = self.model.data_library.get_shared_columns()  # update custom apex selection and hoverdata
+            self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
+            self.custom_hover_data_selection_controller.update_columns(shared_columns)
 
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""
@@ -99,7 +120,11 @@ class TernaryStartSetupController(QWidget):
             xlsx_file = pd.ExcelFile(filepath)
             sheet_names = xlsx_file.sheet_names
             if len(sheet_names) > 1:
-                chosen_sheet, _ = QInputDialog.getItem(self, "Select Excel Sheet", f"Choose a sheet from {Path(filepath).name}", sheet_names, 0, False)
+                chosen_sheet, _ = QInputDialog.getItem(
+                    self, 
+                    "Select Excel Sheet", 
+                    f"Choose a sheet from {Path(filepath).name}", 
+                    sheet_names, 0, False)
                 return chosen_sheet
             else:
                 return sheet_names[0]

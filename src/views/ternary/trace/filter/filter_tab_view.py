@@ -118,6 +118,10 @@ class FilterTabView(QWidget):
         self.controls_layout.addWidget(self.scroll_area)
         self.setLayout(self.controls_layout)
 
+        # # initialize the view with just a start setup tab
+        # self.add_start_setup_tab_to_view()
+        # self.set_selected_tab('StartSetup')
+
     def add_tab_to_view(self, name: str, identifier: str):
         tab_button = FilterTab(name, identifier)
         tab_button.tab_clicked.connect(self.tab_changed.emit)
@@ -125,6 +129,12 @@ class FilterTabView(QWidget):
         # insert at position n-1 to preserve the position of the Add Filter button
         self.tab_layout.insertWidget(self.tab_layout.count() - 1, tab_button)
         return tab_button
+
+    # def add_start_setup_tab_to_view(self):
+    #     start_setup_tab = FilterTab("Filter Setup", "StartSetup", hide_close_button=True)
+    #     start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
+    #     self.tab_layout.insertWidget(0, start_setup_tab)
+    #     return start_setup_tab
 
     def remove_tab_from_view(self, tab_id: str):
         for i in range(self.tab_layout.count()):

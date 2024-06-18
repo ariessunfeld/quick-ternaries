@@ -27,7 +27,7 @@ class ListItemWidget(QWidget):
 
     def set_title(self, title):
         label = QLabel(title)
-        label.setToolTip(f"File: {self.full_path}")  # Set the tooltip for the label
+        label.setToolTip(f"File: {self.full_path}")
         self.layout.addWidget(label)
 
     def create_close_button(self):
@@ -41,6 +41,11 @@ class ListItemWidget(QWidget):
     #     self.info_button.setMaximumWidth(20)
     #     self.info_button.clicked.connect(self.show_full_path)
     #     self.layout.addWidget(self.info_button)
+    # def create_info_button(self):
+    #     self.info_button = QPushButton("?")
+    #     self.info_button.setMaximumWidth(20)
+    #     self.info_button.clicked.connect(self.show_full_path)
+    #     self.layout.addWidget(self.info_button)
 
-    def show_full_path(self):
-        QToolTip.showText(self.info_button.mapToGlobal(self.info_button.rect().bottomRight()), f"File: {str(self.full_path)}")
+    # def show_full_path(self):
+    #     QToolTip.showText(self.info_button.mapToGlobal(self.info_button.rect().bottomRight()), f"File: {str(self.full_path)}")

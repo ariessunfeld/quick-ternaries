@@ -28,6 +28,10 @@ class TernaryController:
             self.model.start_setup_model, self.view.ternary_start_setup_view)
         self.trace_controller = TernaryTraceEditorController(
             self.model.tab_model, self.view.ternary_trace_editor_view)
+        
+        # Give the trace editor controller access to the shared resource, data library
+        self.trace_controller.set_data_library_reference(self.model.start_setup_model.data_library)
+
         self.tab_controller = TabController(
             self.model.tab_model, self.view.tab_view)
         self.filter_editor_controller = FilterEditorController(
@@ -36,12 +40,17 @@ class TernaryController:
             self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
         self.heatmap_editor_controller = HeatmapEditorController(
             self.model.tab_model, self.view.ternary_trace_editor_view.heatmap_view)
+        
+        # Give the heatmap editor controller access to the shared resource, data library
+        self.heatmap_editor_controller.set_data_library_reference(self.model.start_setup_model.data_library)
 
         self.tab_controller.change_tab_signal.connect(self._change_trace_tab)
         self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
 
         self.filter_tab_controller.change_filter_tab_signal.connect(self._change_filter_tab)
         self.filter_tab_controller.change_to_filter_setup_signal.connect(self._change_filter_setup_tab)
+
+        self.trace_controller.selected_data_event.connect(self.heatmap_editor_controller.handle_trace_selected_data_event)
 
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
@@ -56,9 +65,21 @@ class TernaryController:
         trace_model.available_data_files = data_library.list_all_datafiles()
         trace_model.available_data_file_names = all_filenames
         
+        # Set the available filenames/files for the trace view
+        loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
+        loaded_files = [self.model.start_setup_model.data_library.get_data_from_shortname(f) for f in loaded_file_names]
+        prev_available_data_file_names = \
+            trace_model.available_data_file_names.copy() if trace_model.available_data_file_names is not None else None
+        trace_model.available_data_file_names = loaded_file_names
+        trace_model.available_data_files = loaded_files
+
         # Trace controller handles tab change using trace model
         # Clears current trace view fields, repopulates with information from trace model
         self.trace_controller.change_tab(trace_model)
+
+        # If there was no data and now there is, emit that the first is selected so the heatmap can update
+        if not prev_available_data_file_names and loaded_file_names:
+            self.trace_controller.selected_data_event.emit(loaded_file_names[0])
         
         # Call the change trace tab method of the filter editor controller
         self.filter_editor_controller.change_trace_tab(trace_model.filter_model)
