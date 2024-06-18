@@ -1,6 +1,11 @@
 """Contains the FilterEditorController class"""
 
+from typing import List
+
 from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QCompleter
+import numpy as np
+
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.views.ternary.trace.filter.filter_editor_view import FilterEditorView
@@ -22,11 +27,11 @@ class FilterEditorController(QObject):
         self.data_library_reference = ref
 
     def setup_connections(self):
-        self.view.filter_column_combobox.valueChanged.connect(self.on_column_changed)
-        self.view.filter_operation_combobox.combobox.currentIndexChanged.connect(self.on_operation_changed)
-        self.view.filter_value_line_edit.textChanged.connect(self.on_filter_value_changed)
-        self.view.filter_value_a_line_edit.textChanged.connect(self.on_filter_value_a_changed)
-        self.view.filter_value_b_line_edit.textChanged.connect(self.on_filter_value_b_changed)
+        self.view.filter_column_combobox.valueChanged.connect(self._on_column_changed)
+        self.view.filter_operation_combobox.combobox.currentIndexChanged.connect(self._on_operation_changed)
+        self.view.filter_value_line_edit.textChanged.connect(self._on_filter_value_changed)
+        self.view.filter_value_a_line_edit.textChanged.connect(self._on_filter_value_a_changed)
+        self.view.filter_value_b_line_edit.textChanged.connect(self._on_filter_value_b_changed)
 
     def change_trace_tab(self, filter_model: FilterModel):
         pass
@@ -34,7 +39,9 @@ class FilterEditorController(QObject):
     def change_filter_tab(self, filter_model: FilterModel):
         if filter_model is not None:
 
-            # Populate it accordingly
+            completer = QCompleter(filter_model.completer_list)
+
+            # Populate view accordingly
             self.view.filter_column_combobox.clear()
             self.view.filter_column_combobox.addItems(filter_model.available_columns)
             self.view.filter_column_combobox.setCurrentText(filter_model.selected_column)
@@ -44,62 +51,99 @@ class FilterEditorController(QObject):
             self.view.filter_value_line_edit.setText(filter_model.filter_values)
             self.view.filter_value_a_line_edit.setText(filter_model.filter_value_a)
             self.view.filter_value_b_line_edit.setText(filter_model.filter_value_b)
+            self.view.filter_value_line_edit.setCompleter(completer)
+            self.view.filter_value_a_line_edit.setCompleter(completer)
+            self.view.filter_value_b_line_edit.setCompleter(completer)
             if filter_model.available_one_of_filter_values:
+                self.view.available_values_list.clear()
                 self.view.available_values_list.addItems(filter_model.available_one_of_filter_values)
+            self.view.add_remove_list.clear()
             self.view.add_remove_list.addItems(filter_model.selected_one_of_filter_values)
 
             # Update visibility based on dropdowns and types
-            self.update_visibility()
+            self.update_widget_visibility()
         else:
             pass
 
-    def update_visibility(self):
+    def update_widget_visibility(self):
         is_range_operation = self.view.filter_operation_combobox.currentText() in FilterModel.NUMERICAL_RANGE
-        self.view.filter_value_line_edit.setVisible(not is_range_operation)
         self.view.filter_value_a_line_edit.setVisible(is_range_operation)
         self.view.filter_value_b_line_edit.setVisible(is_range_operation)
 
         is_one_of_operation = self.view.filter_operation_combobox.currentText() == 'One of'
         self.view.add_remove_layout_widget.setVisible(is_one_of_operation)
-        self.view.filter_value_line_edit.setVisible(not is_one_of_operation)
+        self.view.filter_value_line_edit.setVisible(not is_one_of_operation and not is_range_operation)
+
+    def update_available_operations(self, categorical=True):
+        if categorical:
+            self.model.current_tab.filter_tab_model.current_tab.available_filter_operations = FilterModel.CATEGORICAL_OPERATIONS
+        else:
+            self.model.current_tab.filter_tab_model.current_tab.available_filter_operations = FilterModel.NUMERICAL_OPERATIONS
+        self.update_view()
 
     def update_view(self):
         """Updates the current view to reflect model state"""
         current_filter_model = self.model.current_tab.filter_tab_model.current_tab
         self.change_filter_tab(current_filter_model)
 
-    def on_column_changed(self):
-        trace_model = self.model.current_tab
-        filter_tab_model = trace_model.filter_tab_model
-        current_filter_tab = filter_tab_model.current_tab
-        if current_filter_tab:
-            current_filter_tab.selected_column = self.view.filter_column_combobox.currentText()
+    #def update_q_completers(self, values: List[str]):
 
-    def on_operation_changed(self):
+    def _on_column_changed(self):
+        """Event handler for filter_column_combobox.valueChanged"""
+        trace_model = self.model.current_tab  # get current trace model
+        filter_tab_model = trace_model.filter_tab_model  # get current filter model
+        current_filter_tab = filter_tab_model.current_tab  # from trace model
+        if current_filter_tab:  # update the selected column attribute of the filter model
+            current_filter_tab.selected_column = self.view.filter_column_combobox.currentText()
+            if current_filter_tab.selected_column:
+                #  Get the datatype of this column
+                dtype = trace_model.selected_data_file.get_dtype(current_filter_tab.selected_column)
+                #  Update the available operations accordingly
+                if dtype == 'object':
+                    self.update_available_operations()
+                elif np.issubdtype(dtype, np.number):
+                    self.update_available_operations(False)
+                else:
+                    # TODO handle this case with more nuance
+                    self.update_available_operations(False)
+                # Update the add/remove list
+                unique_values = trace_model.selected_data_file.get_unique_values(current_filter_tab.selected_column)
+                current_filter_tab.available_one_of_filter_values = unique_values.copy()
+                current_filter_tab.selected_one_of_filter_values = []
+                current_filter_tab.completer_list = unique_values
+                self.update_view()
+
+    def _on_operation_changed(self):
         trace_model = self.model.current_tab
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
             current_filter_tab.selected_filter_operation = self.view.filter_operation_combobox.currentText()
-            self.update_visibility()
+            self.update_widget_visibility()
 
-    def on_filter_value_changed(self):
+    def _on_filter_value_changed(self):
         trace_model = self.model.current_tab
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
             current_filter_tab.filter_values = self.view.filter_value_line_edit.text()
 
-    def on_filter_value_a_changed(self):
+    def _on_filter_value_a_changed(self):
         trace_model = self.model.current_tab
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
             current_filter_tab.filter_value_a = self.view.filter_value_a_line_edit.text()
 
-    def on_filter_value_b_changed(self):
+    def _on_filter_value_b_changed(self):
         trace_model = self.model.current_tab
         filter_tab_model = trace_model.filter_tab_model
         current_filter_tab = filter_tab_model.current_tab
         if current_filter_tab:
             current_filter_tab.filter_value_b = self.view.filter_value_b_line_edit.text()
+
+    def _on_add_attr_button_clicked(self):
+        pass
+
+    def _on_rem_attr_button_clicked(self):
+        pass

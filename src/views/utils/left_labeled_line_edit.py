@@ -1,3 +1,4 @@
+from typing import List
 
 from PySide6.QtWidgets import (
     QWidget, 
@@ -48,6 +49,9 @@ class LeftLabeledLineEdit(QWidget):
     
     def setText(self, value: str):
         self.line_edit.setText(value)
+
+    def setCompleter(self, value: List[str]):
+        self.line_edit.setCompleter(value)
 
     def _emit_text_changed(self, value: str):
         self.textChanged.emit(value)

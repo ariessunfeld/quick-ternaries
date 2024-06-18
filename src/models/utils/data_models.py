@@ -43,6 +43,18 @@ class DataFile:
         if n == -1:
             return list(self.data.columns)
         return list(self.data.columns[:min(self.n_columns, n)])
+    
+    def get_dtype(self, column: str):
+        """Returns the dtype of the column"""
+        if column in self.get_columns():
+            return self.data[column].dtype
+        
+    def get_unique_values(self, column: str) -> List[str]:
+        """Returns a sorted list of the unique values in `column`
+        Sorting is done before converting to str, to preserve numerical order
+        """
+        if column in self.get_columns():
+            return [str(x) for x in sorted([v for v in self.data[column].dropna().unique()])]
 
 class DataLibrary:
     def __init__(self):

@@ -17,7 +17,8 @@ class FilterModel:
             selected_one_of_filter_values: Optional[List[str]] = None,
             filter_values: Optional[Union[str, float]] = None,
             filter_value_a: Optional[float] = None,
-            filter_value_b: Optional[float] = None):
+            filter_value_b: Optional[float] = None,
+            completer_list: Optional[List[str]] = None):
         
         self._available_columns = available_columns
         self._selected_column = selected_column
@@ -28,6 +29,7 @@ class FilterModel:
         self._filter_values = filter_values
         self._filter_value_a = filter_value_a
         self._filter_value_b = filter_value_b
+        self._completer_list = completer_list
 
     @property
     def available_columns(self) -> Optional[List[str]]:
@@ -100,6 +102,14 @@ class FilterModel:
     @filter_value_b.setter
     def filter_value_b(self, value: Optional[float]):
         self._filter_value_b = value
+
+    @property
+    def completer_list(self) -> Optional[List[str]]:
+        return self._completer_list
+    
+    @completer_list.setter
+    def completer_list(self, value: Optional[List[str]]):
+        self._completer_list = value
 
     def __str__(self) -> str:
         return str(self.__dict__)
