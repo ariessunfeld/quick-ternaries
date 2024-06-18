@@ -41,9 +41,10 @@ class CustomHoverDataSelectionController:
 
     def update_columns(self, new_columns: list[str]):
         # Set model's available columns to new_columns
-        self.model.set_available_attrs(new_columns)
-        current_selected_attrs = self.model.get_selected_attrs()
-        for col in current_selected_attrs:
+        self.model.available_attrs = []
+        for col in new_columns:
+            self.model.add_available_attr(col)
+        for col in self.model.get_selected_attrs():
             self.model.rem_available_attr(col)
             if col not in new_columns:
                 self.model.rem_selected_attr(col)
