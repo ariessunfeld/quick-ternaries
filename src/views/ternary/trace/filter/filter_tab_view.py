@@ -29,14 +29,12 @@ class FilterTab(QWidget):
     tab_clicked = Signal(str)
     tab_closed = Signal(str)
 
-    def __init__(self, name, identifier, *args, hide_close_button=False, **kwargs):
+    def __init__(self, name, identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.identifier = identifier
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
-
-        self.hide_close_button = hide_close_button
 
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
@@ -52,7 +50,7 @@ class FilterTab(QWidget):
         self.setCursor(Qt.PointingHandCursor)
 
     def setup_close_button(self):
-        close_button = QPushButton("✕" if not self.hide_close_button else '', self)
+        close_button = QPushButton("✕", self)
         close_button.setFixedSize(QSize(20, 20))
         close_button.setStyleSheet("""
             QPushButton {
@@ -66,8 +64,6 @@ class FilterTab(QWidget):
         """)
         close_button.clicked.connect(lambda: self.tab_closed.emit(self.identifier))
         self.tab_button_layout.addWidget(close_button)
-        if self.hide_close_button:
-            close_button.setVisible(True)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -101,7 +97,7 @@ class FilterTabView(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll_area.setStyleSheet("border: none; ")
+        self.scroll_area.setStyleSheet("border: none; background: transparent;")
         self.scroll_area.setMaximumWidth(150)
         self.scroll_area.setMinimumWidth(100)
 

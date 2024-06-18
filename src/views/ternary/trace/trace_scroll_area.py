@@ -34,15 +34,13 @@ class DraggableTab(QWidget):
     tab_clicked = Signal(str)
     tab_closed = Signal(str)
 
-    def __init__(self, name, identifier, *args, hide_close_button=False, **kwargs):
+    def __init__(self, name, identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
         self.identifier = identifier
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
 
-        self.hide_close_button = hide_close_button
-    
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
         self.label.setStyleSheet("background: transparent;")
@@ -57,9 +55,8 @@ class DraggableTab(QWidget):
         self.setCursor(Qt.PointingHandCursor)
 
     def setup_close_button(self):
-        close_button = QPushButton("✕" if not self.hide_close_button else '', self)
+        close_button = QPushButton("✕", self)
         close_button.setFixedSize(QSize(20, 20))
-        # close_button.setStyleSheet("border: none; background-color: transparent;")
         close_button.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -72,8 +69,6 @@ class DraggableTab(QWidget):
         """)
         close_button.clicked.connect(lambda: self.tab_closed.emit(self.identifier))
         self.tab_button_layout.addWidget(close_button)
-        if self.hide_close_button:
-            close_button.setVisible(True)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -135,7 +130,7 @@ class TabView(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll_area.setStyleSheet("border: none; ")
+        self.scroll_area.setStyleSheet("border: none; background: transparent")
         self.scroll_area.setMaximumWidth(150)
         self.scroll_area.setMinimumWidth(100)
 
@@ -179,7 +174,7 @@ class TabView(QWidget):
         self.set_selected_tab(tab_id)
     
     def add_start_setup_tab_to_view(self):
-        start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup", hide_close_button=True)
+        start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup")
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
         self.tab_layout.insertWidget(0, start_setup_tab)
         return start_setup_tab
