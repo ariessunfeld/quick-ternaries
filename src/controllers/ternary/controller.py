@@ -69,8 +69,12 @@ class TernaryController:
         # Set the available filenames/files for the trace view
         loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
         loaded_files = [self.model.start_setup_model.data_library.get_data_from_shortname(f) for f in loaded_file_names]
-        prev_available_data_file_names = \
-            trace_model.available_data_file_names.copy() if trace_model.available_data_file_names is not None else None
+        
+        if trace_model.available_data_file_names is not None:
+            prev_available_data_file_names = trace_model.available_data_file_names.copy()
+        else:
+            prev_available_data_file_names = None
+
         trace_model.available_data_file_names = loaded_file_names
         trace_model.available_data_files = loaded_files
 
