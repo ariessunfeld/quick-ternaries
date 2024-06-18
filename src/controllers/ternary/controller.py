@@ -103,7 +103,7 @@ class TernaryController:
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_editor_view()
 
         # If there is a filter model in this signal,
-        if filter_model:
+        if filter_model and self.model.tab_model.current_tab.selected_data_file:
 
             # Get the available columns from the model
             available_columns = self.model.tab_model.current_tab.selected_data_file.get_columns()

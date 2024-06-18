@@ -5,6 +5,9 @@ from PySide6.QtWidgets import (
     QPushButton,
     QToolTip
 )
+from PySide6.QtCore import (
+    Qt
+)
 
 class ListItemWidget(QWidget):
     def __init__(self, title, full_path, *args, **kwargs):
@@ -27,15 +30,7 @@ class ListItemWidget(QWidget):
         self.layout.addWidget(label)
 
     def create_close_button(self):
-        self.close_button = QPushButton("X")
+        self.close_button = QPushButton("✕")
+        self.close_button.setCursor(Qt.PointingHandCursor)
         self.close_button.setMaximumWidth(20)
         self.layout.addWidget(self.close_button)
-
-    # def create_info_button(self):
-    #     self.info_button = QPushButton("?")
-    #     self.info_button.setMaximumWidth(20)
-    #     self.info_button.clicked.connect(self.show_full_path)
-    #     self.layout.addWidget(self.info_button)
-
-    # def show_full_path(self):
-    #     QToolTip.showText(self.info_button.mapToGlobal(self.info_button.rect().bottomRight()), f"File: {str(self.full_path)}")
