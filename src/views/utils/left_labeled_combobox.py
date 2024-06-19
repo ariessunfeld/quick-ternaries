@@ -34,7 +34,8 @@ class LeftLabeledComboBox(QWidget):
 
         # Connect internal QComboBox signal to the new signal
         self.combobox.currentIndexChanged.connect(self.emit_value_changed)
-
+        #self.combobox.currentTextChanged.connect(self.emit_value_changed)
+        
     def addItems(self, items: list[str]):
         if items is not None:
             self.combobox.blockSignals(True)
@@ -47,7 +48,11 @@ class LeftLabeledComboBox(QWidget):
     def setCurrentText(self, text: str):
         index = self.combobox.findText(text)
         if index >= 0:
+            self.combobox.blockSignals(True)
             self.combobox.setCurrentIndex(index)
+            self.combobox.blockSignals(False)
+        else:
+            self.combobox.setCurrentIndex(0)
 
     def clear(self):
         self.combobox.blockSignals(True)

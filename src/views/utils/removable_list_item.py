@@ -8,6 +8,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import (
     Qt
 )
+from PySide6.QtCore import (
+    Qt
+)
 
 class ListItemWidget(QWidget):
     def __init__(self, title, full_path, *args, **kwargs):

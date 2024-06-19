@@ -38,7 +38,7 @@ class DraggableTab(QWidget):
         self.identifier = identifier
 
         self.setStyleSheet("background: transparent; border-radius: 10px; padding: 5px;")
-
+    
         self.tab_button_layout = QHBoxLayout(self)
         self.label = QLabel(name, self)
         self.label.setStyleSheet("background: transparent;")
@@ -132,7 +132,7 @@ class TabView(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll_area.setStyleSheet("border: none; background: transparent")
+        self.scroll_area.setStyleSheet("border: none; background: transparent;")
         self.scroll_area.setMaximumWidth(150)
         self.scroll_area.setMinimumWidth(100)
 
