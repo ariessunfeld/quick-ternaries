@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget, QMessageBox
+from PySide6.QtCore import QObject, Signal
 
 from src.models.ternary.setup.model import TernaryStartSetupModel
 from src.views.ternary.setup.view import TernaryStartSetupView
@@ -21,6 +22,15 @@ from src.controllers.ternary.setup.custom_hover_data_selection_controller import
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 from src.utils.ternary_types import TERNARY_TYPES
+
+
+class TernaryStartSetupControllerSignaller(QObject):
+
+    remove_data_signal = Signal(tuple)
+
+    def __init__(self):
+        super().__init__()
+    
 
 
 class TernaryStartSetupController(QWidget):
@@ -37,6 +47,8 @@ class TernaryStartSetupController(QWidget):
         # hence, they get passed to the initialization method
         self.model = model
         self.view = view
+
+        self.signaller = TernaryStartSetupControllerSignaller()
         
         self.setup_connections()
 
@@ -95,21 +107,30 @@ class TernaryStartSetupController(QWidget):
                     'No shared columns', 
                     self.NO_SHARED_COLUMNS_WARNING)
 
-    def remove_data(self, item, filepath, sheet):
+    def remove_data(self, item, filepath: str, sheet: str):
+        """Callback when user tries to remove data
+        Prompts user to double-check; if user says okay, emits signal
+        Signal gets caught by ternary controller which checks if traces need to be deleted
+        """
         if QMessageBox.question(
             self.view, 
             'Confirm Delete', 
             "Do you really want to remove this data?") \
         == QMessageBox.Yes:
-            self.model.data_library.remove_data(filepath, sheet)  # remove data from library
-            self.view.loaded_data_scroll_view.clear()  # clear loaded data view
-            loaded_data = self.model.data_library.get_all_filenames()  # repopulate from library
-            for _shortname, _sheet, _path in loaded_data:
-                list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-                close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
-            shared_columns = self.model.data_library.get_shared_columns()  # update custom apex selection and hoverdata
-            self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
-            self.custom_hover_data_selection_controller.update_columns(shared_columns)
+            # Signal so the ternary controller can see
+            self.signaller.remove_data_signal.emit((filepath, sheet))
+
+    def on_remove_data_confirmed(self, filepath: str, sheet: str):
+        # Gets triggered by ternary controller
+        self.model.data_library.remove_data(filepath, sheet)  # remove data from library
+        self.view.loaded_data_scroll_view.clear()  # clear loaded data view
+        loaded_data = self.model.data_library.get_all_filenames()  # repopulate from library
+        for _shortname, _sheet, _path in loaded_data:
+            list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
+            close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+        shared_columns = self.model.data_library.get_shared_columns()  # update custom apex selection and hoverdata
+        self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
+        self.custom_hover_data_selection_controller.update_columns(shared_columns)
 
     def get_sheet(self, filepath: str) -> str|None:
         """Prompts user to select a sheet name for a data file"""

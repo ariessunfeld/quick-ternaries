@@ -1,5 +1,7 @@
 """Controller for the Ternary models and views"""
 
+from PySide6.QtWidgets import QMessageBox, QPushButton
+
 # Instantiated
 from src.models.ternary.model import TernaryModel
 from src.views.main_window import MainWindow
@@ -58,8 +60,10 @@ class TernaryController:
 
         # Make sure the filter editor updates accordingly when new data is selected for the trace
         self.trace_controller.selected_data_event.connect(self.filter_tab_controller.handle_trace_selected_data_event)
-
         self.filter_tab_controller.trace_data_selection_handled.connect(self.filter_editor_controller.update_view)
+
+        # Connect start setup remove data signal to check if data is loaded in any traces
+        self.start_setup_controller.signaller.remove_data_signal.connect(self._on_remove_data_signal)
 
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
@@ -82,13 +86,21 @@ class TernaryController:
             trace_model.selected_data_file_name = loaded_file_names[0]
             trace_model.selected_data_file = loaded_files[0]
 
+        if prev_available_data_file_names and not loaded_file_names:
+            trace_model.selected_data_file_name = None
+            trace_model.selected_data_file = None
+
         # Trace controller handles tab change using trace model
         # Clears current trace view fields, repopulates with information from trace model
         self.trace_controller.change_tab(trace_model)
 
-        # If there was no data and now there is, emit that the first is selected so the heatmap can update
-        if not prev_available_data_file_names and loaded_file_names:
-            self.trace_controller.selected_data_event.emit(loaded_file_names[0])
+        # If there was no data and now there is, 
+        # emit that the first is selected so the heatmap can update
+        if not prev_available_data_file_names and loaded_file_names: 
+            self.trace_controller.selected_data_event.emit(loaded_file_names[0]) 
+        
+        if prev_available_data_file_names and not loaded_file_names:
+            self.trace_controller.selected_data_event.emit(None)
         
         # Call the change trace tab method of the filter editor controller
         self.filter_editor_controller.change_trace_tab(trace_model.filter_tab_model.current_tab)
@@ -123,3 +135,44 @@ class TernaryController:
 
     def _change_to_start_setup(self):
         self.view.switch_to_start_setup_view()
+
+    def _on_remove_data_signal(self, filepath_and_sheet: tuple):
+        # Get the data from the data library
+        # Check it against each trace's "selected data"
+        # If match, warn user about traces that will be deleted
+        filepath, sheet = filepath_and_sheet
+        data_file = self.model.start_setup_model.data_library.get_data(filepath, sheet)
+        would_be_deleted = []
+        for tab_id in self.model.tab_model.order:
+            trace_model = self.model.tab_model.get_trace(tab_id)
+            if trace_model:
+                trace_model_file = trace_model.selected_data_file
+                if data_file == trace_model_file:
+                    would_be_deleted.append(tab_id)
+        fmt_list = ", ".join(would_be_deleted)
+
+        # If any traces would be deleted, triple-check with user
+        if would_be_deleted:
+            warning_msg = f"Warning: removing this data will delete Trace(s) {fmt_list}.\n\n"
+            warning_msg += f"To preserve these trace(s), click Cancel and change their selected data."
+            
+            # Run the special message box
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("Trace(s) getting deleted")
+            msg_box.setText(warning_msg)
+            msg_box.setIcon(QMessageBox.Question)
+            msg_box.addButton('Delete', QMessageBox.YesRole)
+            msg_box.addButton('Cancel', QMessageBox.NoRole)
+
+            response = msg_box.exec_()
+
+            if response == 5: #  'yes role' response
+                # delete the relevant traces
+                for tab_id in would_be_deleted:
+                    self.tab_controller.remove_tab(tab_id, ask=False)
+                self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+        
+        # If no traces are going to be deleted, just go ahead after initial double-check
+        else:
+            self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+        

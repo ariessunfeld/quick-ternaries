@@ -49,8 +49,11 @@ class TabController(QObject):
         self.view.add_trace_tab_to_view(f'Untitled {tab_id}', tab_id)
         self.change_tab(tab_id)
 
-    def remove_tab(self, tab_id: str):
-        if QMessageBox.question(self.view, 'Confirm Delete', "Do you really want to delete this trace?") == QMessageBox.Yes:
+    def remove_tab(self, tab_id: str, ask=True):
+        if not ask or QMessageBox.question(
+                self.view, 
+                'Confirm Delete', 
+                "Do you really want to delete this trace?") == QMessageBox.Yes:
             self.view.remove_tab_from_view(tab_id)
             self.model.remove_trace(tab_id)
             self.change_tab('StartSetup') # always change back to start setup after deleting a trace tab
