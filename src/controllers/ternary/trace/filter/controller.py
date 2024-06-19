@@ -32,6 +32,8 @@ class FilterEditorController(QObject):
         self.view.filter_value_line_edit.textChanged.connect(self._on_filter_value_changed)
         self.view.filter_value_a_line_edit.textChanged.connect(self._on_filter_value_a_changed)
         self.view.filter_value_b_line_edit.textChanged.connect(self._on_filter_value_b_changed)
+        self.view.add_remove_list.button_add.clicked.connect(self._on_add_attr_button_clicked)
+        self.view.add_remove_list.button_remove.clicked.connect(self._on_rem_attr_button_clicked)
 
     def change_trace_tab(self, filter_model: FilterModel):
         pass
@@ -44,6 +46,9 @@ class FilterEditorController(QObject):
             # Populate view accordingly
             self.view.filter_column_combobox.clear()
             self.view.filter_column_combobox.addItems(filter_model.available_columns)
+            if filter_model.selected_column is None and filter_model.available_columns:
+                filter_model.selected_column = filter_model.available_columns[0]
+                self.view.filter_column_combobox.emit_value_changed(0)
             self.view.filter_column_combobox.setCurrentText(filter_model.selected_column)
             self.view.filter_operation_combobox.clear()
             self.view.filter_operation_combobox.addItems(filter_model.available_filter_operations)
@@ -56,9 +61,9 @@ class FilterEditorController(QObject):
             self.view.filter_value_b_line_edit.setCompleter(completer)
             if filter_model.available_one_of_filter_values:
                 self.view.available_values_list.clear()
-                self.view.available_values_list.addItems(filter_model.available_one_of_filter_values)
+                self.view.available_values_list.addItems(sorted(filter_model.available_one_of_filter_values))
             self.view.add_remove_list.clear()
-            self.view.add_remove_list.addItems(filter_model.selected_one_of_filter_values)
+            self.view.add_remove_list.addItems(sorted(filter_model.selected_one_of_filter_values) if filter_model.selected_one_of_filter_values else None)
 
             # Update visibility based on dropdowns and types
             self.update_widget_visibility()
@@ -143,7 +148,17 @@ class FilterEditorController(QObject):
             current_filter_tab.filter_value_b = self.view.filter_value_b_line_edit.text()
 
     def _on_add_attr_button_clicked(self):
-        pass
+        to_add = self.view.available_values_list.currentItem()
+        if to_add is not None:
+            val = to_add.text()
+            self.model.current_tab.filter_tab_model.current_tab.available_one_of_filter_values.remove(val)
+            self.model.current_tab.filter_tab_model.current_tab.selected_one_of_filter_values.append(val)
+            self.update_view()
 
     def _on_rem_attr_button_clicked(self):
-        pass
+        to_rem = self.view.add_remove_list.currentItem()
+        if to_rem is not None:
+            val = to_rem.text()
+            self.model.current_tab.filter_tab_model.current_tab.available_one_of_filter_values.append(val)
+            self.model.current_tab.filter_tab_model.current_tab.selected_one_of_filter_values.remove(val)
+            self.update_view()
