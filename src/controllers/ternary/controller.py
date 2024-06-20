@@ -17,7 +17,7 @@ from src.models.ternary.trace.filter.model import FilterModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 
 class TernaryController:
-
+    
     def __init__(self, model: TernaryModel, view: MainWindow):
         self.model = model
         self.view = view
@@ -66,18 +66,10 @@ class TernaryController:
         self.start_setup_controller.signaller.remove_data_signal.connect(self._on_remove_data_signal)
 
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
-
+        
         # Main window dynamic content area switches to trace view
         self.view.switch_to_trace_view()
-
-        # Retrieve the loaded data from the start setup
-        data_library = self.start_setup_controller.model.data_library
-        # Isolate the filenames
-        all_filenames = list(map(lambda x: x[0], data_library.get_all_filenames()))
-        # Provide the trace model with the loaded data library
-        trace_model.available_data_files = data_library.list_all_datafiles()
-        trace_model.available_data_file_names = all_filenames
-
+        
         # Set the available filenames/files for the trace view
         loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
         loaded_files = [self.model.start_setup_model.data_library.get_data_from_shortname(f) for f in loaded_file_names]
@@ -115,13 +107,11 @@ class TernaryController:
 
         # Call the change trace tab method of the heatmap editor controller
         self.heatmap_editor_controller.change_trace_tab(trace_model.heatmap_model)
-
-        # Main window's trace view's dynamic content area switches
-        # to filter setup view (away from specific filter configuration)
+        
+        # Main window's trace view's dynamic content area switches to filter setup view (away from specific filter configuration)
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()
 
-        # Filter tab controller clears existing tab widgets,
-        # repopulates with those from trace_model.filter_tab_model
+        # Filter tab controller clears existing tab widgets, repopulates with those from trace_model.filter_tab_model
         self.filter_tab_controller.change_trace_tab(trace_model)
 
     def _change_filter_tab(self, filter_model: FilterModel):
@@ -185,4 +175,3 @@ class TernaryController:
         # If no traces are going to be deleted, just go ahead after initial double-check
         else:
             self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
-        
