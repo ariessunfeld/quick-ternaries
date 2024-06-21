@@ -1,9 +1,17 @@
 from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
 from src.views.ternary.setup import CustomApexSelectionView
 
-class CustomApexSelectionController:
+from PySide6.QtCore import QObject, Signal
+
+class CustomApexSelectionController(QObject):
+
+    column_added_to_apices = Signal(str)
+    column_removed_from_apices = Signal(str)
+
     def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):
         
+        super().__init__()
+
         # models and views are instantiated outside this class
         # hence, they get passed to the initialization method
         self.model = model
@@ -30,6 +38,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.add_top_apex_column(col)
             self.model.remove_available_column(col)
+            self.column_added_to_apices.emit(col)
 
     def clicked_top_apex_button_remove(self):
         """Gets selected column from view's top_apex columns,
@@ -39,6 +48,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.remove_top_apex_column(col)
             self.model.add_available_column(col)
+            self.column_removed_from_apices.emit(col)
 
     def clicked_right_apex_button_add(self):
         """Gets selected column from view's available_columns,
@@ -48,6 +58,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.add_right_apex_column(col)
             self.model.remove_available_column(col)
+            self.column_added_to_apices.emit(col)
 
     def clicked_right_apex_button_remove(self):
         """Gets selected column from view's right_apex columns,
@@ -57,6 +68,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.remove_right_apex_column(col)
             self.model.add_available_column(col)
+            self.column_removed_from_apices.emit(col)
 
     def clicked_left_apex_button_add(self):
         """Gets selected column from view's available_columns,
@@ -66,6 +78,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.add_left_apex_column(col)
             self.model.remove_available_column(col)
+            self.column_added_to_apices.emit(col)
 
     def clicked_left_apex_button_remove(self):
         """Gets selected column from view's left_apex columns,
@@ -75,6 +88,7 @@ class CustomApexSelectionController:
             col = selected_column.text()
             self.model.remove_left_apex_column(col)
             self.model.add_available_column(col)
+            self.column_removed_from_apices.emit(col)
 
     def update_columns(self, new_columns: list[str]):
         # Set model's available columns to new_columns

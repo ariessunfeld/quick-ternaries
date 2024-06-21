@@ -11,6 +11,7 @@ from src.controllers.ternary.trace.tab_controller import TabController
 from src.controllers.ternary.trace.filter.controller import FilterEditorController
 from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
 from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
+from src.controllers.ternary.trace.molar_conversion_controller import TernaryTraceMolarConversionController
 
 # For type hints
 from src.models.ternary.trace.filter.model import FilterModel
@@ -27,43 +28,84 @@ class TernaryController:
     def setup_connections(self):
 
         self.start_setup_controller = TernaryStartSetupController(
-            self.model.start_setup_model, self.view.ternary_start_setup_view)
+            self.model.start_setup_model, 
+            self.view.ternary_start_setup_view)
+        
         self.trace_controller = TernaryTraceEditorController(
-            self.model.tab_model, self.view.ternary_trace_editor_view)
+            self.model.tab_model, 
+            self.view.ternary_trace_editor_view)
+        
         self.tab_controller = TabController(
-            self.model.tab_model, self.view.tab_view)
+            self.model.tab_model, 
+            self.view.tab_view)
+        
         self.filter_editor_controller = FilterEditorController(
-            self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_editor_view)
+            self.model.tab_model, 
+            self.view.ternary_trace_editor_view.filter_view.filter_editor_view)
+        
         self.filter_tab_controller = FilterTabController(
-            self.model.tab_model, self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
+            self.model.tab_model, 
+            self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
+        
         self.heatmap_editor_controller = HeatmapEditorController(
-            self.model.tab_model, self.view.ternary_trace_editor_view.heatmap_view)
+            self.model.tab_model, 
+            self.view.ternary_trace_editor_view.heatmap_view)
+        
+        self.molar_conversion_controller = TernaryTraceMolarConversionController(
+            self.model.molar_conversion_model,
+            self.view.ternary_trace_editor_view.molar_conversion_view)
         
         # Give the child controllers access to the shared resource, data library
-        self.trace_controller.set_data_library_reference(self.model.start_setup_model.data_library)
-        self.filter_editor_controller.set_data_library_reference(self.model.start_setup_model.data_library)
-        self.heatmap_editor_controller.set_data_library_reference(self.model.start_setup_model.data_library)
-        self.filter_tab_controller.set_data_library_reference(self.model.start_setup_model.data_library)
+        self.trace_controller.set_data_library_reference(
+            self.model.start_setup_model.data_library)
+        
+        self.filter_editor_controller.set_data_library_reference(
+            self.model.start_setup_model.data_library)
+        
+        self.heatmap_editor_controller.set_data_library_reference(
+            self.model.start_setup_model.data_library)
+        
+        self.filter_tab_controller.set_data_library_reference(
+            self.model.start_setup_model.data_library)
+        
 
         # Connect signals when the tab controller says to 
         # switch between start setup and trace tab views
-        self.tab_controller.change_tab_signal.connect(self._change_trace_tab)
-        self.tab_controller.change_to_start_setup_signal.connect(self._change_to_start_setup)
+        self.tab_controller.change_tab_signal.connect(
+            self._change_trace_tab)
+        
+        self.tab_controller.change_to_start_setup_signal.connect(
+            self._change_to_start_setup)
 
         # Connect signals for when the filter tab controller says to 
         # switch between filter setup and filter editor views
-        self.filter_tab_controller.change_filter_tab_signal.connect(self._change_filter_tab)
-        self.filter_tab_controller.change_to_filter_setup_signal.connect(self._change_filter_setup_tab)
+        self.filter_tab_controller.change_filter_tab_signal.connect(
+            self._change_filter_tab)
+        
+        self.filter_tab_controller.change_to_filter_setup_signal.connect(
+            self._change_filter_setup_tab)
 
         # Make sure the heatmap updates accordingly when new data is selected for the trace
-        self.trace_controller.selected_data_event.connect(self.heatmap_editor_controller.handle_trace_selected_data_event)
+        self.trace_controller.selected_data_event.connect(
+            self.heatmap_editor_controller.handle_trace_selected_data_event)
 
         # Make sure the filter editor updates accordingly when new data is selected for the trace
-        self.trace_controller.selected_data_event.connect(self.filter_tab_controller.handle_trace_selected_data_event)
-        self.filter_tab_controller.trace_data_selection_handled.connect(self.filter_editor_controller.update_view)
+        self.trace_controller.selected_data_event.connect(
+            self.filter_tab_controller.handle_trace_selected_data_event)
+        
+        self.filter_tab_controller.trace_data_selection_handled.connect(
+            self.filter_editor_controller.update_view)
 
         # Connect start setup remove data signal to check if data is loaded in any traces
-        self.start_setup_controller.signaller.remove_data_signal.connect(self._on_remove_data_signal)
+        self.start_setup_controller.signaller.remove_data_signal.connect(
+            self._on_remove_data_signal)
+
+        # Connect custom apex selection add data signal to molar conversion on add data
+        self.start_setup_controller.signaller.apex_column_added.connect(
+            self.molar_conversion_controller.on_new_custom_column_added)
+        
+        self.start_setup_controller.signaller.apex_column_removed.connect(
+            self.molar_conversion_controller.on_new_custom_column_removed)
 
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         

@@ -28,6 +28,9 @@ class TernaryStartSetupControllerSignaller(QObject):
 
     remove_data_signal = Signal(tuple)
 
+    apex_column_added = Signal(str)
+    apex_column_removed = Signal(str)
+
     def __init__(self):
         super().__init__()
     
@@ -80,8 +83,13 @@ class TernaryStartSetupController(QWidget):
         # Set up custom hover data selection connections
         self.custom_hover_data_selection_controller = CustomHoverDataSelectionController(
             self.model.custom_hover_data_selection_model,
-            self.view.custom_hover_data_selection_view
-        )
+            self.view.custom_hover_data_selection_view)
+
+        # Thread the custom apex selection signals through this controller
+        self.custom_apex_selection_controller.column_added_to_apices.connect(
+            lambda s: self.signaller.apex_column_added.emit(s))
+        self.custom_apex_selection_controller.column_removed_from_apices.connect(
+            lambda s: self.signaller.apex_column_removed.emit(s))
 
     def load_data(self):
         """Adds user-selected data file to model's data library
