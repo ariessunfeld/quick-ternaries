@@ -73,11 +73,11 @@ class TernaryTraceEditorController(QObject):
         self.model.current_tab.wtp_to_molar_checked = self.view.convert_wtp_molar_checkbox.isChecked()
         
         # Update molar conversion panel visibility
-        molar_conversion_panel_visibility_condition = \
+        condition = \
             self.view.molar_conversion_view.container_layout.count() > 1 \
             and self.view.convert_wtp_molar_checkbox.isChecked()
         self.view.molar_conversion_view.setVisible(
-            molar_conversion_panel_visibility_condition)
+            condition)
 
     def _size_changed_event(self, value: int):
         self.model.current_tab.point_size = value
