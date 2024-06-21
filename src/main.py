@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 from src.models.app_state import AppModel
 from src.views.main_window import MainWindow
 from src.controllers.app_controller import AppController
+from src.services.app_service import AppService
 
 def main():
     app = QApplication(sys.argv)
@@ -14,9 +15,15 @@ def main():
     # -----------------------------------
 
     # TODO replace model instantiation with loading from pickle file
-    app_model = AppModel()  # Model
-    main_window = MainWindow()  # View
-    app_controller = AppController(app_model, main_window)  # Controller
+    # (once everything is set up to reflect pickle-loaded state)
+
+    app_model = AppModel()           # Model
+    main_window = MainWindow()       # View
+    app_service = AppService()       # Service
+    app_controller = AppController(  # Controller
+        app_model,
+        main_window,
+        app_service)
 
     # -----------------------------------
 
