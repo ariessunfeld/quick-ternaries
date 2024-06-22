@@ -40,16 +40,19 @@ class TernaryType:
         """Adds a column (str) to the top apex"""
         if col not in self.top:
             self.top.append(col)
-
+            self.update_short_formatted_name()
+    
     def add_to_right(self, col: str):
         """Adds a column (str) to the right apex"""
         if col not in self.right:
             self.right.append(col)
+            self.update_short_formatted_name()
     
     def add_to_left(self, col: str):
         """Adds a column (str) to the left apex"""
         if col not in self.left:
             self.left.append(col)
+            self.update_short_formatted_name()
 
     def get_short_formatted_name(self):
         """
@@ -66,6 +69,12 @@ class TernaryType:
         return "+".join(s[0] if s else '' for s in self.top) + "  " + \
             "+".join(s[0] if s else '' for s in self.left) + "  " + \
             "+".join(s[0] if s else '' for s in self.right)
+    
+    def update_short_formatted_name(self):
+        self.formatted_name = self.get_short_formatted_name()
+    
+    def __str__(self):
+        return str(self.__dict__)
 
 
 

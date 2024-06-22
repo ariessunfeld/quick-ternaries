@@ -1,3 +1,7 @@
+from pathlib import Path
+
+from PySide6.QtCore import QUrl
+
 from src.services.ternary.html_maker import TernaryHtmlMaker
 # from src.services.cartesian.html_maker import CartesianHtmlMaker
 # from src.services.depth_profiles.html_maker import DepthProfilesHtmlMaker
@@ -12,10 +16,23 @@ class AppService:
             'zmaps': None  # TODO: Instantiate ZMapsHtmlMaker
         }
 
-    def write_html(self, model, plot_mode: str):
+    def write_html(self, model, plot_mode: str) -> QUrl:
         plot_mode = plot_mode.lower()
         html_maker = self.html_makers.get(plot_mode)
         if html_maker is not None:
-            return html_maker.make_html(model)
+            html = html_maker.make_html(model)
+            
+            current_directory = Path(__file__).parent
+            save_path = current_directory / '..' / 'resources' / 'ternary.html'
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Save the HTML content to the file
+            with save_path.open('w', encoding='utf-8') as file:
+                file.write(html)
+
+            html_object = QUrl.fromLocalFile(str(save_path.resolve()))
+
+            return html_object
+        
         else:
             raise ValueError(f"Unsupported plot mode: {plot_mode}")

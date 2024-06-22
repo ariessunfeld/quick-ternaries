@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 class TernaryStartSetupView(QWidget):
     def __init__(self, parent: QWidget | None = None):
@@ -40,7 +40,7 @@ class TernaryStartSetupView(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.content_widget)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         # Scroll area to display filenames for loaded data
         self.loaded_data_scroll_view = LoadedDataScrollView()
@@ -119,8 +119,8 @@ class TernaryStartSetupView(QWidget):
     def update_custom_hover_data_selection_view_visibility(self, is_visible: bool):
         self.custom_hover_data_selection_view.setVisible(is_visible)
         if is_visible:
+            self.show_scrollbar_temporarily()
             # TODO implement scrolling
-            pass
             # self.scroll_area.ensureWidgetVisible(self.custom_hover_data_selection_view)
             # self.scroll_area.repaint()
 
@@ -130,7 +130,10 @@ class TernaryStartSetupView(QWidget):
             and is_checked
         self.apex_scaling_view.setVisible(condition)
         if condition:
+            self.show_scrollbar_temporarily()
             # TODO implement scrolling
-            pass
             # self.scroll_area.ensureWidgetVisible(self.apex_scaling_view)
             # self.scroll_area.repaint()
+
+    def show_scrollbar_temporarily(self):
+        pass
