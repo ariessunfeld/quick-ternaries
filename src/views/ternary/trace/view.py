@@ -7,13 +7,6 @@ and is used in the dynamic content area of the MainWindow
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
 from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
 from src.views.ternary.trace.filter.view import FilterPanelView
-
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QApplication,
-    QScrollArea
-)
 from src.views.utils import (
     LeftLabeledLineEdit, 
     LeftLabeledCheckbox, 
@@ -23,6 +16,14 @@ from src.views.utils import (
     InfoButton
 )
 
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QApplication,
+    QScrollArea
+)
+from PySide6.QtCore import Qt
 
 class TernaryTraceEditorView(QWidget):
     def __init__(self, parent: QWidget | None = None):

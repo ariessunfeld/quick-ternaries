@@ -17,6 +17,7 @@ from src.views.ternary.setup import (
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QPushButton,
     QComboBox,
     QScrollArea
