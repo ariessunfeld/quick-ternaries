@@ -1,3 +1,5 @@
+"""Ternary HTML file maker"""
+
 from src.models.ternary.model import TernaryModel
 from src.services.ternary.plot_maker import TernaryPlotMaker
 
@@ -7,4 +9,6 @@ class TernaryHtmlMaker:
         self.plot_maker = TernaryPlotMaker()
 
     def make_html(self, model: TernaryModel):
-        pass
+        plot = self.plot_maker.make_plot(model)
+        html = plot.to_html()
+        return html

@@ -1,3 +1,5 @@
+"""Plotly Plot Maker for Ternary diagrams"""
+
 from src.models.ternary.model import TernaryModel
 from src.services.ternary.trace_maker import TernaryTraceMaker
 
@@ -14,13 +16,11 @@ class TernaryPlotMaker:
         fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'ternary'}]])
         
         # For each trace in the tab model's order,
+        # Make the trace, add it to the figure
         for trace_id in model.tab_model.order:
-            trace_model = model.tab_model.get_trace(trace_id)
-            # Make the trace
-            trace = self.trace_maker.make_trace(trace_model)
-            # Add it to the figure
+            trace = self.trace_maker.make_trace(model, trace_id)
             fig.add_trace(trace)
 
-        # Configure the layout of the figure
+        # Configure the layout of the figure as necessary
         
-        pass
+        return fig
