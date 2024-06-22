@@ -15,20 +15,12 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 from src.views.utils import (
-<<<<<<< HEAD
-    LeftLabeledLineEdit,
-    LeftLabeledCheckbox,
-    LeftLabeledComboBox,
-    LeftLabeledSpinBox,
-    LeftLabeledColorPicker
-=======
     LeftLabeledLineEdit, 
     LeftLabeledCheckbox, 
     LeftLabeledComboBox, 
     LeftLabeledSpinBox, 
     LeftLabeledColorPicker,
     InfoButton
->>>>>>> origin/ari
 )
 
 

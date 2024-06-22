@@ -3,13 +3,6 @@
 from typing import List
 import time
 
-<<<<<<< HEAD
-from src.views.utils.left_labeled_checkbox import LeftLabeledCheckbox
-from src.views.utils.left_labeled_line_edit import LeftLabeledLineEdit
-from src.views.ternary.setup import CustomApexSelectionView
-from src.views.ternary.setup import CustomHoverDataSelectionView
-from src.views.ternary.setup import LoadedDataScrollView
-=======
 from src.views.utils import (
     LeftLabeledCheckbox,
     LeftLabeledLineEdit,
@@ -20,7 +13,6 @@ from src.views.ternary.setup import (
     CustomHoverDataSelectionView,
     LoadedDataScrollView,
     TernaryApexScalingView)
->>>>>>> origin/ari
 
 from PySide6.QtWidgets import (
     QWidget,
