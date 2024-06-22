@@ -52,3 +52,7 @@ class CustomHoverDataSelectionView(QWidget):
     def set_selected_columns(self, selected_columns: List[str]):
         self.add_remove_list.clear()
         self.add_remove_list.addItems(selected_columns)
+
+    def refresh(self, model):
+        self.set_available_columns(model.get_available_attrs())
+        self.set_selected_columns(model.get_selected_attrs())

@@ -4,6 +4,7 @@ from typing import List
 
 from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
 from src.models.ternary.setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
+from src.models.ternary.setup.apex_scaling_model import TernaryApexScalingModel
 from src.models.utils.data_models import DataLibrary
 from src.models.utils.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 from src.utils.ternary_types import TERNARY_TYPES
@@ -71,41 +72,30 @@ class TernaryType:
 class TernaryStartSetupModel:
 
     def __init__(self):
-        self.data_library: DataLibrary = DataLibrary()
+        self.data_library = DataLibrary()
+        
         self.available_ternary_types: List[TernaryType] = \
             [TernaryType(**tt) for tt in TERNARY_TYPES]
+        
         self.selected_ternary_type: TernaryType = \
             self.available_ternary_types[0]
-        self.custom_apex_selection_model: CustomApexSelectionModel = \
-            CustomApexSelectionModel()
-        self.custom_hover_data_selection_model: CustomHoverDataSelectionModel = \
-            CustomHoverDataSelectionModel([], [])
-        self.header_row_selection_model: HeaderRowSelectionModel = \
-            HeaderRowSelectionModel([])
-        self.sheet_selection_model: SheetSelectionModel = \
-            SheetSelectionModel([''])
-
+        
+        self.custom_apex_selection_model = CustomApexSelectionModel()
+        self.custom_hover_data_selection_model = CustomHoverDataSelectionModel([], [])
+        self.header_row_selection_model = HeaderRowSelectionModel([])
+        self.sheet_selection_model = SheetSelectionModel([''])
+        self.apex_scaling_model = TernaryApexScalingModel()
+        
         self.title: str = 'Untitled'
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
 
         self.custom_hover_data_is_checked = False
+        self.scale_apices_is_checked = False
         
         self.controller = None
         self.view = None
-
-    def add_data(self, filepath: str, sheet: int | None, header: list[str]):
-        self.data_library.add_data(filepath, sheet, header)
-
-    def remove_data(self, filepath, sheet):
-        self.data_library.remove_data(filepath, sheet)
-
-    def set_controller(self, controller):
-        self.controller = controller
-
-    def set_view(self, view):
-        self.view = view
 
     def get_ternary_type(self) -> TernaryType:
         return self.selected_ternary_type

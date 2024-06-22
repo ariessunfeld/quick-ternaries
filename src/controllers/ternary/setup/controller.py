@@ -19,6 +19,7 @@ from src.views.ternary.setup.view import TernaryStartSetupView
 
 from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
 from src.controllers.ternary.setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
+from src.controllers.ternary.setup.apex_scaling_controller import TernaryApexScalingController
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 from src.utils.ternary_types import TERNARY_TYPES
@@ -27,6 +28,9 @@ from src.utils.ternary_types import TERNARY_TYPES
 class TernaryStartSetupControllerSignaller(QObject):
 
     remove_data_signal = Signal(tuple)
+
+    apex_column_added = Signal(str)
+    apex_column_removed = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -72,6 +76,9 @@ class TernaryStartSetupController(QWidget):
         # Handle changes to the custom hover data checkbox
         self.view.labeled_checkbox_customize_hover_data.stateChanged.connect(self.checkbox_hoverdata_changed)
 
+        # Handle changes to the scale apices checkbox
+        self.view.labeled_checkbox_scale_apices.stateChanged.connect(self.checkbox_scale_apices_changed)
+
         # Set up custom apex selection connections
         self.custom_apex_selection_controller = CustomApexSelectionController(
             self.model.custom_apex_selection_model, 
@@ -80,8 +87,23 @@ class TernaryStartSetupController(QWidget):
         # Set up custom hover data selection connections
         self.custom_hover_data_selection_controller = CustomHoverDataSelectionController(
             self.model.custom_hover_data_selection_model,
-            self.view.custom_hover_data_selection_view
-        )
+            self.view.custom_hover_data_selection_view)
+
+        # Thread the custom apex selection signals through this controller
+        self.custom_apex_selection_controller.column_added_to_apices.connect(
+            lambda s: self.signaller.apex_column_added.emit(s))
+        self.custom_apex_selection_controller.column_removed_from_apices.connect(
+            lambda s: self.signaller.apex_column_removed.emit(s))
+        
+        # Set up apex scaling controller and connections
+        self.apex_scaling_controller = TernaryApexScalingController(
+            self.model.apex_scaling_model,
+            self.view.apex_scaling_view)
+        
+        self.signaller.apex_column_added.connect(self.apex_scaling_controller.on_new_custom_column_added)
+        self.signaller.apex_column_added.connect(self.checkbox_scale_apices_changed)
+        self.signaller.apex_column_removed.connect(self.apex_scaling_controller.on_new_custom_column_removed)
+        self.signaller.apex_column_removed.connect(self.checkbox_scale_apices_changed)
 
     def load_data(self):
         """Adds user-selected data file to model's data library
@@ -237,3 +259,8 @@ class TernaryStartSetupController(QWidget):
         is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
         self.model.custom_hover_data_is_checked = is_checked
         self.view.update_custom_hover_data_selection_view_visibility(is_checked)
+
+    def checkbox_scale_apices_changed(self):
+        is_checked = self.view.labeled_checkbox_scale_apices.isChecked()
+        self.model.scale_apices_is_checked = is_checked
+        self.view.update_scale_apices_view_visibility(is_checked)

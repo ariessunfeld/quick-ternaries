@@ -14,7 +14,7 @@ class TernaryTraceEditorModel:
             selected_data_file_name: Optional[str] = None,
             available_data_files: Optional[List[DataFile]] = None,
             selected_data_file: Optional[DataFile] = None,
-            wtp_to_molar_checked: bool = True,
+            wtp_to_molar_checked: bool = False,
             tab_name: Optional[str] = None,
             legend_name: Optional[str] = None,
             point_size: int = 6,

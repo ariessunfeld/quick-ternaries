@@ -29,3 +29,18 @@ class CustomApexSelectionView(QWidget):
         self.right_layout.addWidget(self.add_remove_list_right_apex_columns)
         self.right_layout.addWidget(self.add_remove_list_left_apex_columns)
         self.layout.addWidget(self.right_layout_widget)
+
+    def refresh(self, model):
+        self.list_widget_available_columns.clear()
+        self.add_remove_list_top_apex_columns.clear()
+        self.add_remove_list_right_apex_columns.clear()
+        self.add_remove_list_left_apex_columns.clear()
+
+        self.list_widget_available_columns.addItems(
+            model.get_available_columns())
+        self.add_remove_list_top_apex_columns.addItems(
+            model.get_top_apex_selected_columns())
+        self.add_remove_list_right_apex_columns.addItems(
+            model.get_right_apex_selected_columns())
+        self.add_remove_list_left_apex_columns.addItems(
+            model.get_left_apex_selected_columns())

@@ -1,12 +1,26 @@
 """Contains the BaseSetupView(QWidget) class, which encompasses the widgets involved in setup, and is used in the dynamic content area of the MainWindow"""
 
 from typing import List
+import time
 
+<<<<<<< HEAD
 from src.views.utils.left_labeled_checkbox import LeftLabeledCheckbox
 from src.views.utils.left_labeled_line_edit import LeftLabeledLineEdit
 from src.views.ternary.setup import CustomApexSelectionView
 from src.views.ternary.setup import CustomHoverDataSelectionView
 from src.views.ternary.setup import LoadedDataScrollView
+=======
+from src.views.utils import (
+    LeftLabeledCheckbox,
+    LeftLabeledLineEdit,
+    AddRemoveList,
+    InfoButton)
+from src.views.ternary.setup import (
+    CustomApexSelectionView,
+    CustomHoverDataSelectionView,
+    LoadedDataScrollView,
+    TernaryApexScalingView)
+>>>>>>> origin/ari
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -16,6 +30,8 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 
+from PySide6.QtCore import Qt
+
 class TernaryStartSetupView(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -23,14 +39,15 @@ class TernaryStartSetupView(QWidget):
         self.setLayout(self.main_layout)
         #self.setMaximumWidth(500)
 
-        # Scroll area to hold the content layout
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-
         # Widget to hold all the content
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
+        
+        # Scroll area to hold the content layout
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.content_widget)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
         # Scroll area to display filenames for loaded data
         self.loaded_data_scroll_view = LoadedDataScrollView()
@@ -69,6 +86,17 @@ class TernaryStartSetupView(QWidget):
         # Hide the CustomApexSelectionView at first
         self.custom_hover_data_selection_view.setVisible(False)
 
+        self.checkbox_scale_apices_layout = QHBoxLayout()
+        self.labeled_checkbox_scale_apices = \
+            LeftLabeledCheckbox('Scale Ternary Apices')
+        text = (
+            "Tip: Select the Custom ternary type and add columns to each apex\n"
+            "to enable apex scaling. The default scale factor for each column is 1x."
+        )
+        self.scale_apices_infobutton = InfoButton(self, text)
+        self.apex_scaling_view = TernaryApexScalingView()
+        self.apex_scaling_view.setVisible(False)
+
         # Add widgets to the content layout
         self.content_layout.addWidget(self.loaded_data_scroll_view)
         self.content_layout.addWidget(self.button_add_data)
@@ -81,6 +109,11 @@ class TernaryStartSetupView(QWidget):
         self.content_layout.addWidget(self.labeled_checkbox_customize_hover_data)
         self.content_layout.addWidget(self.custom_hover_data_selection_view)
 
+        self.checkbox_scale_apices_layout.addWidget(self.labeled_checkbox_scale_apices)
+        self.checkbox_scale_apices_layout.addWidget(self.scale_apices_infobutton, alignment=Qt.AlignRight)
+        self.content_layout.addLayout(self.checkbox_scale_apices_layout)
+        self.content_layout.addWidget(self.apex_scaling_view)
+
         # Add the scroll area to the main layout
         self.main_layout.addWidget(self.scroll_area)
 
@@ -92,3 +125,19 @@ class TernaryStartSetupView(QWidget):
 
     def update_custom_hover_data_selection_view_visibility(self, is_visible: bool):
         self.custom_hover_data_selection_view.setVisible(is_visible)
+        if is_visible:
+            # TODO implement scrolling
+            pass
+            # self.scroll_area.ensureWidgetVisible(self.custom_hover_data_selection_view)
+            # self.scroll_area.repaint()
+
+    def update_scale_apices_view_visibility(self, is_checked: bool):
+        condition = \
+            self.apex_scaling_view.container_layout.count() > 1 \
+            and is_checked
+        self.apex_scaling_view.setVisible(condition)
+        if condition:
+            # TODO implement scrolling
+            pass
+            # self.scroll_area.ensureWidgetVisible(self.apex_scaling_view)
+            # self.scroll_area.repaint()

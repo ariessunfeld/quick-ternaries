@@ -5,6 +5,7 @@ and is used in the dynamic content area of the MainWindow
 """
 
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
+from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
 from src.views.ternary.trace.filter.view import FilterPanelView
 
 from PySide6.QtWidgets import (
@@ -14,11 +15,20 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 from src.views.utils import (
+<<<<<<< HEAD
     LeftLabeledLineEdit,
     LeftLabeledCheckbox,
     LeftLabeledComboBox,
     LeftLabeledSpinBox,
     LeftLabeledColorPicker
+=======
+    LeftLabeledLineEdit, 
+    LeftLabeledCheckbox, 
+    LeftLabeledComboBox, 
+    LeftLabeledSpinBox, 
+    LeftLabeledColorPicker,
+    InfoButton
+>>>>>>> origin/ari
 )
 
 
@@ -43,9 +53,27 @@ class TernaryTraceEditorView(QWidget):
         self.content_layout.addWidget(self.select_data)
 
         # Convert from wt% to molar
+        self.convert_molar_checkbox_layout = QHBoxLayout()
         self.convert_wtp_molar_checkbox = LeftLabeledCheckbox('Convert from wt% to molar:')
-        self.convert_wtp_molar_checkbox.checkbox.setChecked(True)
-        self.content_layout.addWidget(self.convert_wtp_molar_checkbox)
+        self.convert_wtp_molar_checkbox.checkbox.setChecked(False)
+        self.convert_molar_checkbox_layout.addWidget(self.convert_wtp_molar_checkbox)
+        text = (
+            "Tip: When this box is checked, data from this trace that is from the\n"
+            "columns specified in the Ternary Type section in the Start Setup view\n"
+            "will be converted from weight percent (wt%) to molar proportion.\n"
+            "For this to work, valid chemical formulae need to be provided for each column.\n"
+            "By default, the column name is used if it is already a valid chemical formula.\n"
+            "But if a column is named `Al2O3_corrected`, e.g., you must use the panel that\n"
+            "will appear below this checkbox to edit the valid formula to `Al2O3`.\n\n"
+            "Note: scaling apices (e.g., `2xAl2O3`) should be done in Start Setup view.")
+        self.convert_wtp_molar_infobutton = InfoButton(self, text)
+        self.convert_molar_checkbox_layout.addWidget(self.convert_wtp_molar_infobutton, alignment=Qt.AlignRight)
+        self.content_layout.addLayout(self.convert_molar_checkbox_layout)
+
+        # Molar conversion specification
+        self.molar_conversion_view = TernaryTraceMolarConversionView()
+        self.molar_conversion_view.setVisible(False)
+        self.content_layout.addWidget(self.molar_conversion_view)
 
         # Name
         self.name_line_edit = LeftLabeledLineEdit('Name:')

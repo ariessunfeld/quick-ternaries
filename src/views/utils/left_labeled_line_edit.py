@@ -21,7 +21,7 @@ class LeftLabeledLineEdit(QWidget):
     
     textChanged = Signal(str)
 
-    def __init__(self, label:str = '', parent:QWidget|None=None):
+    def __init__(self, label: str = '', stretch: int = 0, parent:QWidget|None=None):
         super().__init__(parent)
         self.layout = QHBoxLayout()
 
@@ -37,7 +37,8 @@ class LeftLabeledLineEdit(QWidget):
         #self.layout.setSpacing(10)
 
         self.layout.addWidget(self.label)
-        #self.layout.addItem(QSpacerItem(1, 1))
+        if stretch:
+            self.layout.addStretch(stretch)
         self.layout.addWidget(self.line_edit)
         self.setLayout(self.layout)
 
