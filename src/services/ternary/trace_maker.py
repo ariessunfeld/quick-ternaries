@@ -200,6 +200,10 @@ class TernaryTraceMaker:
         else:
             data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
                 data_df[color_column]
+            
+        # sort df so that points are plotted in order from lowest
+        # heatmap value abundance to highest heatmap value abundance
+        data_df = data_df.sort_values(by=color_column, ascending=True)
         
         colorscale = heatmap_model.colorscale
         if heatmap_model.reverse_colorscale:
