@@ -11,11 +11,12 @@ class HeatmapModel:
             range_max: Optional[float] = None,
             advanced_settings_checked: bool = False,
             log_transform_checked: bool = False,
-            reverse_colorscale_checked: bool = False,
+            reverse_colorscale_checked: bool = True,
             selected_colorscale: str = 'Inferno',
             colorbar_title: Optional[str] = None,
-            title_position: Optional[str] = 'right',
-            colorbar_length: float = 1.0,
+            title_position: Optional[str] = 'top',
+            colorbar_length: float = 0.6,
+            colorbar_thickness: float = 18,
             colorbar_x_pos: float = 1.1,
             colorbar_y_pos: float = 0.5,
             colorbar_title_font_size: float = 12.0,
@@ -33,6 +34,7 @@ class HeatmapModel:
         self._bar_title = colorbar_title
         self._title_position = title_position
         self._length = colorbar_length
+        self._thickness = colorbar_thickness
         self._x = colorbar_x_pos
         self._y = colorbar_y_pos
         self._title_font_size = colorbar_title_font_size
@@ -126,6 +128,14 @@ class HeatmapModel:
     @length.setter
     def length(self, value: float):
         self._length = value
+
+    @property
+    def thickness(self) -> float:
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, value: float):
+        self._thickness = value
 
     @property
     def x(self) -> float:

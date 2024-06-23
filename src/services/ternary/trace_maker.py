@@ -5,6 +5,7 @@ import time
 
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
@@ -27,6 +28,7 @@ class TernaryTraceMaker:
     
     MOLAR_PATTERN = '__{col}_molar_{us}'
     APEX_PATTERN = '__{apex}_{us}'
+    HEATMAP_PATTERN = '__{col}_heatmap_{us}'
 
     def __init__(self):
         super().__init__()
@@ -42,8 +44,6 @@ class TernaryTraceMaker:
 
         # Get the start setup model from the ternary model
         ternary_type = model.start_setup_model.get_ternary_type()
-        print(ternary_type)
-        print(type(ternary_type))
 
         # If `custom`, pull out the apex values from the custom apex selection model
         if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
@@ -56,13 +56,8 @@ class TernaryTraceMaker:
             left_columns = ternary_type.left
             right_columns = ternary_type.right
 
-        print(f"{top_columns=}")
-        print(f"{left_columns=}")
-        print(f"{right_columns=}")
-
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
-        print(trace_id)
 
         # Get the trace model's selected data (GET A COPY)
         trace_data_file = trace_model.selected_data_file
@@ -82,10 +77,8 @@ class TernaryTraceMaker:
             trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
         
         # Get the name, point size, color, shape, etc that user has specified
-        name = trace_model.legend_name # TODO check that this isnt supposed to be tab_name
-        point_size = float(trace_model.point_size)
-        point_shape = trace_model.selected_point_shape
-        point_color = trace_model.color
+        name = self._get_trace_name(trace_model)
+        marker = self._get_basic_marker_dict(trace_model)
 
         # If molar conversion is checked, use the specified formulae therein to perform molar conversion
         # If any of the formulae are invalid, raise a ValueError with the formula to get caught and shown to user
@@ -124,16 +117,47 @@ class TernaryTraceMaker:
         #       If log-transforming heatmap, make a new column in the copy of the selected data for this data
         use_heatmap = trace_model.add_heatmap_checked
         if use_heatmap:
-            pass # TODO
-            advanced_heatmap = trace_model.heatmap_model.advanced_settings_checked
-            if advanced_heatmap:
-                pass # TODO
+            # TODO add error handling for casting everything to float
+            heatmap_model = trace_model.heatmap_model
+            color_column = heatmap_model.selected_column
+            if heatmap_model.log_transform_checked:
+                trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)] =\
+                    trace_data_df[color_column].apply(lambda x: np.log(x) if x > 0 else 0)
+            else:
+                trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)] =\
+                    trace_data_df[color_column]
+            
+            colorscale = heatmap_model.colorscale
+            if heatmap_model.reverse_colorscale:
+                colorscale += '_r'  # Assuming Plotly accepts '_r' to reverse colorscales
+
+            marker['color'] = trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)]
+            marker['colorscale'] = colorscale
+            marker['colorbar'] = dict(
+                title=dict(
+                    text=heatmap_model.bar_title,
+                    side=heatmap_model.title_position,
+                    font=dict(size=float(heatmap_model.title_font_size))
+                ),
+                len=float(heatmap_model.length),
+                thickness=float(heatmap_model.thickness),
+                # TODO add this (thickness) to view and controller
+                x=float(heatmap_model.x),
+                y=float(heatmap_model.y),
+                tickfont=dict(size=float(heatmap_model.tick_font_size)),
+                orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
+            )
+            # TODO add error handling here for when floats fail or stuff is blank
+            marker['cmin'] = float(heatmap_model.range_min)
+            marker['cmax'] = float(heatmap_model.range_max)
 
         return go.Scatterternary(
             a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
             b=trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)],
             c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
-            mode='markers'
+            mode='markers',
+            name=name,
+            marker=marker
         )
 
     def _get_scaling_map(self, model: TernaryModel):
@@ -159,3 +183,13 @@ class TernaryTraceMaker:
     def _generate_unique_str(self) -> str:
         """Returns a unique string to be used in dataframe column names"""
         return str(hash(time.time()))
+
+    def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel):
+        marker = {}
+        marker['size'] = float(trace_model.point_size)
+        marker['symbol'] = trace_model.selected_point_shape
+        marker['color'] = trace_model.color
+        return marker
+
+    def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
+        return trace_model.legend_name
