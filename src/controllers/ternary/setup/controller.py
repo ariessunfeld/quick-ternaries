@@ -258,6 +258,11 @@ class TernaryStartSetupController(QWidget):
         """
         is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
         self.model.custom_hover_data_is_checked = is_checked
+        self.model.custom_hover_data_selection_model.selected_attrs = \
+            self.model.get_ternary_type().get_top() + \
+            self.model.get_ternary_type().get_left() + \
+            self.model.get_ternary_type().get_right()
+        self.view.custom_hover_data_selection_view.refresh(self.model.custom_hover_data_selection_model)
         self.view.update_custom_hover_data_selection_view_visibility(is_checked)
 
     def checkbox_scale_apices_changed(self):

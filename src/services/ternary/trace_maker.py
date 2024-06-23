@@ -25,14 +25,13 @@ class TraceMolarConversionException(Exception):
 
 
 class TernaryTraceMaker:
-    
+
     MOLAR_PATTERN = '__{col}_molar_{us}'
     APEX_PATTERN = '__{apex}_{us}'
     HEATMAP_PATTERN = '__{col}_heatmap_{us}'
 
     def __init__(self):
         super().__init__()
-        self.calculator = MolarMassCalculator()
 
     def make_trace(
             self, 
@@ -46,8 +45,8 @@ class TernaryTraceMaker:
         # Get the start setup model from the ternary model
         ternary_type = model.start_setup_model.get_ternary_type()
             
-        top_columns = ternary_type.get_top()
-        left_columns = ternary_type.get_left()
+        top_columns   = ternary_type.get_top()
+        left_columns  = ternary_type.get_left()
         right_columns = ternary_type.get_right()
 
         # Get the trace model from the model using the trace id
@@ -79,46 +78,75 @@ class TernaryTraceMaker:
         # Ideally this would turn that part of the view red, but that's more complex. Suffices to say to user:
         #       Trace [trace_id] has an invalid formula for molar conversion: [bad formula]
         convert_to_molar = trace_model.wtp_to_molar_checked
+        molar_converter = MolarConverter(trace_data_df,
+                                         top_columns, left_columns, right_columns,
+                                         self.APEX_PATTERN, self.MOLAR_PATTERN,
+                                         unique_str, trace_id)
         if convert_to_molar:
-            apex_columns = top_columns + left_columns + right_columns
-            if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
-                    (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
-                molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
-            else:
-                molar_mapping = {c:c for c in apex_columns}
-            for col in apex_columns:
-                # add a molar proportion column for each apex column
-                try:
-                    trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
-                        trace_data_df[col] / self.calculator.get_molar_mass(molar_mapping.get(col))
-                except MolarMassCalculatorException as e:
-                    raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
-            # Sum to get the apex columns
-            for apex_name, apex_cols_list in zip(
-                    ['top', 'left', 'right'], 
-                    [top_columns, left_columns, right_columns]):
-                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
-                trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]].sum(axis=1)
-        else: # non-molar conversion case
-            for apex_name, apex_cols_list in zip(
-                    ['top', 'left', 'right'], 
-                    [top_columns, left_columns, right_columns]):
-                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
-                trace_data_df[apex_cols_list].sum(axis=1)
+            sorted_repr = model.molar_conversion_model.get_sorted_repr()
+            custom_ternary_type = (ternary_type.name == 'Custom')
+            trace_data_df = molar_converter.molar_conversion(sorted_repr, custom_ternary_type)
+        else:
+            trace_data_df = molar_converter.nonmolar_conversion()
 
         use_heatmap = trace_model.add_heatmap_checked
         if use_heatmap:
             marker = self._update_marker_dict_with_heatmap_config(
                 marker, trace_model, trace_data_df, unique_str)
+            
+        hover_data, hover_template = self._hover_menu(model,
+                                                      trace_data_df,
+                                                      top_columns, left_columns, right_columns)
 
         return go.Scatterternary(
-            a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
-            b=trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)],
+            a=trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)],
+            b=trace_data_df[self.APEX_PATTERN.format(apex='left',  us=unique_str)],
             c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
             mode='markers',
             name=name,
-            marker=marker
+            marker=marker,
+            customdata=hover_data,
+            hovertemplate=hover_template
         )
+
+    def _hover_menu(self, model: TernaryModel, 
+                    trace_data_df: pd.DataFrame,
+                    top_columns: List[str], left_columns: List[str], right_columns: List[str]) -> str:
+        """
+        Generate hover data and template for a Plotly trace.
+
+        Args:
+            model: The TernaryModel containing the data and settings.
+
+        Returns:
+            hover_template: HTML formatting for hover data.
+        """
+        # Collecting display names for the apices
+        apex_columns = top_columns + left_columns + right_columns
+        
+        # Default hover columns with weight percentage information
+        # wtp_hover = [f"{formula}-wt%" for formula in all_columns]
+        
+        # Determine if custom hover data is used
+        use_custom_hover_data = model.start_setup_model.custom_hover_data_is_checked
+        if use_custom_hover_data:
+            # model.start_setup_model.custom_hover_data_selection_model.selected_attrs = apex_columns
+            hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs()
+        else:
+            hover_cols = apex_columns
+
+        # Construct the hover template
+        hover_template = "".join(
+            f"<br><b>{header}:</b> %{{customdata[{i}]}}"
+            for i, header in enumerate(hover_cols)
+        )
+
+        # Structure hover data
+        hover_data = trace_data_df[hover_cols].values
+
+        hover_template += "<extra></extra>"  # Disable default hover text
+
+        return hover_data, hover_template
 
     def _get_scaling_map(self, model: TernaryModel):
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
@@ -203,3 +231,58 @@ class TernaryTraceMaker:
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
         return trace_model.legend_name
     
+
+class MolarConverter:
+    def __init__(self, trace_data_df: pd.DataFrame,
+                 top_columns: list[str], left_columns: list[str], right_columns: list[str],
+                 apex_pattern: str,
+                 molar_pattern: str,
+                 unique_str: str,
+                 trace_id: str):
+
+        self.trace_data_df = trace_data_df
+
+        self.top_columns   = top_columns
+        self.left_columns  = left_columns
+        self.right_columns = right_columns
+
+        self.apex_pattern = apex_pattern
+        self.molar_pattern = molar_pattern
+
+        self.unique_str = unique_str
+        self.trace_id = trace_id
+
+    def molar_conversion(self,
+                         sorted_repr: List[tuple],
+                         custom_ternary_type: bool):
+    
+        apex_columns = self.top_columns + self.left_columns + self.right_columns
+
+        if custom_ternary_type:
+            molar_mapping = {k:v for k,v in sorted_repr}
+        else:
+            molar_mapping = {c:c for c in apex_columns}
+        for col in apex_columns:
+            # add a molar proportion column for each apex column
+            try:
+                calculator = MolarMassCalculator()
+                self.trace_data_df[self.molar_pattern.format(col=col, us=self.unique_str)] = \
+                    self.trace_data_df[col] / calculator.get_molar_mass(molar_mapping.get(col))
+            except MolarMassCalculatorException as e:
+                raise TraceMolarConversionException(self.trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
+        # Sum to get the apex columns
+        for apex_name, apex_cols_list in zip(
+                ['top', 'left', 'right'],
+                [self.top_columns, self.left_columns, self.right_columns]):
+            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+            self.trace_data_df[[self.molar_pattern.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
+
+        return self.trace_data_df
+
+    def nonmolar_conversion(self):
+        for apex_name, apex_cols_list in zip(
+            ['top', 'left', 'right'],
+            [self.top_columns, self.left_columns, self.right_columns]):
+            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+            self.trace_data_df[apex_cols_list].sum(axis=1)
+        return self.trace_data_df
