@@ -44,13 +44,16 @@ class LeftLabeledComboBox(QWidget):
 
     def currentText(self):
         return self.combobox.currentText()
-
-    def setCurrentText(self, text: str):
+    
+    def setCurrentText(self, text: str, block: bool=True):
         index = self.combobox.findText(text)
         if index >= 0:
-            self.combobox.blockSignals(True)
-            self.combobox.setCurrentIndex(index)
-            self.combobox.blockSignals(False)
+            if block:
+                self.combobox.blockSignals(True)
+                self.combobox.setCurrentIndex(index)
+                self.combobox.blockSignals(False)
+            else:
+                self.combobox.setCurrentIndex(index)
         else:
             self.combobox.setCurrentIndex(0)
 

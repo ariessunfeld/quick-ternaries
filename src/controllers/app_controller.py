@@ -32,7 +32,8 @@ class AppController:
         # Update view's html path for the QWebEngine with the new HTML
         curr_model = self.model.current_model
         url = self.service.write_html(curr_model, self.view.plot_type_combo.currentText())
-        self.view.plot_view.setUrl(url)
+        if url:
+            self.view.plot_view.setUrl(url)
 
     def _on_save_clicked(self):
         # TODO same as _on_preview_clicked
