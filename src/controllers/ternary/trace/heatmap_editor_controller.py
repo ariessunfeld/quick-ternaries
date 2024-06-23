@@ -57,12 +57,15 @@ class HeatmapEditorController:
 
     def _on_column_changed(self):
         self.model.current_tab.heatmap_model.selected_column = self.view.heatmap_column_combobox.currentText()
+        self.model.current_tab.heatmap_model.bar_title = self.view.heatmap_column_combobox.currentText()
         # Get the dtype of the column
         dtype = self.model.current_tab.selected_data_file.get_dtype(self.model.current_tab.heatmap_model.selected_column)
         # If numeric, get the min and median
         if dtype == 'object':
-            self.view.range_min_line_edit.clear() # this will update model too
-            self.view.range_max_line_edit.clear() # this will update model too
+            self.view.range_min_line_edit.clear() # this will update model too, 
+                                                  # not because view holds reference to model, 
+                                                  # but because it triggers the line edit's textChanged event
+            self.view.range_max_line_edit.clear()
         elif np.issubdtype(dtype, np.number):
             min_val = self.model.current_tab.selected_data_file.get_min(self.model.current_tab.heatmap_model.selected_column)
             median_val = self.model.current_tab.selected_data_file.get_median(self.model.current_tab.heatmap_model.selected_column)
@@ -120,7 +123,11 @@ class HeatmapEditorController:
         data_file = self.data_library_reference.get_data_from_shortname(value)
         if data_file:
             # Get the columns from the new data file
+            # Only show numeric columns
             available_heatmap_columns = data_file.get_columns()
+            available_heatmap_columns = [
+                c for c in available_heatmap_columns if \
+                    np.issubdtype(data_file.get_dtype(c), np.number)]
             # Update the heatmap model's available columns
             self.model.current_tab.heatmap_model.available_columns = available_heatmap_columns
             # Clear the view and update it with these columns
@@ -129,3 +136,7 @@ class HeatmapEditorController:
             if self.model.current_tab.heatmap_model.selected_column is not None:
                 # Set the selected column if non-None
                 self.view.heatmap_column_combobox.setCurrentText(self.model.current_tab.heatmap_model.selected_column)
+            elif len(available_heatmap_columns) > 1:
+                # TODO Hacky solution, only works if > 1 item available... fix ASAP
+                self.view.heatmap_column_combobox.setCurrentText(available_heatmap_columns[1], block=False)
+                self.view.heatmap_column_combobox.setCurrentText(available_heatmap_columns[0], block=False)

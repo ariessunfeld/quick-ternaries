@@ -148,6 +148,7 @@ class TernaryTraceMaker:
                 orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
             )
             # TODO add error handling here for when floats fail or stuff is blank
+            # TODO warn user if min >= max
             marker['cmin'] = float(heatmap_model.range_min)
             marker['cmax'] = float(heatmap_model.range_max)
 
