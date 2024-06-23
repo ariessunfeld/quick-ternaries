@@ -18,6 +18,8 @@ class TernaryPlotMaker:
         # For each trace in the tab model's order,
         # Make the trace, add it to the figure
         for trace_id in model.tab_model.order:
+            if trace_id == 'StartSetup':
+                continue
             trace = self.trace_maker.make_trace(model, trace_id)
             fig.add_trace(trace)
 

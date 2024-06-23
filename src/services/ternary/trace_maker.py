@@ -8,6 +8,7 @@ import pandas as pd
 
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
+from src.models.ternary.setup.model import TernaryType
 from src.services.utils.molar_calculator import (
     MolarMassCalculator,
     MolarMassCalculatorException
@@ -15,9 +16,10 @@ from src.services.utils.molar_calculator import (
 
 class TraceMolarConversionException(Exception):
     """Exception raised for errors in molar conversion"""
-    def __init__(self, trace_id: str, column: str, message: str):
+    def __init__(self, trace_id: str, column: str, bad_formula: str, message: str):
         self.trace_id = trace_id
         self.column = column
+        self.bad_formula = bad_formula
         self.message = message
 
 
@@ -40,9 +42,12 @@ class TernaryTraceMaker:
 
         # Get the start setup model from the ternary model
         ternary_type = model.start_setup_model.get_ternary_type()
+        print(ternary_type)
+        print(type(ternary_type))
 
         # If `custom`, pull out the apex values from the custom apex selection model
-        if ternary_type.name == 'Custom':
+        if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
             top_columns = model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
             left_columns = model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
             right_columns = model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
@@ -51,8 +56,13 @@ class TernaryTraceMaker:
             left_columns = ternary_type.left
             right_columns = ternary_type.right
 
+        print(f"{top_columns=}")
+        print(f"{left_columns=}")
+        print(f"{right_columns=}")
+
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
+        print(trace_id)
 
         # Get the trace model's selected data (GET A COPY)
         trace_data_file = trace_model.selected_data_file
@@ -66,8 +76,10 @@ class TernaryTraceMaker:
 
         # If model start setup indicates any scaling needs to be done, 
         # scale the appropriate columns
-        scaling_map = self._get_scaling_map(model)
-        trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
+        scale_apices = model.start_setup_model.scale_apices_is_checked
+        if scale_apices:
+            scaling_map = self._get_scaling_map(model)
+            trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
         
         # Get the name, point size, color, shape, etc that user has specified
         name = trace_model.legend_name # TODO check that this isnt supposed to be tab_name
@@ -82,7 +94,8 @@ class TernaryTraceMaker:
         convert_to_molar = trace_model.wtp_to_molar_checked
         if convert_to_molar:
             apex_columns = top_columns + left_columns + right_columns
-            if ternary_type.name == 'Custom':
+            if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                    (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
                 molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
             else:
                 molar_mapping = {c:c for c in apex_columns}
@@ -92,7 +105,7 @@ class TernaryTraceMaker:
                     trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
                         trace_data_df[col] / self.calculator.get_molar_mass(molar_mapping.get(col))
                 except MolarMassCalculatorException as e:
-                    raise TraceMolarConversionException(trace_id, col, 'Error parsing formula for column.')
+                    raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
             # Sum to get the apex columns
             for apex_name, apex_cols_list in zip(
                     ['top', 'left', 'right'], 
@@ -139,7 +152,7 @@ class TernaryTraceMaker:
 
     def _apply_scale_factors(self, df: pd.DataFrame, scale_map: Dict[str, float]):
         for col, factor in scale_map.items():
-            if col in df.get_columns():
+            if col in df.columns.to_list():
                 df[col] = factor * df[col]
         return df
     

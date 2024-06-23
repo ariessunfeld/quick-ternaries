@@ -22,17 +22,18 @@ class AppService:
         if html_maker is not None:
             html = html_maker.make_html(model)
             
-            current_directory = Path(__file__).parent
-            save_path = current_directory / '..' / 'resources' / 'ternary.html'
-            save_path.parent.mkdir(parents=True, exist_ok=True)
+            if html:
+                current_directory = Path(__file__).parent
+                save_path = current_directory / '..' / 'resources' / 'ternary.html'
+                save_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Save the HTML content to the file
-            with save_path.open('w', encoding='utf-8') as file:
-                file.write(html)
+                # Save the HTML content to the file
+                with save_path.open('w', encoding='utf-8') as file:
+                    file.write(html)
 
-            html_object = QUrl.fromLocalFile(str(save_path.resolve()))
+                html_object = QUrl.fromLocalFile(str(save_path.resolve()))
 
-            return html_object
+                return html_object
         
         else:
             raise ValueError(f"Unsupported plot mode: {plot_mode}")
