@@ -40,6 +40,7 @@ class TernaryTraceMaker:
             trace_id: str) -> go.Scatterternary:
         # TODO
 
+        # Generate a unique string used in temporary dataframe columns
         unique_str = self._generate_unique_str()
 
         # Get the start setup model from the ternary model
@@ -51,10 +52,18 @@ class TernaryTraceMaker:
             top_columns = model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
             left_columns = model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
             right_columns = model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
-        else: # otherwise pull from ternary type directly
+        # otherwise pull from ternary type directly
+        elif (isinstance(ternary_type, TernaryType) and ternary_type.name != "Custom"): 
             top_columns = ternary_type.top
             left_columns = ternary_type.left
             right_columns = ternary_type.right
+        # Janky that we need all these cases... look into how TernaryType is getting updated in startsetup model
+        # This is the dict case
+        else:
+            top_columns = ternary_type.get('top')
+            left_columns = ternary_type.get('left')
+            right_columns = ternary_type.get('right')
+
 
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
@@ -112,45 +121,10 @@ class TernaryTraceMaker:
                 trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
                 trace_data_df[apex_cols_list].sum(axis=1)
 
-        # If `heatmap`` is checked, pull the heatmap parameters as well and configure the trace accordingly
-        #   If advanced heatmap is checked, pull that info too
-        #       If log-transforming heatmap, make a new column in the copy of the selected data for this data
         use_heatmap = trace_model.add_heatmap_checked
         if use_heatmap:
-            # TODO add error handling for casting everything to float
-            heatmap_model = trace_model.heatmap_model
-            color_column = heatmap_model.selected_column
-            if heatmap_model.log_transform_checked:
-                trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)] =\
-                    trace_data_df[color_column].apply(lambda x: np.log(x) if x > 0 else 0)
-            else:
-                trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)] =\
-                    trace_data_df[color_column]
-            
-            colorscale = heatmap_model.colorscale
-            if heatmap_model.reverse_colorscale:
-                colorscale += '_r'  # Assuming Plotly accepts '_r' to reverse colorscales
-
-            marker['color'] = trace_data_df[self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)]
-            marker['colorscale'] = colorscale
-            marker['colorbar'] = dict(
-                title=dict(
-                    text=heatmap_model.bar_title,
-                    side=heatmap_model.title_position,
-                    font=dict(size=float(heatmap_model.title_font_size))
-                ),
-                len=float(heatmap_model.length),
-                thickness=float(heatmap_model.thickness),
-                # TODO add this (thickness) to view and controller
-                x=float(heatmap_model.x),
-                y=float(heatmap_model.y),
-                tickfont=dict(size=float(heatmap_model.tick_font_size)),
-                orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
-            )
-            # TODO add error handling here for when floats fail or stuff is blank
-            # TODO warn user if min >= max
-            marker['cmin'] = float(heatmap_model.range_min)
-            marker['cmax'] = float(heatmap_model.range_max)
+            marker = self._update_marker_dict_with_heatmap_config(
+                marker, trace_model, trace_data_df, unique_str)
 
         return go.Scatterternary(
             a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
@@ -175,7 +149,10 @@ class TernaryTraceMaker:
             scaling_map[col] = float(factor)
         return scaling_map
 
-    def _apply_scale_factors(self, df: pd.DataFrame, scale_map: Dict[str, float]):
+    def _apply_scale_factors(
+            self, 
+            df: pd.DataFrame, 
+            scale_map: Dict[str, float]) -> pd.DataFrame:
         for col, factor in scale_map.items():
             if col in df.columns.to_list():
                 df[col] = factor * df[col]
@@ -185,12 +162,59 @@ class TernaryTraceMaker:
         """Returns a unique string to be used in dataframe column names"""
         return str(hash(time.time()))
 
-    def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel):
+    def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel) -> dict:
         marker = {}
         marker['size'] = float(trace_model.point_size)
         marker['symbol'] = trace_model.selected_point_shape
         marker['color'] = trace_model.color
         return marker
+    
+    def _update_marker_dict_with_heatmap_config(
+            self, 
+            marker: dict, 
+            trace_model: TernaryTraceEditorModel,
+            data_df: pd.DataFrame,
+            uuid: str) -> dict:
+        # If `heatmap`` is checked, pull the heatmap parameters as well and configure the trace accordingly
+        #   If advanced heatmap is checked, pull that info too
+        #       If log-transforming heatmap, make a new column in the copy of the selected data for this data
+        # TODO add error handling for casting everything to float
+        heatmap_model = trace_model.heatmap_model
+        color_column = heatmap_model.selected_column
+        if heatmap_model.log_transform_checked:
+            data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
+                data_df[color_column].apply(lambda x: np.log(x) if x > 0 else 0)
+        else:
+            data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
+                data_df[color_column]
+        
+        colorscale = heatmap_model.colorscale
+        if heatmap_model.reverse_colorscale:
+            colorscale += '_r'  # Assuming Plotly accepts '_r' to reverse colorscales
+
+        marker['color'] = data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)]
+        marker['colorscale'] = colorscale
+        marker['colorbar'] = dict(
+            title=dict(
+                text=heatmap_model.bar_title,
+                side=heatmap_model.title_position,
+                font=dict(size=float(heatmap_model.title_font_size))
+            ),
+            len=float(heatmap_model.length),
+            thickness=float(heatmap_model.thickness),
+            # TODO add this (thickness) to view and controller
+            x=float(heatmap_model.x),
+            y=float(heatmap_model.y),
+            tickfont=dict(size=float(heatmap_model.tick_font_size)),
+            orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
+        )
+        # TODO add error handling here for when floats fail or stuff is blank
+        # TODO warn user if min >= max
+        marker['cmin'] = float(heatmap_model.range_min)
+        marker['cmax'] = float(heatmap_model.range_max)
+
+        return marker
 
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
         return trace_model.legend_name
+    
