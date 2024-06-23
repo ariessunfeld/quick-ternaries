@@ -7,9 +7,9 @@ from src.views.ternary.setup import CustomApexSelectionView
 class CustomApexSelectionModel:
     def __init__(self):
         self.available_columns: List[str] = []
-        self.top_apex_selected_columns: List[str] = []
-        self.right_apex_selected_columns: List[str] = []
-        self.left_apex_selected_columns: List[str] = []
+        self.top_apex_selected_columns: List[str] = ['']
+        self.right_apex_selected_columns: List[str] = ['']
+        self.left_apex_selected_columns: List[str] = ['']
         self.selected_column: str = ''
 
     # def update_view(self):
@@ -85,3 +85,11 @@ class CustomApexSelectionModel:
 
     def set_selected_column(self, col: str):
         self.selected_column = col
+
+    def get_ternary_type(self):
+        return dict(
+            name = "Custom",
+            top = self.get_top_apex_selected_columns(),
+            right = self.get_right_apex_selected_columns(),
+            left = self.get_left_apex_selected_columns()
+        )

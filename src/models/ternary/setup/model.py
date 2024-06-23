@@ -95,7 +95,7 @@ class TernaryStartSetupModel:
         self.sheet_selection_model = SheetSelectionModel([''])
         self.apex_scaling_model = TernaryApexScalingModel()
         
-        self.title: str = 'Untitled'
+        self.title: str = ''
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
@@ -107,16 +107,24 @@ class TernaryStartSetupModel:
         self.view = None
 
     def get_ternary_type(self) -> TernaryType:
+        if self.selected_ternary_type.name == "Custom":
+            self.set_selected_ternary_type(self.custom_apex_selection_model.get_ternary_type())
         return self.selected_ternary_type
 
-    def set_selected_ternary_type(self, ttype: TernaryType):
-        self.selected_ternary_type = ttype
+    def set_selected_ternary_type(self, ttype: dict):
+        self.selected_ternary_type = TernaryType(**ttype)
 
     def set_title(self, title: str):
         self.title = title
 
     def get_title(self) -> str:
-        return self.title
+        if self.title == "":
+            ternary_type = self.get_ternary_type()
+            title = ternary_type.get_short_formatted_name()
+            title += " Ternary Diagram"
+            return title
+        else:
+            return self.title
 
     def set_top_apex_display_name(self, top_name: str):
         self.top_apex_display_name = top_name
@@ -128,10 +136,28 @@ class TernaryStartSetupModel:
         self.left_apex_display_name = left_name
 
     def get_top_apex_display_name(self):
-        return self.top_apex_display_name
+        if self.top_apex_display_name == "":
+            ternary_type = self.get_ternary_type()
+            top = ternary_type.get_top()
+            top = "+".join(top)
+            return top
+        else:
+            return self.top_apex_display_name
 
     def get_right_apex_display_name(self):
-        return self.right_apex_display_name
+        if self.right_apex_display_name == "":
+            ternary_type = self.get_ternary_type()
+            right = ternary_type.get_right()
+            right = "+".join(right)
+            return right
+        else:
+            return self.right_apex_display_name
 
     def get_left_apex_display_name(self):
-        return self.left_apex_display_name
+        if self.left_apex_display_name == "":
+            ternary_type = self.get_ternary_type()
+            left = ternary_type.get_left()
+            left = "+".join(left)
+            return left
+        else:
+            return self.left_apex_display_name

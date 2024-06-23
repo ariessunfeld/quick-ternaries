@@ -45,25 +45,10 @@ class TernaryTraceMaker:
 
         # Get the start setup model from the ternary model
         ternary_type = model.start_setup_model.get_ternary_type()
-
-        # If `custom`, pull out the apex values from the custom apex selection model
-        if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
-                (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
-            top_columns = model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
-            left_columns = model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
-            right_columns = model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
-        # otherwise pull from ternary type directly
-        elif (isinstance(ternary_type, TernaryType) and ternary_type.name != "Custom"): 
-            top_columns = ternary_type.top
-            left_columns = ternary_type.left
-            right_columns = ternary_type.right
-        # Janky that we need all these cases... look into how TernaryType is getting updated in startsetup model
-        # This is the dict case
-        else:
-            top_columns = ternary_type.get('top')
-            left_columns = ternary_type.get('left')
-            right_columns = ternary_type.get('right')
-
+            
+        top_columns = ternary_type.get_top()
+        left_columns = ternary_type.get_left()
+        right_columns = ternary_type.get_right()
 
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
