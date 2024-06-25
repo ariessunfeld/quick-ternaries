@@ -36,6 +36,9 @@ class TernaryPlotMaker:
         self._add_axis_labels_to_layout(layout, top_axis_name, left_axis_name, right_axis_name)
         self._add_title_to_layout(layout, title)
 
+        # Update the figure layout
+        fig.update_layout(layout)
+
         # For each trace in the tab model's order,
         # Make the trace, add it to the figure
         for trace_id in model.tab_model.order:
@@ -72,11 +75,13 @@ class TernaryPlotMaker:
         if left_name.strip() == '':
             left_apex_columns = model.start_setup_model.get_ternary_type().left
             if left_apex_columns:
-                return '+'.join(left_apex_columns)
+                # Add left whitespace to simulate anchoring at left apex
+                str_fmt = '+'.join(left_apex_columns)
+                return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
             else:
                 return '<br>Untitled Left Apex'
         else:
-            return left_name
+            return '<br>' + left_name
         
 
     def _format_right_axis_name(self, right_name: str, model: TernaryModel):
@@ -84,11 +89,13 @@ class TernaryPlotMaker:
         if right_name.strip() == '':
             right_apex_columns = model.start_setup_model.get_ternary_type().right
             if right_apex_columns:
-                return '+'.join(right_apex_columns)
+                # Add right whitespace to simulate anchoring at right apex
+                str_fmt = '+'.join(right_apex_columns)
+                return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt))
             else:
                 return '<br>Untitled Right Apex'
         else:
-            return right_name
+            return '<br>' + right_name
         
 
     def _add_axis_labels_to_layout(
@@ -98,18 +105,26 @@ class TernaryPlotMaker:
             left_axis_name: str, 
             right_axis_name: str):
         """Updates `layout` in-place with axis labels and sum"""
+
+        # Set the color, width, and tick position
+        line_style = dict(linecolor='grey', linewidth=1, ticks='outside')
+
+        # Update the layout
         layout.update(
             ternary={
                 'sum': 100,
                 'aaxis': dict(
-                    title=top_axis_name
+                    title=top_axis_name,
+                    **line_style
                 ),
                 'baxis': dict(
-                    title=left_axis_name
-                ),
+                    title=left_axis_name,
+                    **line_style
+                ) | dict(tickangle=60),
                 'caxis': dict(
-                    title=right_axis_name
-                )
+                    title=right_axis_name,
+                    **line_style
+                ) | dict(tickangle=-60)
             }
         )
 

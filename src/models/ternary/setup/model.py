@@ -94,7 +94,7 @@ class TernaryStartSetupModel:
         self.sheet_selection_model = SheetSelectionModel([''])
         self.apex_scaling_model = TernaryApexScalingModel()
         
-        self.title: str = 'Untitled'
+        self.title: str = ''
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
