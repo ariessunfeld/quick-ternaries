@@ -1,5 +1,7 @@
 """Plotly Plot Maker for Ternary diagrams"""
 
+from typing import Dict, List
+
 from src.models.ternary.model import TernaryModel
 from src.services.ternary.trace_maker import TernaryTraceMaker
 
@@ -15,6 +17,9 @@ class TernaryPlotMaker:
         # Initialize a figure
         fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'ternary'}]])
         
+        # Instantiate a layout
+        layout = {}
+        
         # Pull the title and apex display names from the start setup view
         title = model.start_setup_model.get_title()
         top_axis_name = model.start_setup_model.get_top_apex_display_name()
@@ -27,7 +32,9 @@ class TernaryPlotMaker:
         left_axis_name = self._format_left_axis_name(left_axis_name, model)
         right_axis_name = self._format_right_axis_name(right_axis_name, model)
 
-        # Instantiate a base layout
+        # Add axis labels and title to layout
+        self._add_axis_labels_to_layout(layout, top_axis_name, left_axis_name, right_axis_name)
+        self._add_title_to_layout(layout, title)
 
         # For each trace in the tab model's order,
         # Make the trace, add it to the figure
@@ -82,3 +89,41 @@ class TernaryPlotMaker:
                 return '<br>Untitled Right Apex'
         else:
             return right_name
+        
+
+    def _add_axis_labels_to_layout(
+            self, 
+            layout: dict, 
+            top_axis_name: str, 
+            left_axis_name: str, 
+            right_axis_name: str):
+        """Updates `layout` in-place with axis labels and sum"""
+        layout.update(
+            ternary={
+                'sum': 100,
+                'aaxis': dict(
+                    title=top_axis_name
+                ),
+                'baxis': dict(
+                    title=left_axis_name
+                ),
+                'caxis': dict(
+                    title=right_axis_name
+                )
+            }
+        )
+
+    def _add_title_to_layout(
+            self,
+            layout: dict,
+            title: str):
+        """Updates `layout` in-place by adding title dict configuration"""
+        layout.update(
+            title=dict(
+                text=title,
+                x=0.5,
+                y=0.95,
+                xanchor='center',
+                yanchor='top'
+            )
+        )
