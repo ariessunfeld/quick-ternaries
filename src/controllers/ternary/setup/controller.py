@@ -247,8 +247,13 @@ class TernaryStartSetupController(QWidget):
         self.model.set_selected_ternary_type(selected_ternary_type)
         if selected_ternary_type_name == 'Custom':
             self.view.update_custom_apex_selection_view_visibility(True)
+            self.view.labeled_checkbox_scale_apices.setEnabled(True)
+            self.view.update_scale_apices_view_visibility(self.view.labeled_checkbox_scale_apices.isChecked())
         else:
             self.view.update_custom_apex_selection_view_visibility(False)
+            self.view.labeled_checkbox_scale_apices.setEnabled(False)
+            self.view.labeled_checkbox_scale_apices.setChecked(False)
+            self.view.update_scale_apices_view_visibility(self.view.labeled_checkbox_scale_apices.isChecked())
 
     def checkbox_hoverdata_changed(self):
         """
