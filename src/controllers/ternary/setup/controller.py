@@ -14,7 +14,7 @@ import pandas as pd
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget, QMessageBox
 from PySide6.QtCore import QObject, Signal
 
-from src.models.ternary.setup.model import TernaryStartSetupModel
+from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
 from src.views.ternary.setup.view import TernaryStartSetupView
 
 from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
@@ -244,6 +244,7 @@ class TernaryStartSetupController(QWidget):
         """
         selected_ternary_type_name = self.view.combobox_ternary_type.currentText()
         selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
+        selected_ternary_type = TernaryType(**selected_ternary_type)
         self.model.set_selected_ternary_type(selected_ternary_type)
         if selected_ternary_type_name == 'Custom':
             self.view.update_custom_apex_selection_view_visibility(True)
