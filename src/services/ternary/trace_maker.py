@@ -257,7 +257,11 @@ class TernaryTraceMaker:
         # sort df so that points are plotted in order from lowest
         # heatmap value abundance to highest heatmap value abundance
         # TODO add this is a default checkec option but allow users to uncheck
-        data_df = data_df.sort_values(by=color_column, ascending=True)
+        data_df.sort_values(
+            by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
+            ascending=True, 
+            inplace=True)
+        data_df = data_df.sample(frac=1, axis=1).reset_index(drop=True)
         
         colorscale = heatmap_model.colorscale
         if heatmap_model.reverse_colorscale:
