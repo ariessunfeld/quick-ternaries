@@ -95,6 +95,12 @@ class TernaryStartSetupController(QWidget):
         self.custom_apex_selection_controller.column_removed_from_apices.connect(
             lambda s: self.signaller.apex_column_removed.emit(s))
         
+        # Connect custom apex add/remove to updating ternary type
+        self.custom_apex_selection_controller.column_added_to_apices.connect(
+            self._set_custom_ternary_type)
+        self.custom_apex_selection_controller.column_removed_from_apices.connect(
+            self._set_custom_ternary_type)
+        
         # Set up apex scaling controller and connections
         self.apex_scaling_controller = TernaryApexScalingController(
             self.model.apex_scaling_model,
@@ -243,14 +249,15 @@ class TernaryStartSetupController(QWidget):
         Otherwise, ensure it is invisible
         """
         selected_ternary_type_name = self.view.combobox_ternary_type.currentText()
-        selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
-        selected_ternary_type = TernaryType(**selected_ternary_type)
-        self.model.set_selected_ternary_type(selected_ternary_type)
         if selected_ternary_type_name == 'Custom':
+            self._set_custom_ternary_type()
             self.view.update_custom_apex_selection_view_visibility(True)
             self.view.labeled_checkbox_scale_apices.setEnabled(True)
             self.view.update_scale_apices_view_visibility(self.view.labeled_checkbox_scale_apices.isChecked())
         else:
+            selected_ternary_type = [x for x in TERNARY_TYPES if x['name'] == selected_ternary_type_name][0]
+            selected_ternary_type = TernaryType(**selected_ternary_type)
+            self.model.set_selected_ternary_type(selected_ternary_type)
             self.view.update_custom_apex_selection_view_visibility(False)
             self.view.labeled_checkbox_scale_apices.setEnabled(False)
             self.view.labeled_checkbox_scale_apices.setChecked(False)
@@ -270,3 +277,15 @@ class TernaryStartSetupController(QWidget):
         is_checked = self.view.labeled_checkbox_scale_apices.isChecked()
         self.model.scale_apices_is_checked = is_checked
         self.view.update_scale_apices_view_visibility(is_checked)
+
+    def _set_custom_ternary_type(self):
+        self.model.set_selected_ternary_type(
+            TernaryType(
+                **{
+                    'name': 'Custom',
+                    'top': self.model.custom_apex_selection_model.get_top_apex_selected_columns(),
+                    'left': self.model.custom_apex_selection_model.get_left_apex_selected_columns(),
+                    'right': self.model.custom_apex_selection_model.get_right_apex_selected_columns()
+                }
+            )
+        )
