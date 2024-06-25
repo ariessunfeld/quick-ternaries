@@ -1,6 +1,6 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import time
 
 import plotly.graph_objects as go
@@ -134,6 +134,50 @@ class TernaryTraceMaker:
             name=name,
             marker=marker
         )
+    
+    def _get_hover_data_and_template(
+            self, 
+            model: TernaryModel, 
+            trace_data_df: pd.DataFrame,
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str]) -> Tuple[np.array, str]:
+        """
+        Generate hover data and template for a Plotly trace.
+
+        Arguments:
+            model: The TernaryModel containing the data and settings.
+            trace_data_df: The dataframe selected for the current trace
+            top_columns: a list of string column names for the top apex
+            left_columns: a list of string column names for the left apex
+            right_columns: a list of string column names from the right apex
+
+        Returns:
+            hover_data: Numpy representation of hover data columns from trace_data_df
+            hover_template: HTML formatting for hover data.
+        """
+        # Collecting display names for the apices
+        apex_columns = top_columns + left_columns + right_columns
+        
+        # Determine if custom hover data is used
+        use_custom_hover_data = model.start_setup_model.custom_hover_data_is_checked
+        if use_custom_hover_data:
+            hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs()
+        else:
+            hover_cols = apex_columns
+
+        # Construct the hover template
+        hover_template = "".join(
+            f"<br><b>{header}:</b> %{{customdata[{i}]}}"
+            for i, header in enumerate(hover_cols)
+        )
+
+        # Structure hover data
+        hover_data = trace_data_df[hover_cols].values
+
+        hover_template += "<extra></extra>"  # Disable default hover text
+
+        return hover_data, hover_template
 
     def _get_scaling_map(self, model: TernaryModel):
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
