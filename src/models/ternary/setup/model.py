@@ -126,11 +126,11 @@ class TernaryStartSetupModel:
     def set_left_apex_display_name(self, left_name: str):
         self.left_apex_display_name = left_name
 
-    def get_top_apex_display_name(self):
+    def get_top_apex_display_name(self) -> str:
         return self.top_apex_display_name
     
-    def get_right_apex_display_name(self):
+    def get_right_apex_display_name(self) -> str:
         return self.right_apex_display_name
     
-    def get_left_apex_display_name(self):
+    def get_left_apex_display_name(self) -> str:
         return self.left_apex_display_name
