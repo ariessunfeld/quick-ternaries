@@ -199,6 +199,7 @@ class TernaryTraceMaker:
         return hover_data, hover_template
 
     def _get_scaling_map(self, model: TernaryModel):
+        """Returns a dictionary with scale factors for each column in the `Scale Apices` view"""
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
         scaling_map = {}
         for entry in scaling_info:
@@ -216,6 +217,7 @@ class TernaryTraceMaker:
             self, 
             df: pd.DataFrame, 
             scale_map: Dict[str, float]) -> pd.DataFrame:
+        """Returns `df` after applying scale factors to each column in `scale_map`"""
         for col, factor in scale_map.items():
             if col in df.columns.to_list():
                 df[col] = factor * df[col]
@@ -226,6 +228,7 @@ class TernaryTraceMaker:
         return str(hash(time.time()))
 
     def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel) -> dict:
+        """Returns a dictionary with size, symbol, and color keys populated with values from trace"""
         marker = {}
         marker['size'] = float(trace_model.point_size)
         marker['symbol'] = trace_model.selected_point_shape
@@ -279,5 +282,6 @@ class TernaryTraceMaker:
         return marker
 
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
+        """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
     
