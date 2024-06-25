@@ -125,6 +125,9 @@ class TernaryTraceMaker:
         if use_heatmap:
             marker = self._update_marker_dict_with_heatmap_config(
                 marker, trace_model, trace_data_df, unique_str)
+            
+        hover_data, hover_template = self._get_hover_data_and_template(
+            model, trace_model, trace_data_df, top_columns, left_columns, right_columns)
 
         return go.Scatterternary(
             a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
@@ -132,21 +135,30 @@ class TernaryTraceMaker:
             c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
             mode='markers',
             name=name,
-            marker=marker
+            marker=marker,
+            customdata=hover_data,
+            hovertemplate=hover_template
         )
     
     def _get_hover_data_and_template(
             self, 
             model: TernaryModel, 
+            trace_model: TernaryTraceEditorModel,
             trace_data_df: pd.DataFrame,
             top_columns: List[str], 
             left_columns: List[str], 
             right_columns: List[str]) -> Tuple[np.array, str]:
         """
-        Generate hover data and template for a Plotly trace.
+        Generates hover data and template for a Plotly trace.
+
+        If custom hover data is unchecked, default hover data is provided as follows:
+         - Each column used in an apex
+         - Heatmap column (if used)
+
 
         Arguments:
             model: The TernaryModel containing the data and settings.
+            trace_model: The TernaryTraceEditorModel for the current trace
             trace_data_df: The dataframe selected for the current trace
             top_columns: a list of string column names for the top apex
             left_columns: a list of string column names for the left apex
@@ -162,9 +174,16 @@ class TernaryTraceMaker:
         # Determine if custom hover data is used
         use_custom_hover_data = model.start_setup_model.custom_hover_data_is_checked
         if use_custom_hover_data:
+            # Use strictly the custom hover data selected by user if checkbox is checked
+            # This includes the case where checkbox is checked but nothing is added to `selected`
             hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs()
         else:
+            # If checkbox not checked, default to the apex columns and heatmap column (if heatmap in use)
             hover_cols = apex_columns
+            if trace_model.add_heatmap_checked:
+                heatmap_col = trace_model.heatmap_model.selected_column
+                if heatmap_col and heatmap_col not in hover_cols:
+                    hover_cols += [heatmap_col]
 
         # Construct the hover template
         hover_template = "".join(
