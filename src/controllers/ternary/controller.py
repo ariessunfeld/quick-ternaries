@@ -106,6 +106,10 @@ class TernaryController:
         
         self.start_setup_controller.signaller.apex_column_removed.connect(
             self.molar_conversion_controller.on_new_custom_column_removed)
+        
+        # Enable the add trace button if there's data in the loaded data view
+        self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
+            self.tab_controller.view.new_tab_button.setEnabled)
 
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
