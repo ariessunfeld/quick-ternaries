@@ -64,7 +64,7 @@ class TernaryPlotMaker:
         """Formats numeric subscripts in a chemical formula."""
         return "".join('<sub>' + x + '</sub>' if x.isnumeric() else x for x in oxide)
 
-    def _build_str_fmt(self, apex_columns, scale_map, unique_scale_vals):
+    def _build_str_fmt(self, apex_columns: List[str], scale_map: dict, unique_scale_vals: List[int | float]) -> str:
         """Builds the formatted string based on scaling factors and apex columns."""
         if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
             return f"{unique_scale_vals[0]} &times; ({' + '.join(map(self._format_subscripts, apex_columns))})"
@@ -78,7 +78,7 @@ class TernaryPlotMaker:
                 ret.extend(cols_with_this_val)
         return ' + '.join(ret)
 
-    def _format_axis_name(self, custom_name: str, default_name: str, apex_columns: List[str], model: TernaryModel):
+    def _format_axis_name(self, custom_name: str, default_name: str, apex_columns: List[str], model: TernaryModel) -> str:
         """Handles blank top apex name cases, attempting to build from ternary type."""
         if custom_name.strip():
             return custom_name
@@ -93,15 +93,15 @@ class TernaryPlotMaker:
         
         return ' + '.join(map(self._format_subscripts, apex_columns))
 
-    def _format_top_axis_name(self, top_name: str, ternary_type: TernaryType, model: TernaryModel):
+    def _format_top_axis_name(self, top_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
         top_apex_columns = ternary_type.get_top()
         return self._format_axis_name(top_name, 'Untitled Top Apex', top_apex_columns, model)
         
-    def _format_left_axis_name(self, left_name: str, ternary_type: TernaryType, model: TernaryModel):
+    def _format_left_axis_name(self, left_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
         left_apex_columns = ternary_type.get_left()
         return '<br>' + self._format_axis_name(left_name, 'Untitled Left Apex', left_apex_columns, model)
         
-    def _format_right_axis_name(self, right_name: str, ternary_type: TernaryType, model: TernaryModel):
+    def _format_right_axis_name(self, right_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
         right_apex_columns = ternary_type.get_right()
         return '<br>' + self._format_axis_name(right_name, 'Untitled Right Apex', right_apex_columns, model)
 
