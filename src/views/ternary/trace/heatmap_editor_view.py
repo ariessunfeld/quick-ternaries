@@ -112,7 +112,7 @@ class TernaryHeatmapEditorView(QWidget):
         self.advanced_options_layout.addLayout(self.orientation_and_font_layout)
 
         # Make an arrea for position and dimensions
-        self.position_dimensions_groupbox = QGroupBox('Position \& Dimensions')
+        self.position_dimensions_groupbox = QGroupBox('Position && Dimensions')
         self.position_dimensions_layout = QHBoxLayout()
 
         # Create the grid layout for the first four fields

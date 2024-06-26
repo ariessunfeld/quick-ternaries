@@ -26,11 +26,17 @@ class HeatmapEditorController:
         self.view.title_line_edit.textChanged.connect(self._on_title_changed)
         self.view.title_position_combobox.valueChanged.connect(self._on_title_position_changed)
         self.view.len_line_edit.textChanged.connect(self._on_length_changed)
+        self.view.thickness_line_edit.textChanged.connect(self._on_thickness_changed)
         self.view.x_line_edit.textChanged.connect(self._on_x_changed)
         self.view.y_line_edit.textChanged.connect(self._on_y_changed)
         self.view.colorbar_title_font_size_line_edit.textChanged.connect(self._on_title_font_size_changed)
         self.view.colorbar_tick_font_size_line_edit.textChanged.connect(self._on_tick_font_size_changed)
         self.view.colorbar_orientation_combobox.valueChanged.connect(self._on_orientation_changed)
+
+        self.view.no_change_radio.toggled.connect(self._on_radio_toggled)
+        self.view.shuffled_radio.toggled.connect(self._on_radio_toggled)
+        self.view.high_on_top_radio.toggled.connect(self._on_radio_toggled)
+        self.view.low_on_top_radio.toggled.connect(self._on_radio_toggled)
 
     def set_data_library_reference(self, ref: DataLibrary):
         self.data_library_reference = ref
@@ -47,6 +53,7 @@ class HeatmapEditorController:
         self.view.title_line_edit.setText(heatmap_model.bar_title)
         self.view.title_position_combobox.setCurrentText(heatmap_model.title_position)
         self.view.len_line_edit.setText(str(heatmap_model.length))
+        self.view.thickness_line_edit.setText(str(heatmap_model.thickness))
         self.view.x_line_edit.setText(str(heatmap_model.x))
         self.view.y_line_edit.setText(str(heatmap_model.y))
         self.view.colorbar_title_font_size_line_edit.setText(str(heatmap_model.title_font_size))
@@ -54,6 +61,9 @@ class HeatmapEditorController:
         self.view.colorbar_orientation_combobox.setCurrentText(heatmap_model.bar_orientation)
         self.view.show_advanced_checkbox.setChecked(heatmap_model.advanced_settings_checked)
         self.view.advanced_options_layout_widget.setVisible(heatmap_model.advanced_settings_checked)
+        # Set the sort mode radiobutton by name
+        sort_mode = heatmap_model.sorting_mode.lower().replace(' ', '_')
+        getattr(self.view, f'{sort_mode}_radio').setChecked(True)
 
     def _on_column_changed(self):
         self.model.current_tab.heatmap_model.selected_column = self.view.heatmap_column_combobox.currentText()
@@ -90,8 +100,8 @@ class HeatmapEditorController:
             curr_range_min = self.model.current_tab.heatmap_model.range_min
             curr_range_max = self.model.current_tab.heatmap_model.range_max
             try:
-                curr_range_min = float(curr_range_min)
-                curr_range_max = float(curr_range_max)
+                curr_range_min = self._float(curr_range_min)
+                curr_range_max = self._float(curr_range_max)
                 new_range_min = round(np.log(curr_range_min),2) if curr_range_min > 0 else curr_range_min
                 new_range_max = round(np.log(curr_range_max),2) if curr_range_max > 0 else 0
                 self.view.range_min_line_edit.setText(str(new_range_min)) # this will update model too
@@ -116,19 +126,22 @@ class HeatmapEditorController:
         self.model.current_tab.heatmap_model.title_position = self.view.title_position_combobox.currentText()
 
     def _on_length_changed(self):
-        self.model.current_tab.heatmap_model.length = float(self.view.len_line_edit.text())
+        self.model.current_tab.heatmap_model.length = self._float(self.view.len_line_edit.text())
+
+    def _on_thickness_changed(self):
+        self.model.current_tab.heatmap_model.thickness = self._float(self.view.thickness_line_edit.text())
 
     def _on_x_changed(self):
-        self.model.current_tab.heatmap_model.x = float(self.view.x_line_edit.text())
+        self.model.current_tab.heatmap_model.x = self._float(self.view.x_line_edit.text())
 
     def _on_y_changed(self):
-        self.model.current_tab.heatmap_model.y = float(self.view.y_line_edit.text())
+        self.model.current_tab.heatmap_model.y = self._float(self.view.y_line_edit.text())
 
     def _on_title_font_size_changed(self):
-        self.model.current_tab.heatmap_model.title_font_size = float(self.view.colorbar_title_font_size_line_edit.text())
+        self.model.current_tab.heatmap_model.title_font_size = self._float(self.view.colorbar_title_font_size_line_edit.text())
 
     def _on_tick_font_size_changed(self):
-        self.model.current_tab.heatmap_model.tick_font_size = float(self.view.colorbar_tick_font_size_line_edit.text())
+        self.model.current_tab.heatmap_model.tick_font_size = self._float(self.view.colorbar_tick_font_size_line_edit.text())
 
     def _on_orientation_changed(self):
         self.model.current_tab.heatmap_model.bar_orientation = self.view.colorbar_orientation_combobox.currentText()
@@ -138,6 +151,8 @@ class HeatmapEditorController:
         self.view.advanced_options_layout_widget.setVisible(is_checked)
         self.model.current_tab.heatmap_model.advanced_settings_checked = is_checked
 
+    def _on_radio_toggled(self, name: str):
+        self.model.current_tab.heatmap_model.sorting_mode = name.lower()
     
     def handle_trace_selected_data_event(self, value: str):
         """Handle case when user changes the selected data for the trace holding this heatmap"""
@@ -162,3 +177,19 @@ class HeatmapEditorController:
                 # TODO Hacky solution, only works if > 1 item available... fix ASAP
                 self.view.heatmap_column_combobox.setCurrentText(available_heatmap_columns[1], block=False)
                 self.view.heatmap_column_combobox.setCurrentText(available_heatmap_columns[0], block=False)
+
+    @staticmethod
+    def _float(val: str) -> float:
+        """Handles blank string case and nonnumeric cases"""
+        cleaned = []
+        for ch in val:
+            if ch.isdigit() or (ch == '.' and ch not in cleaned):
+                cleaned.append(ch)
+        cleaned = ''.join(cleaned)
+        if cleaned and cleaned != '.':
+            if float(cleaned) == int(float(cleaned)):
+                return int(float(cleaned))
+            else:
+                return float(cleaned)
+        else:
+            return ''
