@@ -68,6 +68,7 @@ class HeatmapEditorController:
     def _on_column_changed(self):
         self.model.current_tab.heatmap_model.selected_column = self.view.heatmap_column_combobox.currentText()
         self.model.current_tab.heatmap_model.bar_title = self.view.heatmap_column_combobox.currentText()
+        self.view.title_line_edit.setText(self.model.current_tab.heatmap_model.bar_title)
         # Get the dtype of the column
         dtype = self.model.current_tab.selected_data_file.get_dtype(self.model.current_tab.heatmap_model.selected_column)
         # If numeric, get the min and median

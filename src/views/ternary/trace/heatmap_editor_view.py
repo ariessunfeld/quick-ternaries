@@ -143,7 +143,7 @@ class TernaryHeatmapEditorView(QWidget):
         self.position_dimensions_tooltip_layout.addStretch()
 
         # Add the grid layout and the vertical layout to the main layout
-        self.position_dimensions_layout.addLayout(self.position_dimensions_grid_layout, 2)
+        self.position_dimensions_layout.addLayout(self.position_dimensions_grid_layout, 3)
         self.position_dimensions_layout.addLayout(self.position_dimensions_tooltip_layout, 1)
 
         # Set the main layout to the group box
