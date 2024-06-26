@@ -123,9 +123,12 @@ class TernaryTraceMaker:
 
         use_heatmap = trace_model.add_heatmap_checked
         if use_heatmap:
-            marker = self._update_marker_dict_with_heatmap_config(
+            marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
                 marker, trace_model, trace_data_df, unique_str)
             
+        # Ensure this happens last (right before trace generation)
+        # to avoud out-of-sync behavior between hoverdata and dataframe
+        # due to sorting from heatmap operations
         hover_data, hover_template = self._get_hover_data_and_template(
             model, trace_model, trace_data_df, top_columns, left_columns, right_columns)
 
@@ -240,7 +243,8 @@ class TernaryTraceMaker:
             marker: dict, 
             trace_model: TernaryTraceEditorModel,
             data_df: pd.DataFrame,
-            uuid: str) -> dict:
+            uuid: str) -> Tuple[dict, pd.DataFrame]:
+        """Returns makrer and data_df after making necessary changes for heatmap config"""
         # If `heatmap`` is checked, pull the heatmap parameters as well and configure the trace accordingly
         #   If advanced heatmap is checked, pull that info too
         #       If log-transforming heatmap, make a new column in the copy of the selected data for this data
@@ -257,11 +261,18 @@ class TernaryTraceMaker:
         # sort df so that points are plotted in order from lowest
         # heatmap value abundance to highest heatmap value abundance
         # TODO add this is a default checkec option but allow users to uncheck
-        data_df.sort_values(
-            by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
-            ascending=True, 
-            inplace=True)
-        data_df = data_df.sample(frac=1, axis=1).reset_index(drop=True)
+        if trace_model.heatmap_model.sorting_mode == 'no change':
+            pass
+        elif trace_model.heatmap_model.sorting_mode == 'high on top':
+            data_df = data_df.sort_values(
+                by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
+                ascending=True)
+        elif trace_model.heatmap_model.sorting_mode == 'low on top':
+            data_df = data_df.sort_values(
+                by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
+                ascending=False)
+        elif trace_model.heatmap_model.sorting_mode == 'shuffled':
+            data_df = data_df.sample(frac=1).reset_index(drop=True)
         
         colorscale = heatmap_model.colorscale
         if heatmap_model.reverse_colorscale:
@@ -288,7 +299,7 @@ class TernaryTraceMaker:
         marker['cmin'] = float(heatmap_model.range_min)
         marker['cmax'] = float(heatmap_model.range_max)
 
-        return marker
+        return marker, data_df
 
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
         """Extracts the trace name from the trace editor model"""
