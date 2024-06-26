@@ -29,7 +29,7 @@ class TernaryPlotMaker:
         right_axis_name = model.start_setup_model.get_right_apex_display_name()
 
         # Format the title and apex display names
-        title = self._format_title(title, model)
+        title = self._format_title(title, ternary_type)
         top_axis_name = self._format_top_axis_name(top_axis_name, ternary_type, model)
         left_axis_name = self._format_left_axis_name(left_axis_name, ternary_type, model)
         right_axis_name = self._format_right_axis_name(right_axis_name, ternary_type, model)
@@ -53,10 +53,10 @@ class TernaryPlotMaker:
         
         return fig
     
-    def _format_title(self, title: str, model: TernaryModel):
+    def _format_title(self, title: str, ternary_type: TernaryType):
         """Handles blank title case, returning title as-is otherwise"""
         if title.strip() == '':
-            return 'Untitled Ternary Diagram'
+            return ternary_type.get_short_formatted_name() + ' Ternary Diagram'
         else:
             return title
 
@@ -109,13 +109,6 @@ class TernaryPlotMaker:
         right_apex_columns = ternary_type.get_right()
         str_fmt = self._format_axis_name(right_name, 'Untitled Right Apex', right_apex_columns, model)
         return '<br>' + str_fmt + '&nbsp;'*int(0.6*len(str_fmt))
-
-    def _format_title(self, title: str, model: TernaryModel):
-        """Handles blank title case, returning title as-is otherwise"""
-        if title.strip() == '':
-            return 'Untitled Ternary Diagram'
-        else:
-            return title
         
 
     def _add_axis_labels_to_layout(
