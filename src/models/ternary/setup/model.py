@@ -135,29 +135,11 @@ class TernaryStartSetupModel:
     def set_left_apex_display_name(self, left_name: str):
         self.left_apex_display_name = left_name
 
-    def get_top_apex_display_name(self):
-        if self.top_apex_display_name == "":
-            ternary_type = self.get_ternary_type()
-            top = ternary_type.get_top()
-            top = "+".join(top)
-            return top
-        else:
-            return self.top_apex_display_name
-
-    def get_right_apex_display_name(self):
-        if self.right_apex_display_name == "":
-            ternary_type = self.get_ternary_type()
-            right = ternary_type.get_right()
-            right = "+".join(right)
-            return right
-        else:
-            return self.right_apex_display_name
-
-    def get_left_apex_display_name(self):
-        if self.left_apex_display_name == "":
-            ternary_type = self.get_ternary_type()
-            left = ternary_type.get_left()
-            left = "+".join(left)
-            return left
-        else:
-            return self.left_apex_display_name
+    def get_top_apex_display_name(self) -> str:
+        return self.top_apex_display_name
+    
+    def get_right_apex_display_name(self) -> str:
+        return self.right_apex_display_name
+    
+    def get_left_apex_display_name(self) -> str:
+        return self.left_apex_display_name

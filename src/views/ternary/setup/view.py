@@ -82,6 +82,7 @@ class TernaryStartSetupView(QWidget):
         self.checkbox_scale_apices_layout = QHBoxLayout()
         self.labeled_checkbox_scale_apices = \
             LeftLabeledCheckbox('Scale Ternary Apices')
+        self.labeled_checkbox_scale_apices.setEnabled(False)
         text = (
             "Tip: Select the Custom ternary type and add columns to each apex\n"
             "to enable apex scaling. The default scale factor for each column is 1x."

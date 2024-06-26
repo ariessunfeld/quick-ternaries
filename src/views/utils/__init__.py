@@ -6,6 +6,7 @@ from .left_labeled_combobox import LeftLabeledComboBox
 from .left_labeled_spinbox import LeftLabeledSpinBox
 from .left_labeled_color_picker import LeftLabeledColorPicker
 from .info_button import InfoButton
+from .left_labeled_radiobutton import LeftLabeledRadioButton
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -15,5 +16,6 @@ __all__ = [
     "LeftLabeledComboBox",
     "LeftLabeledSpinBox",
     "LeftLabeledColorPicker",
-    "InfoButton"
+    "InfoButton",
+    "LeftLabeledRadioButton"
 ]

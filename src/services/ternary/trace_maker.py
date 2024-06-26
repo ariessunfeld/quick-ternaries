@@ -1,6 +1,6 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import time
 
 import plotly.graph_objects as go
@@ -94,9 +94,8 @@ class TernaryTraceMaker:
             marker = self._update_marker_dict_with_heatmap_config(
                 marker, trace_model, trace_data_df, unique_str)
             
-        hover_data, hover_template = self._hover_menu(model,
-                                                      trace_data_df,
-                                                      top_columns, left_columns, right_columns)
+        hover_data, hover_template = self._get_hover_data_and_template(
+            model, trace_model, trace_data_df, top_columns, left_columns, right_columns)
 
         return go.Scatterternary(
             a=trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)],
@@ -108,32 +107,51 @@ class TernaryTraceMaker:
             customdata=hover_data,
             hovertemplate=hover_template
         )
-
-    def _hover_menu(self, model: TernaryModel, 
-                    trace_data_df: pd.DataFrame,
-                    top_columns: List[str], left_columns: List[str], right_columns: List[str]) -> str:
+    
+    def _get_hover_data_and_template(
+            self, 
+            model: TernaryModel, 
+            trace_model: TernaryTraceEditorModel,
+            trace_data_df: pd.DataFrame,
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str]) -> Tuple[np.array, str]:
         """
-        Generate hover data and template for a Plotly trace.
+        Generates hover data and template for a Plotly trace.
 
-        Args:
+        If custom hover data is unchecked, default hover data is provided as follows:
+         - Each column used in an apex
+         - Heatmap column (if used)
+
+
+        Arguments:
             model: The TernaryModel containing the data and settings.
+            trace_model: The TernaryTraceEditorModel for the current trace
+            trace_data_df: The dataframe selected for the current trace
+            top_columns: a list of string column names for the top apex
+            left_columns: a list of string column names for the left apex
+            right_columns: a list of string column names from the right apex
 
         Returns:
+            hover_data: Numpy representation of hover data columns from trace_data_df
             hover_template: HTML formatting for hover data.
         """
         # Collecting display names for the apices
         apex_columns = top_columns + left_columns + right_columns
         
-        # Default hover columns with weight percentage information
-        # wtp_hover = [f"{formula}-wt%" for formula in all_columns]
-        
         # Determine if custom hover data is used
         use_custom_hover_data = model.start_setup_model.custom_hover_data_is_checked
         if use_custom_hover_data:
-            # model.start_setup_model.custom_hover_data_selection_model.selected_attrs = apex_columns
+            # Use strictly the custom hover data selected by user if checkbox is checked
+            # This includes the case where checkbox is checked but nothing is added to `selected`
             hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs()
         else:
+            # If checkbox not checked, default to the apex columns and heatmap column (if heatmap in use)
             hover_cols = apex_columns
+            if trace_model.add_heatmap_checked:
+                heatmap_col = trace_model.heatmap_model.selected_column
+                if heatmap_col and heatmap_col not in hover_cols:
+                    hover_cols += [heatmap_col]
 
         # Construct the hover template
         hover_template = "".join(
@@ -149,6 +167,7 @@ class TernaryTraceMaker:
         return hover_data, hover_template
 
     def _get_scaling_map(self, model: TernaryModel):
+        """Returns a dictionary with scale factors for each column in the `Scale Apices` view"""
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
         scaling_map = {}
         for entry in scaling_info:
@@ -166,6 +185,7 @@ class TernaryTraceMaker:
             self, 
             df: pd.DataFrame, 
             scale_map: Dict[str, float]) -> pd.DataFrame:
+        """Returns `df` after applying scale factors to each column in `scale_map`"""
         for col, factor in scale_map.items():
             if col in df.columns.to_list():
                 df[col] = factor * df[col]
@@ -176,6 +196,7 @@ class TernaryTraceMaker:
         return str(hash(time.time()))
 
     def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel) -> dict:
+        """Returns a dictionary with size, symbol, and color keys populated with values from trace"""
         marker = {}
         marker['size'] = float(trace_model.point_size)
         marker['symbol'] = trace_model.selected_point_shape
@@ -203,7 +224,12 @@ class TernaryTraceMaker:
             
         # sort df so that points are plotted in order from lowest
         # heatmap value abundance to highest heatmap value abundance
-        data_df = data_df.sort_values(by=color_column, ascending=True)
+        # TODO add this is a default checkec option but allow users to uncheck
+        data_df.sort_values(
+            by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
+            ascending=True, 
+            inplace=True)
+        data_df = data_df.sample(frac=1, axis=1).reset_index(drop=True)
         
         colorscale = heatmap_model.colorscale
         if heatmap_model.reverse_colorscale:
@@ -233,6 +259,7 @@ class TernaryTraceMaker:
         return marker
 
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
+        """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
     
 
