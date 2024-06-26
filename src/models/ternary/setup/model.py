@@ -96,6 +96,7 @@ class TernaryStartSetupModel:
         self.apex_scaling_model = TernaryApexScalingModel()
         
         self.title: str = ''
+        self.title: str = ''
         self.top_apex_display_name: str = ''
         self.right_apex_display_name: str = ''
         self.left_apex_display_name: str = ''
@@ -107,12 +108,14 @@ class TernaryStartSetupModel:
         self.view = None
 
     def get_ternary_type(self) -> TernaryType:
-        if self.selected_ternary_type.name == "Custom":
-            self.set_selected_ternary_type(self.custom_apex_selection_model.get_ternary_type())
+        if self.selected_ternary_type.get_name() == "Custom":
+            self.set_selected_ternary_type(
+                TernaryType(**self.custom_apex_selection_model.get_ternary_type())
+                )
         return self.selected_ternary_type
 
-    def set_selected_ternary_type(self, ttype: dict):
-        self.selected_ternary_type = TernaryType(**ttype)
+    def set_selected_ternary_type(self, ttype: TernaryType):
+        self.selected_ternary_type = ttype
 
     def set_title(self, title: str):
         self.title = title
@@ -135,11 +138,11 @@ class TernaryStartSetupModel:
     def set_left_apex_display_name(self, left_name: str):
         self.left_apex_display_name = left_name
 
-    def get_top_apex_display_name(self) -> str:
+    def get_top_apex_display_name(self):
         return self.top_apex_display_name
     
-    def get_right_apex_display_name(self) -> str:
+    def get_right_apex_display_name(self):
         return self.right_apex_display_name
     
-    def get_left_apex_display_name(self) -> str:
+    def get_left_apex_display_name(self):
         return self.left_apex_display_name

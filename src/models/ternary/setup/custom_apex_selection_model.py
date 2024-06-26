@@ -86,7 +86,7 @@ class CustomApexSelectionModel:
     def set_selected_column(self, col: str):
         self.selected_column = col
 
-    def get_ternary_type(self):
+    def get_ternary_type(self) -> dict:
         return dict(
             name = "Custom",
             top = self.get_top_apex_selected_columns(),

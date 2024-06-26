@@ -19,10 +19,11 @@ class HeatmapModel:
             colorbar_thickness: float = 18,
             colorbar_x_pos: float = 1.1,
             colorbar_y_pos: float = 0.5,
-            colorbar_title_font_size: float = 12.0,
-            colorbar_tick_font_size: float = 12.0,
-            colorbar_orientation: str = 'vertical'):
-
+            colorbar_title_font_size: float = 12,
+            colorbar_tick_font_size: float = 12,
+            colorbar_orientation: str = 'vertical',
+            sorting_mode: str = 'no change'):
+        
         self._available_columns = available_columns
         self._selected_column = selected_column
         self._range_min = range_min
@@ -40,6 +41,7 @@ class HeatmapModel:
         self._title_font_size = colorbar_title_font_size
         self._tick_font_size = colorbar_tick_font_size
         self._bar_orientation = colorbar_orientation
+        self._sorting_mode = sorting_mode
 
     @property
     def available_columns(self) -> Optional[List[str]]:
@@ -176,3 +178,11 @@ class HeatmapModel:
     @bar_orientation.setter
     def bar_orientation(self, value: str):
         self._bar_orientation = value
+
+    @property
+    def sorting_mode(self) -> str:
+        return self._sorting_mode
+    
+    @sorting_mode.setter
+    def sorting_mode(self, value: str):
+        self._sorting_mode = value
