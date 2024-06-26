@@ -2,7 +2,10 @@
 
 from src.models.ternary.model import TernaryModel
 from src.services.ternary.plot_maker import TernaryPlotMaker
-from src.services.ternary.trace_maker import TraceMolarConversionException
+from src.services.ternary.trace_maker import (
+    TraceMolarConversionException,
+    TraceFilterFloatConversionException
+)
 
 from PySide6.QtWidgets import QMessageBox
 
@@ -22,3 +25,8 @@ class TernaryHtmlMaker:
             msg += f"Please enter a valid formula that can be parsed to compute molar mass, or un-check the "
             msg += f"'convert from wt% to molar' option."
             QMessageBox.critical(None, 'Error parsing formula', msg)
+        except TraceFilterFloatConversionException as err:
+            msg = f"An error occured while trying to apply a filter in Trace {err.trace_id}.\n\n"
+            msg += f"The filter that caused the error is Filter {err.filter_id}\n\n"
+            msg += f"The error message is: {err.message}."
+            QMessageBox.critical(None, 'Error applying filter', msg)

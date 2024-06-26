@@ -15,12 +15,32 @@ from src.services.utils.molar_calculator import (
     MolarMassCalculatorException
 )
 
+from src.services.utils import (
+    EqualsFilterStrategy,
+    OneOfFilterStrategy,
+    LessEqualFilterStrategy,
+    LessThanFilterStrategy,
+    GreaterEqualFilterStrategy,
+    GreaterThanFilterStrategy,
+    LELTFilterStrategy,
+    LELEFilterStrategy,
+    LTLEFilterStrategy,
+    LTLTFilterStrategy
+)
+
 class TraceMolarConversionException(Exception):
     """Exception raised for errors in molar conversion"""
     def __init__(self, trace_id: str, column: str, bad_formula: str, message: str):
         self.trace_id = trace_id
         self.column = column
         self.bad_formula = bad_formula
+        self.message = message
+
+class TraceFilterFloatConversionException(Exception):
+    """Exception raised for errors converting filter values"""
+    def __init__(self, trace_id: str, filter_id: str, message: str):
+        self.trace_id = trace_id
+        self.filter_id = filter_id
         self.message = message
 
 
@@ -33,6 +53,21 @@ class TernaryTraceMaker:
     def __init__(self):
         super().__init__()
         self.calculator = MolarMassCalculator()
+
+        # TODO refactor into own class, like MolarMassCalculator
+        self.operation_strategies = {
+            'Equals': EqualsFilterStrategy(),
+            'One of': OneOfFilterStrategy(),
+            '<': LessThanFilterStrategy(),
+            '>': GreaterThanFilterStrategy(),
+            '≤': LessEqualFilterStrategy(),
+            '≥': GreaterEqualFilterStrategy(),
+            'a < x < b': LTLTFilterStrategy(),
+            'a ≤ x ≤ b': LELEFilterStrategy(),
+            'a ≤ x < b': LELTFilterStrategy(),
+            'a < x ≤ b': LTLEFilterStrategy()
+            # can add other strategies here if needed
+        }
 
     def make_trace(
             self, 
@@ -64,7 +99,6 @@ class TernaryTraceMaker:
             left_columns = ternary_type.get('left')
             right_columns = ternary_type.get('right')
 
-
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
 
@@ -76,7 +110,7 @@ class TernaryTraceMaker:
         # [use the filter strategies in src/utils to do this]
         use_filters = trace_model.filter_data_checked
         if use_filters:
-            pass # TODO
+            trace_data_df = self._apply_filters(trace_data_df, trace_model, trace_id)
 
         # If model start setup indicates any scaling needs to be done, 
         # scale the appropriate columns
@@ -304,4 +338,61 @@ class TernaryTraceMaker:
     def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
         """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
+    
+    def _apply_filters(
+            self, 
+            data_df: pd.DataFrame, 
+            trace_model: TernaryTraceEditorModel, 
+            trace_id: str) -> pd.DataFrame:
+        """Applies filters and returns filtered dataframe"""
+        filter_order = trace_model.filter_tab_model.order
+        for filter_id in filter_order:
+            if filter_id == 'StartSetup':
+                continue
+            filter_model = trace_model.filter_tab_model.get_filter(filter_id)
+            column = filter_model.selected_column
+            column_dtype = trace_model.selected_data_file.get_dtype(column)
+            operation = filter_model.selected_filter_operation
+            selected_values = filter_model.selected_one_of_filter_values
+            single_value = filter_model.filter_values
+            value_a = filter_model.filter_value_a
+            value_b = filter_model.filter_value_b
+
+            # float conversion and error raising
+            if operation == 'Equals' or operation in ['<', '>', '≤', '≥']:
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        single_value = float(single_value) if single_value else None
+                    except ValueError:
+                        msg = "Error converting value to number."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+            elif operation == 'One of':
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        selected_values = [float(x) for x in selected_values] if selected_values else []
+                    except ValueError:
+                        msg = "Error converting value(s) to number(s)."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+            elif operation in ['a < x < b', 'a ≤ x ≤ b', 'a ≤ x < b', 'a < x ≤ b']:
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        value_a = float(value_a) if value_a else None
+                        value_b = float(value_b) if value_b else None
+                    except ValueError:
+                        msg = "Error converting Value A or Value B to a number."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+
+            filter_params = {
+                'column': column,
+                'operation': operation,
+                'value 1': single_value,
+                'value a': value_a,
+                'value b': value_b,
+                'selected values': selected_values,
+            }
+
+            filter_strategy = self.operation_strategies.get(operation)
+            data_df = filter_strategy.filter(data_df, filter_params)
+
+        return data_df
     
