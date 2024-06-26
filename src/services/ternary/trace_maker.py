@@ -82,7 +82,7 @@ class TernaryTraceMaker:
         # scale the appropriate columns
         scale_apices = model.start_setup_model.scale_apices_is_checked
         if scale_apices:
-            scaling_map = self._get_scaling_map(model)
+            scaling_map = self.get_scaling_map(model)
             trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
         
         # Get the name, point size, color, shape, etc that user has specified
@@ -201,7 +201,7 @@ class TernaryTraceMaker:
 
         return hover_data, hover_template
 
-    def _get_scaling_map(self, model: TernaryModel):
+    def get_scaling_map(self, model: TernaryModel):
         """Returns a dictionary with scale factors for each column in the `Scale Apices` view"""
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
         scaling_map = {}
@@ -213,7 +213,7 @@ class TernaryTraceMaker:
                     fmt_factor += char
             if fmt_factor == '' or fmt_factor == '.':
                 factor = 1
-            scaling_map[col] = float(factor)
+            scaling_map[col] = float(factor) if float(factor) != int(float(factor)) else int(float(factor))
         return scaling_map
 
     def _apply_scale_factors(

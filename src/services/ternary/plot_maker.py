@@ -64,7 +64,32 @@ class TernaryPlotMaker:
         if top_name.strip() == '':
             top_apex_columns = model.start_setup_model.get_ternary_type().top
             if top_apex_columns:
-                return '+'.join(top_apex_columns)
+                if model.start_setup_model.scale_apices_is_checked:
+                    scale_map = self.trace_maker.get_scaling_map(model)
+                    scale_vals = [scale_map[col] for col in top_apex_columns]
+                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
+                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
+                        # Same non-singular scale factor for each elt in this col
+                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(top_apex_columns) + ')'
+                        return str_fmt
+                    else:
+                        # Different scale factors within apex case
+                        ret = []
+                        for unique_val in unique_scale_vals:
+                            cols_with_this_val = [c for c, v in scale_map.items() \
+                                                  if v == unique_val and c in top_apex_columns]
+                            if unique_val != 1:
+                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
+                                ret.append(inner_str_fmt)
+                            else:
+                                for col in cols_with_this_val:
+                                    ret.append(col)
+                        str_fmt = '+'.join(ret)
+                        return str_fmt
+                else:
+                    # Add top whitespace to simulate anchoring at top apex
+                    str_fmt = '+'.join(top_apex_columns)
+                    return str_fmt
             else:
                 return 'Untitled Top Apex'
         else:
@@ -75,9 +100,32 @@ class TernaryPlotMaker:
         if left_name.strip() == '':
             left_apex_columns = model.start_setup_model.get_ternary_type().left
             if left_apex_columns:
-                # Add left whitespace to simulate anchoring at left apex
-                str_fmt = '+'.join(left_apex_columns)
-                return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
+                if model.start_setup_model.scale_apices_is_checked:
+                    scale_map = self.trace_maker.get_scaling_map(model)
+                    scale_vals = [scale_map[col] for col in left_apex_columns]
+                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
+                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
+                        # Same non-singular scale factor for each elt in this col
+                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(left_apex_columns) + ')'
+                        return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
+                    else:
+                        # Different scale factors within apex case
+                        ret = []
+                        for unique_val in unique_scale_vals:
+                            cols_with_this_val = [c for c, v in scale_map.items() \
+                                                  if v == unique_val and c in left_apex_columns]
+                            if unique_val != 1:
+                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
+                                ret.append(inner_str_fmt)
+                            else:
+                                for col in cols_with_this_val:
+                                    ret.append(col)
+                        str_fmt = '+'.join(ret)
+                        return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
+                else:
+                    # Add left whitespace to simulate anchoring at left apex
+                    str_fmt = '+'.join(left_apex_columns)
+                    return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
             else:
                 return '<br>Untitled Left Apex'
         else:
@@ -89,9 +137,32 @@ class TernaryPlotMaker:
         if right_name.strip() == '':
             right_apex_columns = model.start_setup_model.get_ternary_type().right
             if right_apex_columns:
-                # Add right whitespace to simulate anchoring at right apex
-                str_fmt = '+'.join(right_apex_columns)
-                return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt))
+                if model.start_setup_model.scale_apices_is_checked:
+                    scale_map = self.trace_maker.get_scaling_map(model)
+                    scale_vals = [scale_map[col] for col in right_apex_columns]
+                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
+                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
+                        # Same non-singular scale factor for each elt in this col
+                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(right_apex_columns) + ')'
+                        return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt))
+                    else:
+                        # Different scale factors within apex case
+                        ret = []
+                        for unique_val in unique_scale_vals:
+                            cols_with_this_val = [c for c, v in scale_map.items() \
+                                                  if v == unique_val and c in right_apex_columns]
+                            if unique_val != 1:
+                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
+                                ret.append(inner_str_fmt)
+                            else:
+                                for col in cols_with_this_val:
+                                    ret.append(col)
+                        str_fmt = '+'.join(ret)
+                        return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt)) 
+                else:
+                    # Add right whitespace to simulate anchoring at right apex
+                    str_fmt = '+'.join(right_apex_columns)
+                    return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt)) 
             else:
                 return '<br>Untitled Right Apex'
         else:
