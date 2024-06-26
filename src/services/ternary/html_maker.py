@@ -18,7 +18,26 @@ class TernaryHtmlMaker:
         try:
             plot = self.plot_maker.make_plot(model)
             html = plot.to_html()
-            return html
+            javascript = """
+                <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <script type="text/javascript">
+                    document.addEventListener("DOMContentLoaded", function() {
+                        new QWebChannel(qt.webChannelTransport, function (channel) {
+                            window.plotlyInterface = channel.objects.plotlyInterface;
+                            var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
+                            plotElement.on('plotly_selected', function(eventData) {
+                                if (eventData) {
+                                    var indices = eventData.points.map(function(pt) {
+                                        return {pointIndex: pt.pointIndex, curveNumber: pt.curveNumber};
+                                    });
+                                    window.plotlyInterface.receive_selected_indices(indices);
+                                }
+                            });
+                        });
+                    });
+                </script>
+            """
+            return html + javascript
         except TraceMolarConversionException as err:
             msg = f"An error occurred while trying to parse the chemical formula for the column '{err.column}' "
             msg += f"in Trace {err.trace_id}.\n\nThe custom chemical formula provided was '{err.bad_formula}'.\n\n"

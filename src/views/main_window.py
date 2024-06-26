@@ -12,7 +12,10 @@ from PySide6.QtCore import Qt
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
+from src.views.ternary.trace.bootstrap.view import TernaryBootstrapTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
+
+from src.services.utils.plotly_interface import PlotlyInterface
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
@@ -23,6 +26,8 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Quick Ternaries")
 
+        self.plotly_interface = PlotlyInterface()
+
         # Top Bar
         self.top_bar = QHBoxLayout()
         self.app_name_label = QLabel("Quick Ternaries")
@@ -32,10 +37,12 @@ class MainWindow(QMainWindow):
         self.bottom_bar = QHBoxLayout()
         self.preview_button = QPushButton("Preview")
         self.save_button = QPushButton("Save")
+        self.bootstrap_button = QPushButton("Bootstrap")
         
         # disable previewing and saving upon initialization
         self.preview_button.setEnabled(False)
         self.save_button.setEnabled(False)
+        self.bootstrap_button.setEnabled(False)
         
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
@@ -51,6 +58,7 @@ class MainWindow(QMainWindow):
         # Add widgets to bottom bar
         self.bottom_bar.addWidget(self.preview_button)
         self.bottom_bar.addWidget(self.save_button)
+        self.bottom_bar.addWidget(self.bootstrap_button)
         self.bottom_bar.addStretch(1)
 
         # Left Scroll Area for Trace Tabs
@@ -60,12 +68,14 @@ class MainWindow(QMainWindow):
         self.dynamic_content_area = QStackedWidget()
         self.ternary_start_setup_view = TernaryStartSetupView()
         self.ternary_trace_editor_view = TernaryTraceEditorView()
+        self.ternary_trace_bootstrap_editor_view = TernaryBootstrapTraceEditorView()
         # We will then have classes for CartesianTraceView, ZMapTraceView, etc.
         # In these classes we can have the trace-level customization options for these other plot modes
         # This might involve a file tree refactor where now we have src.views.ternary.start_setup and src.views.ternary.trace
         # Will have to think about how we handle controllers etc, maybe the app has a "main controller" which changes for diff plot modes
         self.dynamic_content_area.addWidget(self.ternary_start_setup_view)
         self.dynamic_content_area.addWidget(self.ternary_trace_editor_view)
+        self.dynamic_content_area.addWidget(self.ternary_trace_bootstrap_editor_view)
         self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
 
         # Right Area for Plotly Plot (using QWebEngineView)
@@ -100,6 +110,9 @@ class MainWindow(QMainWindow):
     
     def switch_to_trace_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
+
+    def switch_to_bootstrap_view(self):
+        self.dynamic_content_area.setCurrentWidget(self.ternary_trace_bootstrap_editor_view)
 
     def switch_plot_type(self, index):
         plot_type = self.plot_type_combo.itemText(index)
