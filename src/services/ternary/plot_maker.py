@@ -3,7 +3,7 @@
 from typing import Dict, List
 
 from src.models.ternary.model import TernaryModel
-from src.models.ternary.setup.model import TernaryStartSetupModel
+from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
 from src.services.ternary.trace_maker import TernaryTraceMaker
 
 from plotly.subplots import make_subplots
@@ -29,9 +29,10 @@ class TernaryPlotMaker:
 
         # Format the title and apex display names
         title = self._format_title(title, model)
-        top_axis_name = self._format_top_axis_name(top_axis_name, model)
-        left_axis_name = self._format_left_axis_name(left_axis_name, model)
-        right_axis_name = self._format_right_axis_name(right_axis_name, model)
+        ternary_type = model.start_setup_model.get_ternary_type()
+        top_axis_name = self._format_top_axis_name(top_axis_name, ternary_type, model)
+        left_axis_name = self._format_left_axis_name(left_axis_name, ternary_type, model)
+        right_axis_name = self._format_right_axis_name(right_axis_name, ternary_type, model)
 
         # Add axis labels and title to layout
         self._add_axis_labels_to_layout(layout, top_axis_name, left_axis_name, right_axis_name)
@@ -59,115 +60,51 @@ class TernaryPlotMaker:
         else:
             return title
 
-    def _format_top_axis_name(self, top_name: str, model: TernaryModel):
-        """Handles blank top apex name cases, attempting to build from ternary type"""
-        if top_name.strip() == '':
-            top_apex_columns = model.start_setup_model.get_ternary_type().top
-            if top_apex_columns:
-                if model.start_setup_model.scale_apices_is_checked:
-                    scale_map = self.trace_maker.get_scaling_map(model)
-                    scale_vals = [scale_map[col] for col in top_apex_columns]
-                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
-                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
-                        # Same non-singular scale factor for each elt in this col
-                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(top_apex_columns) + ')'
-                        return str_fmt
-                    else:
-                        # Different scale factors within apex case
-                        ret = []
-                        for unique_val in unique_scale_vals:
-                            cols_with_this_val = [c for c, v in scale_map.items() \
-                                                  if v == unique_val and c in top_apex_columns]
-                            if unique_val != 1:
-                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
-                                ret.append(inner_str_fmt)
-                            else:
-                                for col in cols_with_this_val:
-                                    ret.append(col)
-                        str_fmt = '+'.join(ret)
-                        return str_fmt
-                else:
-                    # Add top whitespace to simulate anchoring at top apex
-                    str_fmt = '+'.join(top_apex_columns)
-                    return str_fmt
-            else:
-                return 'Untitled Top Apex'
-        else:
-            return top_name
+    def _format_subscripts(self, oxide: str) -> str:
+        """Formats numeric subscripts in a chemical formula."""
+        return "".join('<sub>' + x + '</sub>' if x.isnumeric() else x for x in oxide)
 
-    def _format_left_axis_name(self, left_name: str, model: TernaryModel):
-        """Handles blank left apex name cases, attempting to build from ternary type"""
-        if left_name.strip() == '':
-            left_apex_columns = model.start_setup_model.get_ternary_type().left
-            if left_apex_columns:
-                if model.start_setup_model.scale_apices_is_checked:
-                    scale_map = self.trace_maker.get_scaling_map(model)
-                    scale_vals = [scale_map[col] for col in left_apex_columns]
-                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
-                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
-                        # Same non-singular scale factor for each elt in this col
-                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(left_apex_columns) + ')'
-                        return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
-                    else:
-                        # Different scale factors within apex case
-                        ret = []
-                        for unique_val in unique_scale_vals:
-                            cols_with_this_val = [c for c, v in scale_map.items() \
-                                                  if v == unique_val and c in left_apex_columns]
-                            if unique_val != 1:
-                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
-                                ret.append(inner_str_fmt)
-                            else:
-                                for col in cols_with_this_val:
-                                    ret.append(col)
-                        str_fmt = '+'.join(ret)
-                        return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
-                else:
-                    # Add left whitespace to simulate anchoring at left apex
-                    str_fmt = '+'.join(left_apex_columns)
-                    return '<br>' + '&nbsp;'*int(1.6*len(str_fmt)) + str_fmt
-            else:
-                return '<br>Untitled Left Apex'
-        else:
-            return '<br>' + left_name
-        
+    def _build_str_fmt(self, apex_columns, scale_map, unique_scale_vals):
+        """Builds the formatted string based on scaling factors and apex columns."""
+        if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
+            return f"{unique_scale_vals[0]} &times; ({' + '.join(map(self._format_subscripts, apex_columns))})"
 
-    def _format_right_axis_name(self, right_name: str, model: TernaryModel):
-        """Handles blank right apex name cases, attempting to build from ternary type"""
-        if right_name.strip() == '':
-            right_apex_columns = model.start_setup_model.get_ternary_type().right
-            if right_apex_columns:
-                if model.start_setup_model.scale_apices_is_checked:
-                    scale_map = self.trace_maker.get_scaling_map(model)
-                    scale_vals = [scale_map[col] for col in right_apex_columns]
-                    unique_scale_vals = sorted(set(scale_vals), reverse=True)
-                    if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
-                        # Same non-singular scale factor for each elt in this col
-                        str_fmt = str(unique_scale_vals[0]) + '(' + '+'.join(right_apex_columns) + ')'
-                        return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt))
-                    else:
-                        # Different scale factors within apex case
-                        ret = []
-                        for unique_val in unique_scale_vals:
-                            cols_with_this_val = [c for c, v in scale_map.items() \
-                                                  if v == unique_val and c in right_apex_columns]
-                            if unique_val != 1:
-                                inner_str_fmt = str(unique_val) + '(' + '+'.join(cols_with_this_val) + ')'
-                                ret.append(inner_str_fmt)
-                            else:
-                                for col in cols_with_this_val:
-                                    ret.append(col)
-                        str_fmt = '+'.join(ret)
-                        return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt)) 
-                else:
-                    # Add right whitespace to simulate anchoring at right apex
-                    str_fmt = '+'.join(right_apex_columns)
-                    return '<br>' + str_fmt + '&nbsp;'*int(1.6*len(str_fmt)) 
+        ret = []
+        for unique_val in unique_scale_vals:
+            cols_with_this_val = [c for c, v in scale_map.items() if v == unique_val and c in apex_columns]
+            if unique_val != 1:
+                ret.append(f"{unique_val} &times; ({' + '.join(map(self._format_subscripts, cols_with_this_val))})")
             else:
-                return '<br>Untitled Right Apex'
-        else:
-            return '<br>' + right_name
+                ret.extend(cols_with_this_val)
+        return ' + '.join(ret)
+
+    def _format_axis_name(self, custom_name: str, default_name: str, apex_columns: List[str], model: TernaryModel):
+        """Handles blank top apex name cases, attempting to build from ternary type."""
+        if custom_name.strip():
+            return custom_name
         
+        if not apex_columns:
+            return default_name
+        
+        if model.start_setup_model.scale_apices_is_checked:
+            scale_map = self.trace_maker.get_scaling_map(model)
+            unique_scale_vals = sorted(set(scale_map[col] for col in apex_columns), reverse=True)
+            return self._build_str_fmt(apex_columns, scale_map, unique_scale_vals)
+        
+        return ' + '.join(map(self._format_subscripts, apex_columns))
+
+    def _format_top_axis_name(self, top_name: str, ternary_type: TernaryType, model: TernaryModel):
+        top_apex_columns = ternary_type.get_top()
+        return self._format_axis_name(top_name, 'Untitled Top Apex', top_apex_columns, model)
+        
+    def _format_left_axis_name(self, left_name: str, ternary_type: TernaryType, model: TernaryModel):
+        left_apex_columns = ternary_type.get_left()
+        return '<br>' + self._format_axis_name(left_name, 'Untitled Left Apex', left_apex_columns, model)
+        
+    def _format_right_axis_name(self, right_name: str, ternary_type: TernaryType, model: TernaryModel):
+        right_apex_columns = ternary_type.get_right()
+        return '<br>' + self._format_axis_name(right_name, 'Untitled Right Apex', right_apex_columns, model)
+
 
     def _add_axis_labels_to_layout(
             self, 
