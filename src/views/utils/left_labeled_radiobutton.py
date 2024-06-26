@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QRadioButton, QLabel
-from PyQt5.QtCore import pyqtSignal
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QRadioButton, QLabel
+from PySide6.QtCore import Signal
 
 class LeftLabeledRadioButton(QWidget):
-    toggled = pyqtSignal(bool)  # Expose the toggled signal
+    toggled = Signal(bool)  # Expose the toggled signal
 
     def __init__(self, text, parent=None):
         super(LeftLabeledRadioButton, self).__init__(parent)
