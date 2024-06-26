@@ -4,10 +4,10 @@ import os
 
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget,
-    QHBoxLayout, QLabel, QComboBox, QSizePolicy
+    QHBoxLayout, QLabel, QComboBox, QSizePolicy, QFileDialog, QInputDialog
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -104,3 +104,22 @@ class MainWindow(QMainWindow):
         plot_type = self.plot_type_combo.itemText(index)
         # Logic to switch plot type goes here
         print(f"Switched to plot type: {plot_type}")
+
+    def save_menu(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html)"
+        filepath, selected_filter = QFileDialog.getSaveFileName(self, "Save Diagram", "",
+                                                                 file_types, options=options)
+
+        if '.' not in filepath.split("/")[-1]:
+            extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
+            filepath += extension
+
+        if not filepath.endswith('.html'):
+            # Prompt for DPI
+            dpi, _ = QInputDialog.getInt(self, "DPI Setting", "Enter DPI:", 400, 1, 10000)
+        else:
+            dpi = None
+
+        return filepath, dpi

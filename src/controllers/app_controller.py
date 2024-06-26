@@ -5,6 +5,7 @@ from src.views.main_window import MainWindow
 from src.services.app_service import AppService
 
 from src.controllers.ternary.controller import TernaryController
+from src.services.ternary.plot_maker import TernaryPlotMaker
 
 class AppController:
     
@@ -44,11 +45,10 @@ class AppController:
             self.view.plot_view.setUrl(url)
 
     def _on_save_clicked(self):
-        # TODO same as _on_preview_clicked
-        # but with the additional step that we
-        # show the user a popup with choices for filetype and resolution
-        # and then save the plot according to their chosen specifications
-        pass
+        plot_maker = TernaryPlotMaker()
+        fig = plot_maker.make_plot(self.ternary_controller.model)
+        filepath, dpi = self.view.save_menu()
+        plot_maker.save_plot(fig, filepath, dpi)
 
     def _on_settings_clicked(self):
         # TODO show the settings menu from the older version of the code

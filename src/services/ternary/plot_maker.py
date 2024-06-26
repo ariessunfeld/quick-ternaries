@@ -6,6 +6,7 @@ from src.models.ternary.model import TernaryModel
 from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
 from src.services.ternary.trace_maker import TernaryTraceMaker
 
+import plotly.io as pio
 from plotly.subplots import make_subplots
 from plotly.graph_objects import Figure
 
@@ -150,3 +151,23 @@ class TernaryPlotMaker:
                 yanchor='top'
             )
         )
+
+    def save_plot(self, fig: Figure, filepath: str, dpi: float|None=None):
+        # Get the extension from the selected filter if the file_name has no extension
+        if filepath.endswith('.html'):
+            # Save interactive plot as HTML
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(fig.to_html())
+        else:
+            # Save static image with specified DPI
+            for trace in fig.data:
+                if 'marker' in trace and 'size' in trace.marker:
+                    original_size = trace.marker.size
+                    trace.marker.size = original_size / 1.8  # Halving the size
+            
+            pio.write_image(fig, filepath, scale=dpi / 72.0)
+            
+            for trace in fig.data:
+                if 'marker' in trace and 'size' in trace.marker:
+                    modified_size = trace.marker.size
+                    trace.marker.size = 1.8 * modified_size
