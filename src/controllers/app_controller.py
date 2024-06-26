@@ -26,6 +26,12 @@ class AppController:
         self.view.settings_button.clicked.connect(self._on_settings_clicked)
         self.view.plot_type_combo.currentIndexChanged.connect(self._on_plot_type_changed)
 
+        # only allow saving and previewing if there are trace tabs
+        self.ternary_controller.tab_controller.view.has_trace.connect(
+            self.view.preview_button.setEnabled)
+        self.ternary_controller.tab_controller.view.has_trace.connect(
+            self.view.save_button.setEnabled)
+
     def _on_preview_clicked(self):
         # TODO Get the current model from the AppModel
         # Hand it off to service layer to make HTML

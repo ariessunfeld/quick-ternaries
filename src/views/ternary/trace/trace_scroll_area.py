@@ -123,6 +123,7 @@ class TabView(QWidget):
     """
     tab_changed = Signal(str)
     tab_removed = Signal(str)
+    has_trace = Signal(bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -166,6 +167,11 @@ class TabView(QWidget):
         self.add_start_setup_tab_to_view()
         self.set_selected_tab('StartSetup')
 
+    def _emit_has_trace(self):
+        # the tab_layout has 3 tabs by default: the start setup tab,
+        #   the add trace button, and the drag target indicator
+        self.has_trace.emit(self.tab_layout.count() > 3)
+
     def add_tab_to_view(self, name: str, identifier: str):
         tab_button = DraggableTab(name, identifier)
         tab_button.tab_clicked.connect(self.tab_changed.emit)
@@ -178,6 +184,7 @@ class TabView(QWidget):
         self.add_tab_to_view(name, tab_id)
         # switch to the newly created tab
         self.set_selected_tab(tab_id)
+        self._emit_has_trace()
     
     def add_start_setup_tab_to_view(self):
         start_setup_tab = DraggableTab("Start Setup", "StartSetup")
@@ -191,6 +198,7 @@ class TabView(QWidget):
             if isinstance(tab_widget, DraggableTab) and tab_widget.identifier == tab_id:
                 self.tab_layout.removeWidget(tab_widget)
                 tab_widget.deleteLater()
+                self._emit_has_trace()
                 break
 
     def set_selected_tab(self, tab_id: str):
