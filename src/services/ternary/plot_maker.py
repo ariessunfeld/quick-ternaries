@@ -3,6 +3,7 @@
 from typing import Dict, List
 
 from src.models.ternary.model import TernaryModel
+from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
 from src.services.ternary.trace_maker import TernaryTraceMaker
 
 from plotly.subplots import make_subplots
