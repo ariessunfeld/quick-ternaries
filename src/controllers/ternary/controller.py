@@ -107,6 +107,10 @@ class TernaryController:
         self.start_setup_controller.signaller.apex_column_removed.connect(
             self.molar_conversion_controller.on_new_custom_column_removed)
 
+        self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
+            self.tab_controller.view.new_tab_button.setEnabled
+        )
+
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
         # Main window dynamic content area switches to trace view

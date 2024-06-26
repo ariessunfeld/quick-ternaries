@@ -152,6 +152,7 @@ class TabView(QWidget):
         # Add the "Add Trace" button to the layout
         self.new_tab_button = QPushButton("+ Add Trace")
         self.new_tab_button.setCursor(Qt.PointingHandCursor)
+        self.new_tab_button.setEnabled(False) # disable the add trace button upon initialization
         self.tab_layout.addWidget(self.new_tab_button)
 
         # Add the scroll area to the layout

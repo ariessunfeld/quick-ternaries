@@ -7,7 +7,11 @@ from PySide6.QtWidgets import (
     QListWidgetItem
 )
 
+from PySide6.QtCore import Signal
+
 class LoadedDataScrollView(QWidget):
+    has_data = Signal(bool)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -18,6 +22,11 @@ class LoadedDataScrollView(QWidget):
 
         self.layout.addWidget(self.file_list)
         self.setLayout(self.layout)
+
+        self._emit_has_data()
+
+    def _emit_has_data(self):
+        self.has_data.emit(self.file_list.count()!=0)
 
     def set_style(self):
         self.file_list.setStyleSheet("""
@@ -43,10 +52,13 @@ class LoadedDataScrollView(QWidget):
         list_item.setSizeHint(item_widget.sizeHint())
         self.file_list.addItem(list_item)
         self.file_list.setItemWidget(list_item, item_widget)
+        self._emit_has_data()
         return list_item, item_widget.close_button
 
     def remove_item(self, item):
         self.file_list.takeItem(self.file_list.row(item))
+        self._emit_has_data()
 
     def clear(self):
         self.file_list.clear()
+        self._emit_has_data()
