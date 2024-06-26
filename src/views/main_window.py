@@ -32,6 +32,10 @@ class MainWindow(QMainWindow):
         self.preview_button = QPushButton("Preview")
         self.save_button = QPushButton("Save")
 
+        # disable previewing and saving upon initialization
+        self.preview_button.setEnabled(False)
+        self.save_button.setEnabled(False)
+
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
