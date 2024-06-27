@@ -114,7 +114,13 @@ class TernaryController:
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
         # Main window dynamic content area switches to trace view
-        self.view.switch_to_trace_view()
+        #self.view.switch_to_trace_view()
+
+        kind = trace_model.kind
+        if kind == 'standard':
+            self.view.switch_to_standard_trace_view()
+        elif kind == 'bootstrap':
+            self.view.switch_to_bootstrap_trace_view()
         
         # Set the available filenames/files for the trace view
         loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))

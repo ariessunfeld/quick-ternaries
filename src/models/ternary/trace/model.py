@@ -1,15 +1,19 @@
 """Contains the model for the Ternary Trace Editor"""
 
 from typing import List, Optional
+
+import pandas as pd
+
 from src.models.utils.data_models import DataFile
 from src.models.ternary.trace.heatmap_model import HeatmapModel
-from src.models.ternary.trace.filter.model import FilterModel
 from src.models.ternary.trace.filter.tab_model import FilterTabsPanelModel
+from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapTraceEditorErrorEntryModel
 
 class TernaryTraceEditorModel:
 
     def __init__(
             self, 
+            kind: str = 'standard',
             available_data_file_names: Optional[List[str]] = None,
             selected_data_file_name: Optional[str] = None,
             available_data_files: Optional[List[DataFile]] = None,
@@ -24,16 +28,31 @@ class TernaryTraceEditorModel:
             add_heatmap_checked: bool = False,
             filter_data_checked: bool = False,
             heatmap_model: Optional[HeatmapModel] = None,
-            filter_model: Optional[FilterModel] = None,
-            filter_tab_model: Optional[FilterTabsPanelModel] = None):
+            filter_tab_model: Optional[FilterTabsPanelModel] = None,
+            series: Optional[pd.Series] = None,
+            line_thickness: Optional[float] = 1,
+            line_style: Optional[str] = 'solid',
+            selected_contour_mode: Optional[str] = '1 sigma',
+            contour_level: Optional[float] = '68',
+            error_entry_model: Optional[TernaryBootstrapTraceEditorErrorEntryModel] = None):
         
         # Direct access
+        self.kind = kind
+        
         if heatmap_model is None:
             self.heatmap_model = HeatmapModel()
-        # if filter_model is None:
-        #     self.filter_model = FilterModel()
+        else:
+            self.heatmap_model = heatmap_model
+        
         if filter_tab_model is None:
             self.filter_tab_model = FilterTabsPanelModel()
+        else:
+            self.filter_tab_model = filter_tab_model
+        
+        if error_entry_model is None:
+            self.error_entry_model = TernaryBootstrapTraceEditorErrorEntryModel()
+        else:
+            self.error_entry_model = error_entry_model
 
         # Controlled access
         self._available_data_file_names = available_data_file_names
@@ -49,6 +68,11 @@ class TernaryTraceEditorModel:
         self._color = color
         self._add_heatmap_checked = add_heatmap_checked
         self._filter_data_checked = filter_data_checked
+        self._series = series
+        self._line_thickness = line_thickness
+        self._line_style = line_style
+        self._selected_contour_mode = selected_contour_mode
+        self._contour_level = contour_level
 
     @property
     def available_data_file_names(self) -> Optional[List[str]]:
@@ -153,3 +177,43 @@ class TernaryTraceEditorModel:
     @filter_data_checked.setter
     def filter_data_checked(self, value: bool):
         self._filter_data_checked = value
+
+    @property
+    def series(self) -> pd.Series:
+        return self._series
+    
+    @series.setter
+    def series(self, value: pd.Series):
+        self._series = value
+
+    @property
+    def line_thickness(self) -> Optional[float]:
+        return self._line_thickness
+    
+    @line_thickness.setter
+    def line_thickness(self, value: float):
+        self._line_thickness = value
+
+    @property
+    def line_style(self) -> Optional[str]:
+        return self._line_style
+    
+    @line_style.setter
+    def line_style(self, value: str):
+        self._line_style = value
+
+    @property
+    def selected_contour_mode(self) -> Optional[str]:
+        return self._selected_contour_mode
+    
+    @selected_contour_mode.setter
+    def selected_contour_mode(self, value: str):
+        self._selected_contour_mode = value
+
+    @property
+    def contour_level(self) -> Optional[float]:
+        return self._contour_level
+    
+    @contour_level.setter
+    def contour_level(self, value: float):
+        self._contour_level = value

@@ -9,7 +9,12 @@ from src.services.ternary.trace_maker import (
 
 from PySide6.QtWidgets import QMessageBox
 
-class TernaryHtmlMaker:
+class BaseHtmlMaker:
+
+    def __init__(self):
+        self.plot_maker = None
+
+class TernaryHtmlMaker(BaseHtmlMaker):
     
     def __init__(self):
         self.plot_maker = TernaryPlotMaker()

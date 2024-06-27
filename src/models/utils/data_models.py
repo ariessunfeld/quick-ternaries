@@ -49,6 +49,12 @@ class DataFile:
         if column in self.get_columns():
             return self.data[column].dtype
         
+    def get_series(self, idx: int) -> pd.Series:
+        """Returns the series corresponding to the row at idx"""
+        if idx not in self.data.index:
+            raise KeyError("Index not found in the DataFrame")
+        return self.data.iloc[idx]
+        
     def get_unique_values(self, column: str) -> List[str]:
         """Returns a sorted list of the unique values in `column`
         Sorting is done before converting to str, to preserve numerical order

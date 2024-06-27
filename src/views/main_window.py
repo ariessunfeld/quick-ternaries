@@ -3,8 +3,20 @@
 import os 
 
 from PySide6.QtWidgets import (
-    QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget,
-    QHBoxLayout, QLabel, QScrollArea, QComboBox, QToolBar, QMenu, QSizePolicy
+    QMainWindow, 
+    QStackedWidget, 
+    QPushButton, 
+    QVBoxLayout, 
+    QWidget,
+    QHBoxLayout, 
+    QLabel, 
+    QScrollArea, 
+    QComboBox, 
+    QToolBar,
+    QMenu, 
+    QSizePolicy, 
+    QFileDialog, 
+    QInputDialog
 )
 from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -12,7 +24,6 @@ from PySide6.QtCore import Qt
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
-from src.views.ternary.trace.bootstrap.view import TernaryBootstrapTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
 
 from src.services.utils.plotly_interface import PlotlyInterface
@@ -68,14 +79,12 @@ class MainWindow(QMainWindow):
         self.dynamic_content_area = QStackedWidget()
         self.ternary_start_setup_view = TernaryStartSetupView()
         self.ternary_trace_editor_view = TernaryTraceEditorView()
-        self.ternary_trace_bootstrap_editor_view = TernaryBootstrapTraceEditorView()
         # We will then have classes for CartesianTraceView, ZMapTraceView, etc.
         # In these classes we can have the trace-level customization options for these other plot modes
         # This might involve a file tree refactor where now we have src.views.ternary.start_setup and src.views.ternary.trace
         # Will have to think about how we handle controllers etc, maybe the app has a "main controller" which changes for diff plot modes
         self.dynamic_content_area.addWidget(self.ternary_start_setup_view)
         self.dynamic_content_area.addWidget(self.ternary_trace_editor_view)
-        self.dynamic_content_area.addWidget(self.ternary_trace_bootstrap_editor_view)
         self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
 
         # Right Area for Plotly Plot (using QWebEngineView)
@@ -83,8 +92,7 @@ class MainWindow(QMainWindow):
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         
         # Load local HTML file
-        self.html_file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'blank_ternary_plot.html')
-        self.plot_view.setUrl(f'file://{self.html_file_path}')
+        self.switch_to_blank_ternary()
 
         # Main Layout
         self.main_layout = QHBoxLayout()
@@ -111,10 +119,46 @@ class MainWindow(QMainWindow):
     def switch_to_trace_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
 
-    def switch_to_bootstrap_view(self):
-        self.dynamic_content_area.setCurrentWidget(self.ternary_trace_bootstrap_editor_view)
+    def switch_to_standard_trace_view(self):
+        self.switch_to_trace_view()
+        self.ternary_trace_editor_view.switch_to_standard_view()
+    
+    def switch_to_bootstrap_trace_view(self):
+        self.switch_to_trace_view()
+        self.ternary_trace_editor_view.switch_to_bootstrap_view()
 
     def switch_plot_type(self, index):
         plot_type = self.plot_type_combo.itemText(index)
         # Logic to switch plot type goes here
         print(f"Switched to plot type: {plot_type}")
+
+    def show_save_menu(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html)"
+        filepath, selected_filter = QFileDialog.getSaveFileName(
+            self, 
+            "Save Diagram", 
+            "",
+            file_types, 
+            options=options)
+
+        if '.' not in filepath.split("/")[-1]:
+            extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
+            filepath += extension
+
+        if not filepath.endswith('.html'):
+            # Prompt for DPI
+            dpi, _ = QInputDialog.getInt(self, "DPI Setting", "Enter DPI:", 400, 1, 10000)
+        else:
+            dpi = None
+
+        return filepath, dpi
+
+    def switch_to_blank_ternary(self):
+        blank_ternary = os.path.join(
+            os.path.dirname(__file__), 
+            '..', 
+            'resources', 
+            'blank_ternary_plot.html')
+        self.plot_view.setUrl(f'file://{blank_ternary}')
