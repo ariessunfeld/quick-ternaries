@@ -7,7 +7,7 @@ import pandas as pd
 from src.models.utils.data_models import DataFile
 from src.models.ternary.trace.heatmap_model import HeatmapModel
 from src.models.ternary.trace.filter.tab_model import FilterTabsPanelModel
-from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapTraceEditorErrorEntryModel
+from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapErrorEntryModel
 
 class TernaryTraceEditorModel:
 
@@ -34,7 +34,7 @@ class TernaryTraceEditorModel:
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
             contour_level: Optional[float] = '68',
-            error_entry_model: Optional[TernaryBootstrapTraceEditorErrorEntryModel] = None):
+            error_entry_model: Optional[TernaryBootstrapErrorEntryModel] = None):
         
         # Direct access
         self.kind = kind
@@ -50,7 +50,7 @@ class TernaryTraceEditorModel:
             self.filter_tab_model = filter_tab_model
         
         if error_entry_model is None:
-            self.error_entry_model = TernaryBootstrapTraceEditorErrorEntryModel()
+            self.error_entry_model = TernaryBootstrapErrorEntryModel()
         else:
             self.error_entry_model = error_entry_model
 

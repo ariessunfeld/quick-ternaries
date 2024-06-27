@@ -2,7 +2,7 @@
 
 from typing import List, Tuple, Dict, Optional
 
-class TernaryBootstrapTraceEditorErrorEntryModel:
+class TernaryBootstrapErrorEntryModel:
     
     def __init__(self):
         self.column_error_map = {}
@@ -17,7 +17,7 @@ class TernaryBootstrapTraceEditorErrorEntryModel:
         if col in self.column_error_map:
             del self.column_error_map[col]
         
-    def update_scale_factor(self, col: str, value: str):
+    def update_error_value(self, col: str, value: str):
         if col in self.column_error_map:
             self.column_error_map[col] = value
 

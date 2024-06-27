@@ -13,7 +13,7 @@ from PySide6.QtCore import Signal
 
 from src.views.utils import LeftLabeledLineEdit
 
-class TernaryBootstrapTraceEditorErrorEntryView(QWidget):
+class TernaryBootstrapErrorEntryView(QWidget):
 
     textChanged = Signal(str, str) # emits column, error
     

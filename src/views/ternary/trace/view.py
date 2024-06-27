@@ -7,7 +7,7 @@ and is used in the dynamic content area of the MainWindow
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
 from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
 from src.views.ternary.trace.filter.view import FilterPanelView
-from src.views.ternary.trace.bootstrap.error_entry_view import TernaryBootstrapTraceEditorErrorEntryView
+from src.views.ternary.trace.bootstrap.error_entry_view import TernaryBootstrapErrorEntryView
 
 from src.models.utils.pandas_series_model import PandasSeriesModel
 
@@ -83,7 +83,7 @@ class TernaryTraceEditorView(QWidget):
         self.molar_conversion_view.setVisible(False)
         self.content_layout.addWidget(self.molar_conversion_view)
 
-        self.error_entry_view = TernaryBootstrapTraceEditorErrorEntryView()
+        self.error_entry_view = TernaryBootstrapErrorEntryView()
         self.error_entry_view.setVisible(False)
         self.content_layout.addWidget(self.error_entry_view)
 

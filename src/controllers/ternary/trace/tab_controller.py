@@ -3,6 +3,7 @@
 from typing import List, Dict, Optional
 
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
+from src.models.ternary.setup.model import TernaryType
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
@@ -52,7 +53,8 @@ class TabController(QObject):
     def add_bootstrap_trace(
             self, 
             trace_model: Optional[TernaryTraceEditorModel] = None,
-            selected_indices: Optional[List[Dict[str, int]]] = None) -> bool:
+            selected_indices: Optional[List[Dict[str, int]]] = None,
+            error_entry_cols: Optional[List[str]] = None) -> bool:
         
         curves_sorted: Dict[int: List[int]] = {-1: []}
         
@@ -81,6 +83,8 @@ class TabController(QObject):
         series = trace_data_file.get_series(curves_sorted[max_curve_number][0])
 
         new_trace_model = TernaryTraceEditorModel(kind='bootstrap', series=series)
+        for col in error_entry_cols:
+            new_trace_model.error_entry_model.add_column(col)
         tab_id = self.model.add_trace(new_trace_model)
         self.view.add_trace_tab_to_view(f'Bootstrap ({tab_id})', tab_id)
         self.change_tab(tab_id)
