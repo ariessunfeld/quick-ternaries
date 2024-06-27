@@ -11,10 +11,13 @@ class AppModel:
         self.zmap_model = None  # TODO
 
         self.current_model = self.ternary_model
+        self.current_model_name = 'ternary'
 
     def switch_current_model(self, model: str):
         """Switches the `current_model` pointer to `model`"""
-        self.current_model = getattr(self, f"{model.lower().replace(' ', '_')}_model")
+        str_fmt = f"{model.lower().replace(' ', '_')}_model"
+        self.current_model = getattr(self, str_fmt)
+        self.current_model_name = str_fmt.rstrip('_model')
         if self.current_model is None:
             raise ValueError(
-                f"Cannot switch to model: {model} (formatted: {model.lower().replace(' ', '_')})")
+                f"Cannot switch to model: {model} (formatted: {str_fmt})")

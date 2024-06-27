@@ -182,7 +182,7 @@ class TabView(QWidget):
         # switch to the newly created tab
         self.set_selected_tab(tab_id)
         self._emit_has_trace()
-
+    
     def add_start_setup_tab_to_view(self):
         start_setup_tab = DraggableTab("<center>Start Setup</center>", "StartSetup")
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)

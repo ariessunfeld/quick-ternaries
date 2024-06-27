@@ -1,15 +1,16 @@
 from pathlib import Path
+from typing import Dict
 
 from PySide6.QtCore import QUrl
 
-from src.services.ternary.html_maker import TernaryHtmlMaker
+from src.services.ternary.html_maker import TernaryHtmlMaker, BaseHtmlMaker
 # from src.services.cartesian.html_maker import CartesianHtmlMaker
 # from src.services.depth_profiles.html_maker import DepthProfilesHtmlMaker
 # from src.services.zmaps.html_maker import ZMapsHtmlMaker
 
 class AppService:
     def __init__(self):
-        self.html_makers = {
+        self.html_makers: Dict[str, BaseHtmlMaker] = {
             'ternary': TernaryHtmlMaker(),
             'cartesian': None,  # TODO: Instantiate CartesianHtmlMaker
             'depth_profiles': None,  # TODO: Instantiate DepthProfilesHtmlMaker

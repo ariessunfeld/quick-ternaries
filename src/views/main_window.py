@@ -3,8 +3,20 @@
 import os
 
 from PySide6.QtWidgets import (
-    QMainWindow, QStackedWidget, QPushButton, QVBoxLayout, QWidget,
-    QHBoxLayout, QLabel, QComboBox, QSizePolicy, QFileDialog, QInputDialog
+    QMainWindow, 
+    QStackedWidget, 
+    QPushButton, 
+    QVBoxLayout, 
+    QWidget,
+    QHBoxLayout, 
+    QLabel, 
+    QScrollArea, 
+    QComboBox, 
+    QToolBar,
+    QMenu, 
+    QSizePolicy, 
+    QFileDialog, 
+    QInputDialog
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, Slot
@@ -13,6 +25,8 @@ from PySide6.QtGui import QColor
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
+
+from src.services.utils.plotly_interface import PlotlyInterface
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
@@ -23,6 +37,8 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Quick Ternaries")
 
+        self.plotly_interface = PlotlyInterface()
+
         # Top Bar
         self.top_bar = QHBoxLayout()
         self.app_name_label = QLabel("Quick Ternaries")
@@ -32,11 +48,13 @@ class MainWindow(QMainWindow):
         self.bottom_bar = QHBoxLayout()
         self.preview_button = QPushButton("Preview")
         self.save_button = QPushButton("Save")
-
+        self.bootstrap_button = QPushButton("Bootstrap")
+        
         # disable previewing and saving upon initialization
         self.preview_button.setEnabled(False)
         self.save_button.setEnabled(False)
-
+        self.bootstrap_button.setEnabled(False)
+        
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
@@ -51,6 +69,7 @@ class MainWindow(QMainWindow):
         # Add widgets to bottom bar
         self.bottom_bar.addWidget(self.preview_button)
         self.bottom_bar.addWidget(self.save_button)
+        self.bottom_bar.addWidget(self.bootstrap_button)
         self.bottom_bar.addStretch(1)
 
         # Left Scroll Area for Trace Tabs
@@ -74,8 +93,7 @@ class MainWindow(QMainWindow):
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         # Load local HTML file
-        self.html_file_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'blank_ternary_plot.html')
-        self.plot_view.setUrl(f'file://{self.html_file_path}')
+        self.switch_to_blank_ternary()
 
         # Main Layout
         self.main_layout = QHBoxLayout()
@@ -102,17 +120,29 @@ class MainWindow(QMainWindow):
     def switch_to_trace_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
 
+    def switch_to_standard_trace_view(self):
+        self.switch_to_trace_view()
+        self.ternary_trace_editor_view.switch_to_standard_view()
+    
+    def switch_to_bootstrap_trace_view(self):
+        self.switch_to_trace_view()
+        self.ternary_trace_editor_view.switch_to_bootstrap_view()
+
     def switch_plot_type(self, index):
         plot_type = self.plot_type_combo.itemText(index)
         # Logic to switch plot type goes here
         print(f"Switched to plot type: {plot_type}")
 
-    def save_menu(self):
+    def show_save_menu(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         file_types = "PNG Files (*.png);;JPEG Files (*.jpg);;SVG Files (*.svg);;PDF Files (*.pdf);;HTML Files (*.html)"
-        filepath, selected_filter = QFileDialog.getSaveFileName(self, "Save Diagram", "",
-                                                                 file_types, options=options)
+        filepath, selected_filter = QFileDialog.getSaveFileName(
+            self, 
+            "Save Diagram", 
+            "",
+            file_types, 
+            options=options)
 
         if '.' not in filepath.split("/")[-1]:
             extension = selected_filter.split("(*")[1].split(")")[0]  # Extract the extension
@@ -125,3 +155,11 @@ class MainWindow(QMainWindow):
             dpi = None
 
         return filepath, dpi
+
+    def switch_to_blank_ternary(self):
+        blank_ternary = os.path.join(
+            os.path.dirname(__file__), 
+            '..', 
+            'resources', 
+            'blank_ternary_plot.html')
+        self.plot_view.setUrl(f'file://{blank_ternary}')

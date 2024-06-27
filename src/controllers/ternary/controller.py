@@ -12,6 +12,8 @@ from src.controllers.ternary.trace.filter.controller import FilterEditorControll
 from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
 from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
 from src.controllers.ternary.trace.molar_conversion_controller import TernaryTraceMolarConversionController
+from src.controllers.ternary.trace.bootstrap.error_entry_controller import TernaryBootstrapErrorEntryController
+
 
 # For type hints
 from src.models.ternary.trace.filter.model import FilterModel
@@ -54,6 +56,10 @@ class TernaryController:
         self.molar_conversion_controller = TernaryTraceMolarConversionController(
             self.model.molar_conversion_model,
             self.view.ternary_trace_editor_view.molar_conversion_view)
+        
+        self.bootstrap_error_entry_controller = TernaryBootstrapErrorEntryController(
+            self.model.tab_model,
+            self.view.ternary_trace_editor_view.error_entry_view)
         
         # Give the child controllers access to the shared resource, data library
         self.trace_controller.set_data_library_reference(
@@ -103,9 +109,14 @@ class TernaryController:
         # Connect custom apex selection add data signal to molar conversion on add data
         self.start_setup_controller.signaller.apex_column_added.connect(
             self.molar_conversion_controller.on_new_custom_column_added)
-        
         self.start_setup_controller.signaller.apex_column_removed.connect(
             self.molar_conversion_controller.on_new_custom_column_removed)
+        
+        # Connect custom apex selection add data signal to error entry on add data
+        self.start_setup_controller.signaller.apex_column_added.connect(
+            self._on_custom_column_added)
+        self.start_setup_controller.signaller.apex_column_removed.connect(
+            self._on_custom_column_removed)
         
         # Enable the add trace button if there's data in the loaded data view
         self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
@@ -118,7 +129,14 @@ class TernaryController:
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
         # Main window dynamic content area switches to trace view
-        self.view.switch_to_trace_view()
+        #self.view.switch_to_trace_view()
+
+        kind = trace_model.kind
+        if kind == 'standard':
+            self.view.switch_to_standard_trace_view()
+        elif kind == 'bootstrap':
+            self.view.switch_to_bootstrap_trace_view()
+            self.bootstrap_error_entry_controller._refresh()
         
         # Set the available filenames/files for the trace view
         loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
@@ -225,3 +243,26 @@ class TernaryController:
         # If no traces are going to be deleted, just go ahead after initial double-check
         else:
             self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+
+    def _on_custom_column_added(self, column: str):
+        # Step through the tab model's order
+        # For each bootstrap trace editor model, add this column to the error entry model
+        order = self.model.tab_model.order.copy()
+        for tab_id in order:
+            if tab_id == 'StartSetup':
+                continue
+            trace_model = self.model.tab_model.get_trace(tab_id)
+            if trace_model.kind == 'bootstrap':
+                trace_model.error_entry_model.add_column(column)
+
+    def _on_custom_column_removed(self, column: str):
+        # Step through the tab model's order
+        # For each bootstrap trace editor model, remove this column from the error entry model
+        order = self.model.tab_model.order.copy()
+        for tab_id in order:
+            if tab_id == 'StartSetup':
+                continue
+            trace_model = self.model.tab_model.get_trace(tab_id)
+            if trace_model.kind == 'bootstrap':
+                trace_model.error_entry_model.rem_column(column)
+        

@@ -3,6 +3,7 @@
 from typing import Optional
 
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
+from src.models.ternary.setup.model import TernaryType
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.ternary.trace.trace_scroll_area import DraggableTab
 
@@ -46,7 +47,46 @@ class TabController(QObject):
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
         tab_id = self.model.add_trace(trace_model)
-        self.view.add_trace_tab_to_view(f'Untitled {tab_id}', tab_id)
+        self.view.add_trace_tab_to_view(f'Untitled ({tab_id})', tab_id)
+        self.change_tab(tab_id)
+
+    def add_bootstrap_trace(
+            self, 
+            trace_model: Optional[TernaryTraceEditorModel] = None,
+            selected_indices: Optional[List[Dict[str, int]]] = None,
+            error_entry_cols: Optional[List[str]] = None) -> bool:
+        
+        curves_sorted: Dict[int: List[int]] = {-1: []}
+        
+        # TODO handle case where selected_indices is None
+        for inner_dict in selected_indices:
+            curve_number, point_index = inner_dict['curveNumber'], inner_dict['pointIndex']
+            if curve_number in curves_sorted:
+                curves_sorted[curve_number].append(point_index)
+            else:
+                curves_sorted[curve_number] = [point_index]
+        max_curve_number = max(curves_sorted)
+        number_of_points = len(curves_sorted[max_curve_number])
+        
+        if number_of_points != 1:
+            return False
+
+        # Start setup only becomes part of order after a tab is clicked
+        order = self.model.order.copy()
+        if 'StartSetup' in order:
+            tab_id = self.model.order[1:][max_curve_number]
+        else:
+            tab_id = self.model.order[max_curve_number]
+
+        source_trace_model = self.model.get_trace(tab_id)
+        trace_data_file = source_trace_model.selected_data_file
+        series = trace_data_file.get_series(curves_sorted[max_curve_number][0])
+
+        new_trace_model = TernaryTraceEditorModel(kind='bootstrap', series=series)
+        for col in error_entry_cols:
+            new_trace_model.error_entry_model.add_column(col)
+        tab_id = self.model.add_trace(new_trace_model)
+        self.view.add_trace_tab_to_view(f'Bootstrap ({tab_id})', tab_id)
         self.change_tab(tab_id)
 
     def remove_tab(self, tab_id: str, ask=True):
@@ -60,18 +100,18 @@ class TabController(QObject):
 
     def change_tab(self, tab_id: str):
         if tab_id == 'StartSetup':
-            # Emit back to start setup
+            # Emit signal: back to start setup
             self.change_to_start_setup_signal.emit()
             self.view.set_selected_tab(tab_id)
             self.model.set_current_tab(tab_id)
         else:
             # Set the selected tab to the one just clicked visually
-            self.view.set_selected_tab(tab_id)
             # Tell the model about this change
-            self.model.set_current_tab(tab_id)
             # Get the current trace model from the tab model
-            current_trace_model = self.model.get_trace(tab_id)
             # Emit a signal with the trace model
+            self.view.set_selected_tab(tab_id)
+            self.model.set_current_tab(tab_id)
+            current_trace_model = self.model.get_trace(tab_id)
             self.emit_change_tab(current_trace_model)
 
     def emit_change_tab(self, trace_model: TernaryTraceEditorModel):

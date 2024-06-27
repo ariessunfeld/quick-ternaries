@@ -15,12 +15,32 @@ from src.services.utils.molar_calculator import (
     MolarMassCalculatorException
 )
 
+from src.services.utils import (
+    EqualsFilterStrategy,
+    OneOfFilterStrategy,
+    LessEqualFilterStrategy,
+    LessThanFilterStrategy,
+    GreaterEqualFilterStrategy,
+    GreaterThanFilterStrategy,
+    LELTFilterStrategy,
+    LELEFilterStrategy,
+    LTLEFilterStrategy,
+    LTLTFilterStrategy
+)
+
 class TraceMolarConversionException(Exception):
     """Exception raised for errors in molar conversion"""
     def __init__(self, trace_id: str, column: str, bad_formula: str, message: str):
         self.trace_id = trace_id
         self.column = column
         self.bad_formula = bad_formula
+        self.message = message
+
+class TraceFilterFloatConversionException(Exception):
+    """Exception raised for errors converting filter values"""
+    def __init__(self, trace_id: str, filter_id: str, message: str):
+        self.trace_id = trace_id
+        self.filter_id = filter_id
         self.message = message
 
 
@@ -32,6 +52,22 @@ class TernaryTraceMaker:
 
     def __init__(self):
         super().__init__()
+        self.calculator = MolarMassCalculator()
+
+        # TODO refactor into own class, like MolarMassCalculator
+        self.operation_strategies = {
+            'Equals': EqualsFilterStrategy(),
+            'One of': OneOfFilterStrategy(),
+            '<': LessThanFilterStrategy(),
+            '>': GreaterThanFilterStrategy(),
+            '≤': LessEqualFilterStrategy(),
+            '≥': GreaterEqualFilterStrategy(),
+            'a < x < b': LTLTFilterStrategy(),
+            'a ≤ x ≤ b': LELEFilterStrategy(),
+            'a ≤ x < b': LELTFilterStrategy(),
+            'a < x ≤ b': LTLEFilterStrategy()
+            # can add other strategies here if needed
+        }
 
     def make_trace(
             self, 
@@ -44,10 +80,24 @@ class TernaryTraceMaker:
 
         # Get the start setup model from the ternary model
         ternary_type = model.start_setup_model.get_ternary_type()
-            
-        top_columns   = ternary_type.get_top()
-        left_columns  = ternary_type.get_left()
-        right_columns = ternary_type.get_right()
+
+        # If `custom`, pull out the apex values from the custom apex selection model
+        if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
+            top_columns = model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
+            left_columns = model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
+            right_columns = model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
+        # otherwise pull from ternary type directly
+        elif (isinstance(ternary_type, TernaryType) and ternary_type.name != "Custom"): 
+            top_columns = ternary_type.top
+            left_columns = ternary_type.left
+            right_columns = ternary_type.right
+        # Janky that we need all these cases... look into how TernaryType is getting updated in startsetup model
+        # This is the dict case
+        else:
+            top_columns = ternary_type.get('top')
+            left_columns = ternary_type.get('left')
+            right_columns = ternary_type.get('right')
 
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
@@ -60,7 +110,7 @@ class TernaryTraceMaker:
         # [use the filter strategies in src/utils to do this]
         use_filters = trace_model.filter_data_checked
         if use_filters:
-            pass # TODO
+            trace_data_df = self._apply_filters(trace_data_df, trace_model, trace_id)
 
         # If model start setup indicates any scaling needs to be done, 
         # scale the appropriate columns
@@ -273,58 +323,60 @@ class TernaryTraceMaker:
         """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
     
+    def _apply_filters(
+            self, 
+            data_df: pd.DataFrame, 
+            trace_model: TernaryTraceEditorModel, 
+            trace_id: str) -> pd.DataFrame:
+        """Applies filters and returns filtered dataframe"""
+        filter_order = trace_model.filter_tab_model.order
+        for filter_id in filter_order:
+            if filter_id == 'StartSetup':
+                continue
+            filter_model = trace_model.filter_tab_model.get_filter(filter_id)
+            column = filter_model.selected_column
+            column_dtype = trace_model.selected_data_file.get_dtype(column)
+            operation = filter_model.selected_filter_operation
+            selected_values = filter_model.selected_one_of_filter_values
+            single_value = filter_model.filter_values
+            value_a = filter_model.filter_value_a
+            value_b = filter_model.filter_value_b
 
-class MolarConverter:
-    def __init__(self, trace_data_df: pd.DataFrame,
-                 top_columns: list[str], left_columns: list[str], right_columns: list[str],
-                 apex_pattern: str,
-                 molar_pattern: str,
-                 unique_str: str,
-                 trace_id: str):
+            # float conversion and error raising
+            if operation == 'Equals' or operation in ['<', '>', '≤', '≥']:
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        single_value = float(single_value) if single_value else None
+                    except ValueError:
+                        msg = "Error converting value to number."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+            elif operation == 'One of':
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        selected_values = [float(x) for x in selected_values] if selected_values else []
+                    except ValueError:
+                        msg = "Error converting value(s) to number(s)."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+            elif operation in ['a < x < b', 'a ≤ x ≤ b', 'a ≤ x < b', 'a < x ≤ b']:
+                if np.issubdtype(column_dtype, np.number):
+                    try:
+                        value_a = float(value_a) if value_a else None
+                        value_b = float(value_b) if value_b else None
+                    except ValueError:
+                        msg = "Error converting Value A or Value B to a number."
+                        raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
 
-        self.trace_data_df = trace_data_df
+            filter_params = {
+                'column': column,
+                'operation': operation,
+                'value 1': single_value,
+                'value a': value_a,
+                'value b': value_b,
+                'selected values': selected_values,
+            }
 
-        self.top_columns   = top_columns
-        self.left_columns  = left_columns
-        self.right_columns = right_columns
+            filter_strategy = self.operation_strategies.get(operation)
+            data_df = filter_strategy.filter(data_df, filter_params)
 
-        self.apex_pattern = apex_pattern
-        self.molar_pattern = molar_pattern
-
-        self.unique_str = unique_str
-        self.trace_id = trace_id
-
-    def molar_conversion(self,
-                         sorted_repr: List[tuple],
-                         custom_ternary_type: bool):
+        return data_df
     
-        apex_columns = self.top_columns + self.left_columns + self.right_columns
-
-        if custom_ternary_type:
-            molar_mapping = {k:v for k,v in sorted_repr}
-        else:
-            molar_mapping = {c:c for c in apex_columns}
-        for col in apex_columns:
-            # add a molar proportion column for each apex column
-            try:
-                calculator = MolarMassCalculator()
-                self.trace_data_df[self.molar_pattern.format(col=col, us=self.unique_str)] = \
-                    self.trace_data_df[col] / calculator.get_molar_mass(molar_mapping.get(col))
-            except MolarMassCalculatorException as e:
-                raise TraceMolarConversionException(self.trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
-        # Sum to get the apex columns
-        for apex_name, apex_cols_list in zip(
-                ['top', 'left', 'right'],
-                [self.top_columns, self.left_columns, self.right_columns]):
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-            self.trace_data_df[[self.molar_pattern.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
-
-        return self.trace_data_df
-
-    def nonmolar_conversion(self):
-        for apex_name, apex_cols_list in zip(
-            ['top', 'left', 'right'],
-            [self.top_columns, self.left_columns, self.right_columns]):
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-            self.trace_data_df[apex_cols_list].sum(axis=1)
-        return self.trace_data_df
