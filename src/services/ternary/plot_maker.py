@@ -20,7 +20,7 @@ class TernaryPlotMaker:
         fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'ternary'}]])
         
         # Instantiate a layout
-        layout = {}
+        layout = {'paper_bgcolor': 'rgba(0, 0, 0, 0)'}
         
         # Pull the title and apex display names from the start setup view
         title = model.start_setup_model.get_title()

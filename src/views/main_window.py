@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QColor
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -69,6 +70,7 @@ class MainWindow(QMainWindow):
 
         # Right Area for Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
+        self.plot_view.page().setBackgroundColor(QColor(0, 0, 0, 1))
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         # Load local HTML file
