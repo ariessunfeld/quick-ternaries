@@ -1,6 +1,6 @@
 """Controller for the Tab (trace scroll area) sections"""
 
-from typing import Optional
+from typing import Optional, List, Dict
 
 from src.models.ternary.trace.tab_model import TraceTabsPanelModel
 from src.models.ternary.setup.model import TernaryType
