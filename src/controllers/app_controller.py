@@ -69,7 +69,6 @@ class AppController:
             QMessageBox.information(None, 'Change ternary type', msg)
         else:
             selected_indices = self.view.plotly_interface.get_indices()
-            print(selected_indices)
             top = self.model.current_model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
             left = self.model.current_model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
             right = self.model.current_model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()

@@ -6,6 +6,8 @@ import time
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
@@ -26,6 +28,12 @@ from src.services.utils import (
     LELEFilterStrategy,
     LTLEFilterStrategy,
     LTLTFilterStrategy
+)
+
+from src.services.utils.contour_utils import (
+    transform_to_cartesian,
+    compute_kde_contours,
+    convert_contour_to_ternary
 )
 
 class TraceMolarConversionException(Exception):
@@ -49,6 +57,7 @@ class TernaryTraceMaker:
     MOLAR_PATTERN = '__{col}_molar_{us}'
     APEX_PATTERN = '__{apex}_{us}'
     HEATMAP_PATTERN = '__{col}_heatmap_{us}'
+    SIMULATED_PATTERN = '__{col}_simulated_{us}'
 
     def __init__(self):
         super().__init__()
@@ -102,81 +111,193 @@ class TernaryTraceMaker:
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
 
-        # Get the trace model's selected data (GET A COPY)
-        trace_data_file = trace_model.selected_data_file
-        trace_data_df = trace_data_file.get_data().copy()
+        if trace_model.kind == 'bootstrap':
 
-        # If filters is checked, filter that data according to the filters
-        # [use the filter strategies in src/utils to do this]
-        use_filters = trace_model.filter_data_checked
-        if use_filters:
-            trace_data_df = self._apply_filters(trace_data_df, trace_model, trace_id)
+            # Get the series from the trace model (GET A COPY)
+            # Then transform it into a (one-row) dataframe
+            # This allows us to use the _apply_scale_factors method on it
+            series = trace_model.series.copy()
+            trace_data_df = series.to_frame().T
 
-        # If model start setup indicates any scaling needs to be done, 
-        # scale the appropriate columns
-        scale_apices = model.start_setup_model.scale_apices_is_checked
-        if scale_apices:
-            scaling_map = self.get_scaling_map(model)
-            trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
-        
-        # Get the name, point size, color, shape, etc that user has specified
-        name = self._get_trace_name(trace_model)
-        marker = self._get_basic_marker_dict(trace_model)
+            # Pull the percentile level
+            percentile = trace_model.contour_level
+            percentile = self._clean_percentile(percentile)
 
-        # If molar conversion is checked, use the specified formulae therein to perform molar conversion
-        # If any of the formulae are invalid, raise a ValueError with the formula to get caught and shown to user
-        # Ideally this would turn that part of the view red, but that's more complex. Suffices to say to user:
-        #       Trace [trace_id] has an invalid formula for molar conversion: [bad formula]
-        convert_to_molar = trace_model.wtp_to_molar_checked
-        if convert_to_molar:
-            apex_columns = top_columns + left_columns + right_columns
-            if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
-                    (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
-                molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
-            else:
-                molar_mapping = {c:c for c in apex_columns}
-            for col in apex_columns:
-                # add a molar proportion column for each apex column
-                try:
-                    trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
-                        trace_data_df[col] / self.calculator.get_molar_mass(molar_mapping.get(col))
-                except MolarMassCalculatorException as e:
-                    raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
-            # Sum to get the apex columns
-            for apex_name, apex_cols_list in zip(
-                    ['top', 'left', 'right'], 
-                    [top_columns, left_columns, right_columns]):
-                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
-                trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]].sum(axis=1)
-        else: # non-molar conversion case
-            for apex_name, apex_cols_list in zip(
-                    ['top', 'left', 'right'], 
-                    [top_columns, left_columns, right_columns]):
-                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
-                trace_data_df[apex_cols_list].sum(axis=1)
+            # Pull the color from the model
+            color = trace_model.color
 
-        use_heatmap = trace_model.add_heatmap_checked
-        if use_heatmap:
-            marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
-                marker, trace_model, trace_data_df, unique_str)
+            # Pull the name from the model
+            name = trace_model.legend_name
+
+            # Pull the line width from the model
+            line_thickness = trace_model.line_thickness
+
+            # If model start setup indicates any scaling needs to be done, 
+            # scale the appropriate columns
+            scale_apices = model.start_setup_model.scale_apices_is_checked
+            scaling_map = None
+            if scale_apices:
+                scaling_map = self.get_scaling_map(model)
+                trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
+
+            # Clean up the error representation
+            # Also scale the errors with the scaling map
+            err_repr = trace_model.error_entry_model.get_sorted_repr()
+            err_repr = self._clean_err_repr(err_repr, scaling_map)
+
+            # Expand the dataframe
+            trace_data_df = pd.DataFrame(np.repeat(trace_data_df.values, 5_000, axis=0), columns=trace_data_df.columns)
+
+            # Add the simulated data
+            for col, err in err_repr.items():
+                sim_col_fmt = self.SIMULATED_PATTERN.format(col=col, us=unique_str)
+                original_value = trace_data_df[col].values[0]
+                # TODO don't hard-code 5_000 points; get from model instead
+                trace_data_df[sim_col_fmt] = np.random.normal(original_value, err, 5_000)
+
+            # If molar conversion is checked, use the specified formulae therein to perform molar conversion
+            # If any of the formulae are invalid, raise a ValueError with the formula to get caught and shown to user
+            # Ideally this would turn that part of the view red, but that's more complex. Suffices to say to user:
+            #       Trace [trace_id] has an invalid formula for molar conversion: [bad formula]
+            # NOTE FOR FUTURE REFACTOR:
+            #   The following ~20 lines of code are slightly different from their repeated instance later on
+            #   Specifically, the columns being used as right-side values are the simulated columns
+            convert_to_molar = trace_model.wtp_to_molar_checked
+            if convert_to_molar:
+                apex_columns = top_columns + left_columns + right_columns
+                if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                        (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
+                    molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
+                else:
+                    molar_mapping = {c:c for c in apex_columns}
+                for col in apex_columns:
+                    # add a molar proportion column for each apex column
+                    try:
+                        sim_col_fmt = self.SIMULATED_PATTERN.format(col=col, us=unique_str)
+                        trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
+                            trace_data_df[sim_col_fmt] / self.calculator.get_molar_mass(molar_mapping.get(col))
+                    except MolarMassCalculatorException as e:
+                        raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
+                # Sum to get the apex columns
+                for apex_name, apex_cols_list in zip(
+                        ['top', 'left', 'right'], 
+                        [top_columns, left_columns, right_columns]):
+                    trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                        trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]].sum(axis=1)
+            else: # non-molar conversion case
+                for apex_name, apex_cols_list in zip(
+                        ['top', 'left', 'right'], 
+                        [top_columns, left_columns, right_columns]):
+                    fmt_apex_col_list = [self.SIMULATED_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]
+                    trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                        trace_data_df[fmt_apex_col_list].sum(axis=1)
+
+            trace_data_df_for_transformation = trace_data_df[
+                [self.APEX_PATTERN.format(apex='top', us=unique_str),
+                self.APEX_PATTERN.format(apex='left', us=unique_str),
+                self.APEX_PATTERN.format(apex='right', us=unique_str)]
+            ]
+            trace_data_cartesian = transform_to_cartesian(
+                trace_data_df_for_transformation,
+                self.APEX_PATTERN.format(apex='top', us=unique_str),
+                self.APEX_PATTERN.format(apex='left', us=unique_str),
+                self.APEX_PATTERN.format(apex='right', us=unique_str))
+            # TODO don't hard-code 100 gridpoints, let user pick and get from model
+            contours = compute_kde_contours(trace_data_cartesian, [percentile], 100)
+            ternary_contours = convert_contour_to_ternary(contours)
+            first_contour = ternary_contours[0]
+            # TODO let user pick whether to show in the legend
+            showlegend = True
+            return go.Scatterternary(
+                {
+                    'a': first_contour[:, 0],
+                    'b': first_contour[:, 1],
+                    'c': first_contour[:, 2],
+                    'line': {
+                        'color': color, 
+                        'width': line_thickness},
+                    'mode': 'lines',
+                    'name': name,
+                    'showlegend': showlegend}
+                )
+
+        else:
+            # Get the trace model's selected data (GET A COPY)
+            trace_data_file = trace_model.selected_data_file
+            trace_data_df = trace_data_file.get_data().copy()
+
+            # If filters is checked, filter that data according to the filters
+            # [use the filter strategies in src/utils to do this]
+            use_filters = trace_model.filter_data_checked
+            if use_filters:
+                trace_data_df = self._apply_filters(trace_data_df, trace_model, trace_id)
+
+            # If model start setup indicates any scaling needs to be done, 
+            # scale the appropriate columns
+            scale_apices = model.start_setup_model.scale_apices_is_checked
+            scaling_map = {}
+            if scale_apices:
+                scaling_map = self.get_scaling_map(model)
+                trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
             
-        # Ensure this happens last (right before trace generation)
-        # to avoud out-of-sync behavior between hoverdata and dataframe
-        # due to sorting from heatmap operations
-        hover_data, hover_template = self._get_hover_data_and_template(
-            model, trace_model, trace_data_df, top_columns, left_columns, right_columns)
+            # Get the name, point size, color, shape, etc that user has specified
+            name = self._get_trace_name(trace_model)
+            marker = self._get_basic_marker_dict(trace_model)
 
-        return go.Scatterternary(
-            a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
-            b=trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)],
-            c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
-            mode='markers',
-            name=name,
-            marker=marker,
-            customdata=hover_data,
-            hovertemplate=hover_template
-        )
-    
+            # If molar conversion is checked, use the specified formulae therein to perform molar conversion
+            # If any of the formulae are invalid, raise a ValueError with the formula to get caught and shown to user
+            # Ideally this would turn that part of the view red, but that's more complex. Suffices to say to user:
+            #       Trace [trace_id] has an invalid formula for molar conversion: [bad formula]
+            convert_to_molar = trace_model.wtp_to_molar_checked
+            if convert_to_molar:
+                apex_columns = top_columns + left_columns + right_columns
+                if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                        (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
+                    molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
+                else:
+                    molar_mapping = {c:c for c in apex_columns}
+                for col in apex_columns:
+                    # add a molar proportion column for each apex column
+                    try:
+                        trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
+                            trace_data_df[col] / self.calculator.get_molar_mass(molar_mapping.get(col))
+                    except MolarMassCalculatorException as e:
+                        raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
+                # Sum to get the apex columns
+                for apex_name, apex_cols_list in zip(
+                        ['top', 'left', 'right'], 
+                        [top_columns, left_columns, right_columns]):
+                    trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                    trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]].sum(axis=1)
+            else: # non-molar conversion case
+                for apex_name, apex_cols_list in zip(
+                        ['top', 'left', 'right'], 
+                        [top_columns, left_columns, right_columns]):
+                    trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                    trace_data_df[apex_cols_list].sum(axis=1)
+
+            use_heatmap = trace_model.add_heatmap_checked
+            if use_heatmap:
+                marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
+                    marker, trace_model, trace_data_df, unique_str)
+                
+            # Ensure this happens last (right before trace generation)
+            # to avoud out-of-sync behavior between hoverdata and dataframe
+            # due to sorting from heatmap operations
+            hover_data, hover_template = self._get_hover_data_and_template(
+                model, trace_model, trace_data_df, top_columns, left_columns, right_columns, scaling_map)
+
+            return go.Scatterternary(
+                a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
+                b=trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)],
+                c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
+                mode='markers',
+                name=name,
+                marker=marker,
+                customdata=hover_data,
+                hovertemplate=hover_template
+            )
+        
     def _get_hover_data_and_template(
             self, 
             model: TernaryModel, 
@@ -184,7 +305,8 @@ class TernaryTraceMaker:
             trace_data_df: pd.DataFrame,
             top_columns: List[str], 
             left_columns: List[str], 
-            right_columns: List[str]) -> Tuple[np.array, str]:
+            right_columns: List[str],
+            scale_map: Dict[str, float]) -> Tuple[np.array, str]:
         """
         Generates hover data and template for a Plotly trace.
 
@@ -200,6 +322,7 @@ class TernaryTraceMaker:
             top_columns: a list of string column names for the top apex
             left_columns: a list of string column names for the left apex
             right_columns: a list of string column names from the right apex
+            scale_map: a dictionary mapping column names to their scale factors
 
         Returns:
             hover_data: Numpy representation of hover data columns from trace_data_df
@@ -223,8 +346,12 @@ class TernaryTraceMaker:
                     hover_cols += [heatmap_col]
 
         # Construct the hover template
+        # hover_template = "".join(
+        #     f"<br><b>{header}:</b> %{{customdata[{i}]}}"
+        #     for i, header in enumerate(hover_cols)
+        # )
         hover_template = "".join(
-            f"<br><b>{header}:</b> %{{customdata[{i}]}}"
+            f"<br><b>{f'{scale_map[header]}&times;' if header in scale_map and scale_map[header] != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
             for i, header in enumerate(hover_cols)
         )
 
@@ -395,3 +522,46 @@ class TernaryTraceMaker:
             data_df = filter_strategy.filter(data_df, filter_params)
 
         return data_df
+    
+    def _clean_err_repr(
+            self, 
+            err_repr: List[Tuple[str, str]],
+            scaling_map: Dict[str, float]) -> Dict[str, float]:
+        """Returns a (scaled) representation of the errors entered by the user"""
+        ret = {}
+        for row in err_repr:
+            col = row[0]
+            err = row[1]
+            err = err.strip()
+            _err = []
+            for ch in err:
+                if ch.isdigit or (ch == '.' and ch not in _err):
+                    _err.append(ch)
+            _err = ''.join(_err)
+            if not _err or _err == '.':
+                ret[col] = None
+            else:
+                if scaling_map:
+                    ret[col] = float(_err) * scaling_map[col]
+                else:
+                    ret[col] = float(_err) 
+        return ret
+
+    def _clean_percentile(self, percentile: str) -> float:
+        """Returns a number between 0 and 1
+        
+        Arguments: A string, likely between 0 and 100
+        """
+
+        try:
+            percentile = float(percentile)
+            if percentile > 1:
+                return percentile / 100
+        except ValueError as err:
+            # TODO figure out how to handle gracefull
+            raise ValueError from err
+
+
+
+
+    
