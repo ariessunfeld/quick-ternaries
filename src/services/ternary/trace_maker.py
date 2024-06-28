@@ -45,7 +45,7 @@ class TraceFilterFloatConversionException(Exception):
 
 
 class TernaryTraceMaker:
-
+    
     MOLAR_PATTERN = '__{col}_molar_{us}'
     APEX_PATTERN = '__{apex}_{us}'
     HEATMAP_PATTERN = '__{col}_heatmap_{us}'
@@ -128,16 +128,32 @@ class TernaryTraceMaker:
         # Ideally this would turn that part of the view red, but that's more complex. Suffices to say to user:
         #       Trace [trace_id] has an invalid formula for molar conversion: [bad formula]
         convert_to_molar = trace_model.wtp_to_molar_checked
-        molar_converter = MolarConverter(trace_data_df,
-                                         top_columns, left_columns, right_columns,
-                                         self.APEX_PATTERN, self.MOLAR_PATTERN,
-                                         unique_str, trace_id)
         if convert_to_molar:
-            sorted_repr = model.molar_conversion_model.get_sorted_repr()
-            custom_ternary_type = (ternary_type.name == 'Custom')
-            trace_data_df = molar_converter.molar_conversion(sorted_repr, custom_ternary_type)
-        else:
-            trace_data_df = molar_converter.nonmolar_conversion()
+            apex_columns = top_columns + left_columns + right_columns
+            if (isinstance(ternary_type, TernaryType) and ternary_type.name == 'Custom') or \
+                    (isinstance(ternary_type, dict) and ternary_type['name'] == 'Custom'):
+                molar_mapping = {k:v for k,v in model.molar_conversion_model.get_sorted_repr()}
+            else:
+                molar_mapping = {c:c for c in apex_columns}
+            for col in apex_columns:
+                # add a molar proportion column for each apex column
+                try:
+                    trace_data_df[self.MOLAR_PATTERN.format(col=col, us=unique_str)] = \
+                        trace_data_df[col] / self.calculator.get_molar_mass(molar_mapping.get(col))
+                except MolarMassCalculatorException as e:
+                    raise TraceMolarConversionException(trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')
+            # Sum to get the apex columns
+            for apex_name, apex_cols_list in zip(
+                    ['top', 'left', 'right'], 
+                    [top_columns, left_columns, right_columns]):
+                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=unique_str) for c in apex_cols_list]].sum(axis=1)
+        else: # non-molar conversion case
+            for apex_name, apex_cols_list in zip(
+                    ['top', 'left', 'right'], 
+                    [top_columns, left_columns, right_columns]):
+                trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                trace_data_df[apex_cols_list].sum(axis=1)
 
         use_heatmap = trace_model.add_heatmap_checked
         if use_heatmap:
@@ -151,8 +167,8 @@ class TernaryTraceMaker:
             model, trace_model, trace_data_df, top_columns, left_columns, right_columns)
 
         return go.Scatterternary(
-            a=trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)],
-            b=trace_data_df[self.APEX_PATTERN.format(apex='left',  us=unique_str)],
+            a=trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)],
+            b=trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)],
             c=trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)],
             mode='markers',
             name=name,
@@ -379,4 +395,3 @@ class TernaryTraceMaker:
             data_df = filter_strategy.filter(data_df, filter_params)
 
         return data_df
-    
