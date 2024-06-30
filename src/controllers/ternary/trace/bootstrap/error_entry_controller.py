@@ -1,5 +1,6 @@
 """Connects the TernaryTraceMolarConversionModel with its view"""
 
+import pandas as pd
 from PySide6.QtCore import QObject, Signal
 
 from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapErrorEntryModel
@@ -45,3 +46,20 @@ class TernaryBootstrapErrorEntryController(QObject):
         current_tab = self.model.current_tab
         if current_tab:
             self.view.update_view(self.model.current_tab.error_entry_model.get_sorted_repr())
+
+    def set_default_values(self):
+        """
+        Perform a case-insensitive search for '<col> RMSEP' in the df columns for each plotted column.
+        If any of these columns exist, set them as the default uncertainties upon initialization.
+        """
+        error_entry_model = self.model.current_tab.error_entry_model
+        trace_data_df = self.model.current_tab.series.to_frame().T
+        lower_case_cols = trace_data_df.columns.str.lower()
+        case_insensitive_col_mapping = dict(zip(lower_case_cols, trace_data_df.columns))
+        for col, uncertainty in error_entry_model.get_sorted_repr():
+            if (not uncertainty) and ((col.lower() + " rmsep") in lower_case_cols):
+                rmsep_col = case_insensitive_col_mapping[col.lower() + " rmsep"]
+                default_uncertainty = trace_data_df[rmsep_col].values[0]
+                default_uncertainty = str(default_uncertainty)
+                error_entry_model.update_error_value(col, default_uncertainty)
+        self._refresh()

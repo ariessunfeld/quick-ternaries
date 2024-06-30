@@ -73,6 +73,7 @@ class AppController:
             left = self.model.current_model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
             right = self.model.current_model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
             success = self.current_controller.tab_controller.add_bootstrap_trace(None, selected_indices, top+left+right)
+            self.current_controller.bootstrap_error_entry_controller.set_default_values()
             if not success:
                 # TODO
                 pass
