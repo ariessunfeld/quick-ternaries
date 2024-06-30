@@ -75,7 +75,7 @@ class TernaryTraceMaker:
                                                          marker,
                                                          scaling_map)
             mode = 'lines'
-            hover_data, hover_template = self._get_bootstrap_hover_data_and_template()
+            hover_data, hover_template = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
             a, b, c = self._generate_contours(trace_data_df, unique_str, trace_model.contour_level)
         else:
             trace_data_df = self._prepare_standard_data(model, trace_model, ternary_type,
@@ -98,7 +98,7 @@ class TernaryTraceMaker:
                                ternary_type,
                                top_columns:List[str], left_columns:List[str], right_columns:List[str],
                                unique_str:str, trace_id:str,
-                               marker:dict, scaling_map:dict):
+                               marker:dict, scaling_map:dict) -> pd.DataFrame:
         trace_data_df = trace_model.selected_data_file.get_data().copy()
 
         if trace_model.filter_data_checked:
@@ -126,7 +126,7 @@ class TernaryTraceMaker:
                                 ternary_type,
                                 top_columns:List[str], left_columns:List[str], right_columns:List[str],
                                 unique_str:str, trace_id:str,
-                                marker:dict, scaling_map:dict):
+                                marker:dict, scaling_map:dict) -> pd.DataFrame:
         trace_data_df = trace_model.series.to_frame().T
 
         if scaling_map:
@@ -233,7 +233,7 @@ class TernaryTraceMaker:
 
         return hover_data, hover_template
     
-    def _get_bootstrap_hover_data_and_template(self) -> Tuple[np.array, str]:
+    def _get_bootstrap_hover_data_and_template(self, trace_model :TernaryTraceEditorModel, scale_map) -> Tuple[np.array, str]:
         """
         Generates hover data and template for a bootstrapped Plotly trace.
 
@@ -242,8 +242,14 @@ class TernaryTraceMaker:
             hover_template: HTML formatting for hover data.
         """
 
+        err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr(), scale_map)
+        hover_template = "".join(
+            f"<br><b>{f'{scale_map[col]}&times;' if col in scale_map and scale_map[col] != 1 else ''}{col}:</b> &#177;{err_repr[col]}" 
+            for col in err_repr
+        )
+
         hover_data = None
-        hover_template = "<extra></extra>" # disable hover text
+        hover_template += "<extra></extra>" # disable default hover text
 
         return hover_data, hover_template
 
