@@ -113,6 +113,9 @@ class TernaryTraceMaker:
                                                 top_columns, left_columns, right_columns,
                                                 unique_str, trace_id,
                                                 convert_to_molar)
+        
+        # disable point outlines for now
+        marker['line'] = {'width': 0}
 
         if trace_model.add_heatmap_checked:
             marker, trace_data_df = self._update_marker_dict_with_heatmap_config(marker, trace_model, trace_data_df, unique_str)
@@ -166,7 +169,7 @@ class TernaryTraceMaker:
         return molar_converter.nonmolar_conversion()
     
     def _generate_contours(self, trace_data_df: pd.DataFrame,
-                           unique_str: str, contour_level):
+                           unique_str: str, contour_level: float):
         trace_data_df_for_transformation = trace_data_df[
             [self.APEX_PATTERN.format(apex='top',   us=unique_str),
              self.APEX_PATTERN.format(apex='left',  us=unique_str),
@@ -431,14 +434,13 @@ class TernaryTraceMaker:
                     ret[col] = float(_err)
         return ret
 
-    def _clean_percentile(self, percentile: str) -> float:
+    def _clean_percentile(self, percentile: float) -> float:
         """Returns a number between 0 and 1
         
-        Arguments: A string, likely between 0 and 100
+        Arguments: A float, likely between 0 and 100
         """
 
         try:
-            percentile = float(percentile)
             if percentile > 1:
                 return percentile / 100
         except ValueError as err:

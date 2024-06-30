@@ -33,7 +33,7 @@ class TernaryTraceEditorModel:
             line_thickness: Optional[float] = 1,
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
-            contour_level: Optional[float] = '68',
+            contour_level: Optional[float] = 68.0,
             error_entry_model: Optional[TernaryBootstrapErrorEntryModel] = None):
         
         # Direct access

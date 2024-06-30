@@ -65,7 +65,7 @@ class TernaryTraceEditorController(QObject):
         if series is not None:
             self.view.refresh_table_from_series(series)
         self.view.sigma_dropdown.setCurrentText(trace_model.selected_contour_mode, block=False)
-        self.view.percentile_edit.setText(trace_model.contour_level)
+        self.view.percentile_edit.setText(str(trace_model.contour_level))
         
 
     def _selected_data_event(self, value: str):
@@ -113,15 +113,15 @@ class TernaryTraceEditorController(QObject):
         self.model.current_tab.selected_contour_mode = value
         if value == 'custom':
             self.view.percentile_edit.setEnabled(True)
-            self.view.percentile_edit.setText(self.model.current_tab.contour_level)
+            self.view.percentile_edit.setText(str(self.model.current_tab.contour_level))
         elif value == '1 sigma':
             self.view.percentile_edit.setEnabled(False)
             self.view.percentile_edit.setText('68')
-            self.model.current_tab.contour_level = '68'
+            self.model.current_tab.contour_level = 68.0
         elif value == '2 sigma':
             self.view.percentile_edit.setEnabled(False)
             self.view.percentile_edit.setText('95')
-            self.model.current_tab.contour_level = '95'
+            self.model.current_tab.contour_level = 95.0
 
     def _on_percentile_edit_text_changed(self, value: str):
-        self.model.current_tab.contour_level = value
+        self.model.current_tab.contour_level = float(value)
