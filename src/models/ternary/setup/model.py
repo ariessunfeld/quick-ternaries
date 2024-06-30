@@ -24,16 +24,16 @@ class TernaryType:
         self.left: list = left
         self.formatted_name = self.get_short_formatted_name()
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
 
-    def get_top(self):
+    def get_top(self) -> list:
         return self.top
 
-    def get_right(self):
+    def get_right(self) -> list:
         return self.right
 
-    def get_left(self):
+    def get_left(self) -> list:
         return self.left
 
     def add_to_top(self, col: str):
@@ -54,7 +54,7 @@ class TernaryType:
             self.left.append(col)
             self.update_short_formatted_name()
 
-    def get_short_formatted_name(self):
+    def get_short_formatted_name(self) -> str:
         """
         Return space-separated string with first character of each part of each apex
         
@@ -65,7 +65,7 @@ class TernaryType:
             "".join(s[0] if s else '' for s in self.left) + " " + \
             "".join(s[0] if s else '' for s in self.right)
 
-    def get_combobox_formatted_name(self):
+    def get_combobox_formatted_name(self) -> str:
         return "+".join(s[0] if s else '' for s in self.top) + "  " + \
             "+".join(s[0] if s else '' for s in self.left) + "  " + \
             "+".join(s[0] if s else '' for s in self.right)
@@ -138,11 +138,11 @@ class TernaryStartSetupModel:
     def set_left_apex_display_name(self, left_name: str):
         self.left_apex_display_name = left_name
 
-    def get_top_apex_display_name(self):
+    def get_top_apex_display_name(self) -> str:
         return self.top_apex_display_name
     
-    def get_right_apex_display_name(self):
+    def get_right_apex_display_name(self) -> str:
         return self.right_apex_display_name
     
-    def get_left_apex_display_name(self):
+    def get_left_apex_display_name(self) -> str:
         return self.left_apex_display_name
