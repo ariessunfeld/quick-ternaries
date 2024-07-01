@@ -57,7 +57,7 @@ class TernaryTraceEditorView(QWidget):
         # Scroll area to hold the content layout
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("QScrollArea { border: none; }")
+        # self.scroll_area.setStyleSheet("QScrollArea { border: none; }")
 
         # Widget to hold all the content
         self.content_widget = QWidget()

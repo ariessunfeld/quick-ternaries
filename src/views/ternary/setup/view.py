@@ -41,7 +41,7 @@ class TernaryStartSetupView(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.content_widget)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll_area.setStyleSheet("QScrollArea { border: none; }")
+        # self.scroll_area.setStyleSheet("QScrollArea { border: none; }")
 
         # Scroll area to display filenames for loaded data
         self.loaded_data_scroll_view = LoadedDataScrollView()
