@@ -16,6 +16,7 @@ class InfoButton(QWidget):
         self.info_button = QToolButton()
         self.info_button.setCursor(Qt.PointingHandCursor)
         self.info_button.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
+        self.info_button.setStyleSheet("QToolButton { background-color: transparent; border: none; }")
         self.info_button.clicked.connect(lambda _ : self.show_info(msg))
         layout.addWidget(self.info_button)
 
