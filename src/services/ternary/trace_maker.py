@@ -1,21 +1,16 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
-from typing import List, Dict, Tuple
 import time
+from typing import List, Dict, Tuple
 
-import plotly.graph_objects as go
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
+import pandas as pd
+import plotly.graph_objects as go
 
-from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
 from src.models.ternary.setup.model import TernaryType
-from src.services.utils.molar_calculator import (
-    MolarMassCalculator,
-    MolarMassCalculatorException
-)
+from src.models.ternary.trace.model import TernaryTraceEditorModel
+from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
 
 from src.services.utils import (
     EqualsFilterStrategy,
@@ -30,11 +25,8 @@ from src.services.utils import (
     LTLTFilterStrategy
 )
 
-from src.services.utils.contour_utils import (
-    transform_to_cartesian,
-    compute_kde_contours,
-    convert_contour_to_ternary
-)
+from src.services.utils.contour_utils import transform_to_cartesian, compute_kde_contours, convert_contour_to_ternary
+
 
 class TraceMolarConversionException(Exception):
     """Exception raised for errors in molar conversion"""
