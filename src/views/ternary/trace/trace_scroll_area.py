@@ -62,7 +62,7 @@ class DraggableTab(QWidget):
         close_button.setStyleSheet("""
             QPushButton {
                 border: none;
-                background-color: lightgray;
+                background-color: #A9A9A9;
                 border-radius: 10px;
             }
             QPushButton:hover {
@@ -104,7 +104,7 @@ class DraggableTab(QWidget):
             self.show()
 
     def enterEvent(self, event):
-        self.label.setStyleSheet("background: lightgray;")
+        self.label.setStyleSheet("background: #A9A9A9;")
         super().enterEvent(event)
 
     def leaveEvent(self, event):
