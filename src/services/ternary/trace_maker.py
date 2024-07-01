@@ -218,12 +218,19 @@ class TernaryTraceMaker:
         # Collecting display names for the apices
         apex_columns = top_columns + left_columns + right_columns
         
-        # if there is custom hover data, strictly use the custom hover data selected by the user
         use_custom_hover_data = model.start_setup_model.custom_hover_data_is_checked
-        hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs() if use_custom_hover_data else apex_columns
+        # if there is custom hover data, strictly use the custom hover data selected by the user
+        if use_custom_hover_data:
+            hover_cols = model.start_setup_model.custom_hover_data_selection_model.get_selected_attrs()
         # if there is no custom hover data, default to the apex columns and heatmap column (if heatmap in use)
-        if trace_model.add_heatmap_checked and (trace_model.heatmap_model.selected_column not in hover_cols):
-            hover_cols.append(trace_model.heatmap_model.selected_column)
+        else:
+            hover_cols = apex_columns
+            if trace_model.add_heatmap_checked and (trace_model.heatmap_model.selected_column not in hover_cols):
+                hover_cols.append(trace_model.heatmap_model.selected_column)
+            if trace_model.filter_data_checked:
+                for filter_model in trace_model.filter_tab_model.get_all_filters().values():
+                    if filter_model.selected_column not in hover_cols:
+                        hover_cols.append(filter_model.selected_column)
 
         hover_template = "".join(
             f"<br><b>{f'{scale_map[header]}&times;' if header in scale_map and scale_map[header] != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
