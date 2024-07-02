@@ -33,7 +33,7 @@ class TernaryHtmlMaker(BaseHtmlMaker):
                             plotElement.on('plotly_selected', function(eventData) {
                                 if (eventData) {
                                     var indices = eventData.points.map(function(pt) {
-                                        return {pointIndex: pt.pointIndex, curveNumber: pt.curveNumber};
+                                        return {pointIndex: pt.customdata[pt.customdata.length - 1], curveNumber: pt.curveNumber};  // the index is the last item in customdata
                                     });
                                     window.plotlyInterface.receive_selected_indices(indices);
                                 }

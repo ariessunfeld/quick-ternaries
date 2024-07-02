@@ -83,7 +83,7 @@ class TernaryTraceMaker:
                                                          marker,
                                                          scaling_map)
             mode = 'lines'
-            hover_data, hover_template = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
+            customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
             a, b, c = self._generate_contours(trace_data_df, unique_str, trace_model.contour_level)
         else:
             trace_data_df = self._prepare_standard_data(model, trace_model, ternary_type,
@@ -92,14 +92,17 @@ class TernaryTraceMaker:
                                                         marker,
                                                         scaling_map)
             mode = 'markers'
-            hover_data, hover_template = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, top_columns, left_columns, right_columns, scaling_map)
+            customdata, hovertemplate = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, top_columns, left_columns, right_columns, scaling_map)
             a = trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)]
             b = trace_data_df[self.APEX_PATTERN.format(apex='left',  us=unique_str)]
             c = trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)]
 
+            indices = trace_data_df.index.to_numpy().reshape(-1, 1)
+            customdata = np.hstack((customdata, indices))
+
         return go.Scatterternary(
             a=a, b=b, c=c, name=name, mode=mode,
-            marker=marker, customdata=hover_data, hovertemplate=hover_template, showlegend=True
+            marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True
         )
     
     def _prepare_standard_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
@@ -213,8 +216,8 @@ class TernaryTraceMaker:
             scale_map: a dictionary mapping column names to their scale factors
 
         Returns:
-            hover_data: Numpy representation of hover data columns from trace_data_df
-            hover_template: HTML formatting for hover data.
+            customdata: Numpy representation of hover data columns from trace_data_df
+            hovertemplate: HTML formatting for hover data.
         """
         # Collecting display names for the apices
         apex_columns = top_columns + left_columns + right_columns
@@ -233,37 +236,37 @@ class TernaryTraceMaker:
                     if filter_model.selected_column not in hover_cols:
                         hover_cols.append(filter_model.selected_column)
 
-        hover_template = "".join(
+        hovertemplate = "".join(
             f"<br><b>{f'{scale_map[header]}&times;' if header in scale_map and scale_map[header] != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
             for i, header in enumerate(hover_cols)
         )
 
         # Structure hover data
-        hover_data = trace_data_df[hover_cols].values
+        customdata = trace_data_df[hover_cols].values
 
-        hover_template += "<extra></extra>" # Disable default hover text
+        hovertemplate += "<extra></extra>" # Disable default hover text
 
-        return hover_data, hover_template
+        return customdata, hovertemplate
     
     def _get_bootstrap_hover_data_and_template(self, trace_model :TernaryTraceEditorModel, scale_map) -> Tuple[np.array, str]:
         """
         Generates hover data and template for a bootstrapped Plotly trace.
 
         Returns:
-            hover_data: Numpy representation of hover data columns from trace_data_df
-            hover_template: HTML formatting for hover data.
+            customdata: Numpy representation of hover data columns from trace_data_df
+            hovertemplate: HTML formatting for hover data.
         """
 
         err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr(), scale_map)
-        hover_template = "".join(
+        hovertemplate = "".join(
             f"<br><b>{f'{scale_map[col]}&times;' if col in scale_map and scale_map[col] != 1 else ''}{col}:</b> &#177;{err_repr[col]}" 
             for col in err_repr
         )
 
-        hover_data = None
-        hover_template += "<extra></extra>" # disable default hover text
+        customdata = None
+        hovertemplate += "<extra></extra>" # disable default hover text
 
-        return hover_data, hover_template
+        return customdata, hovertemplate
 
     def get_scaling_map(self, model: TernaryModel):
         """Returns a dictionary with scale factors for each column in the `Scale Apices` view"""
@@ -336,7 +339,7 @@ class TernaryTraceMaker:
                 by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
                 ascending=False)
         elif trace_model.heatmap_model.sorting_mode == 'shuffled':
-            data_df = data_df.sample(frac=1).reset_index(drop=True)
+            data_df = data_df.sample(frac=1)
         
         colorscale = heatmap_model.colorscale
         if heatmap_model.reverse_colorscale:
