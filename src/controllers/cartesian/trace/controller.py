@@ -1,0 +1,2 @@
+class CartesianTraceEditorController:
+    pass

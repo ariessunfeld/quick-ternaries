@@ -95,4 +95,7 @@ TODO, setting range bounds, default values, etc
 TODO
 
 
+# Copyright and License
 
+O#: O4762  
+see LICENSE for OSS and MIT license details
