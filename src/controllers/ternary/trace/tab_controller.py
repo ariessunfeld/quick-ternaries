@@ -47,7 +47,8 @@ class TabController(QObject):
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
         tab_id = self.model.add_trace(trace_model)
-        self.view.add_trace_tab_to_view(f'Untitled ({tab_id})', tab_id)
+        trace_model.legend_name = f'Scatter (tr {tab_id})'
+        self.view.add_trace_tab_to_view(f'Scatter (tr {tab_id})', tab_id)
         self.change_tab(tab_id)
 
     def add_bootstrap_trace(
@@ -78,15 +79,34 @@ class TabController(QObject):
         else:
             tab_id = self.model.order[max_curve_number]
 
+        # Get source model
         source_trace_model = self.model.get_trace(tab_id)
+
+        # Extract data file from source model
         trace_data_file = source_trace_model.selected_data_file
+
+        # TODO apply filters and heatmap sorting to copy of data file
+        # ...
+
+        # Get the series from the [filtered and sorted] data file
         series = trace_data_file.get_series(curves_sorted[max_curve_number][0])
 
-        new_trace_model = TernaryTraceEditorModel(kind='bootstrap', series=series)
+        # Instantiate a new bootstrap trace model with data from source model
+        new_trace_model = TernaryTraceEditorModel(
+            kind='bootstrap', 
+            series=series, 
+            wtp_to_molar_checked=source_trace_model.wtp_to_molar_checked)
+        
+        # Populate the error model
         for col in error_entry_cols:
             new_trace_model.error_entry_model.add_column(col)
+
+        # Get the tab ID that results from adding the new trace to the tabs model
         tab_id = self.model.add_trace(new_trace_model)
-        self.view.add_trace_tab_to_view(f'Bootstrap ({tab_id})', tab_id)
+
+        # Add the new trace to the view and change the tab to reflect the addition
+        new_trace_model.legend_name = f'Contour (tr {tab_id})'
+        self.view.add_trace_tab_to_view(f'Contour (tr {tab_id})', tab_id)
         self.change_tab(tab_id)
 
     def remove_tab(self, tab_id: str, ask=True):

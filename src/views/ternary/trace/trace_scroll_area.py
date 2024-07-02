@@ -187,7 +187,7 @@ class TabView(QWidget):
         self._emit_has_trace()
     
     def add_start_setup_tab_to_view(self):
-        start_setup_tab = DraggableTab("Start Setup", "StartSetup")
+        start_setup_tab = DraggableTab("Setup Menu", "StartSetup")
         start_setup_tab.tab_clicked.connect(self.tab_changed.emit)
         self.tab_layout.insertWidget(0, start_setup_tab)
         return start_setup_tab
