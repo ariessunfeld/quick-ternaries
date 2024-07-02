@@ -64,6 +64,7 @@ class TernaryTraceMaker:
         unique_str = self._generate_unique_str()
         ternary_type = model.start_setup_model.get_ternary_type()
 
+        # Pull the columns lists from the ternary type
         top_columns = ternary_type.get_top()
         left_columns = ternary_type.get_left()
         right_columns = ternary_type.get_right()
@@ -299,7 +300,7 @@ class TernaryTraceMaker:
             size   = float(trace_model.point_size),
             symbol = trace_model.selected_point_shape,
             color  = trace_model.color,
-            line   = {'width': trace_model.line_thickness}
+            #line   = {'width': trace_model.line_thickness}
         )
         return marker
     
@@ -323,9 +324,7 @@ class TernaryTraceMaker:
             data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
                 data_df[color_column]
             
-        # sort df so that points are plotted in order from lowest
-        # heatmap value abundance to highest heatmap value abundance
-        # TODO add this is a default checkec option but allow users to uncheck
+        # Handle heatmap sort mode
         if trace_model.heatmap_model.sorting_mode == 'no change':
             pass
         elif trace_model.heatmap_model.sorting_mode == 'high on top':
