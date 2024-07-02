@@ -184,10 +184,10 @@ class HeatmapEditorController:
         """Handles blank string case and nonnumeric cases"""
         cleaned = []
         for ch in val:
-            if ch.isdigit() or (ch == '.' and ch not in cleaned):
+            if ch.isdigit() or (ch == '.' and ch not in cleaned) or (ch == '-' and ch not in cleaned):
                 cleaned.append(ch)
         cleaned = ''.join(cleaned)
-        if cleaned and cleaned != '.':
+        if cleaned and cleaned != '.' and cleaned != '-':
             if float(cleaned) == int(float(cleaned)):
                 return int(float(cleaned))
             else:
