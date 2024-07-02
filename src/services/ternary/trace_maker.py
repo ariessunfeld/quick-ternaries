@@ -1,12 +1,14 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
-from typing import List, Dict, Tuple
 import time
+from typing import List, Dict, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
 
+from src.models.ternary.model import TernaryModel
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
 from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
@@ -61,7 +63,13 @@ class TernaryTraceMaker:
     def make_trace(self, model: TernaryModel, trace_id: str) -> go.Scatterternary:
         unique_str = self._generate_unique_str()
         ternary_type = model.start_setup_model.get_ternary_type()
-        top_columns, left_columns, right_columns = ternary_type.get_top(), ternary_type.get_left(), ternary_type.get_right()
+
+        # Pull the columns lists from the ternary type
+        top_columns = ternary_type.get_top()
+        left_columns = ternary_type.get_left()
+        right_columns = ternary_type.get_right()
+
+        # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
         name = trace_model.legend_name
         marker = self._get_basic_marker_dict(trace_model)
@@ -113,9 +121,6 @@ class TernaryTraceMaker:
                                                 top_columns, left_columns, right_columns,
                                                 unique_str, trace_id,
                                                 convert_to_molar)
-        
-        # disable point outlines for now
-        marker['line'] = {'width': 0}
 
         if trace_model.add_heatmap_checked:
             marker, trace_data_df = self._update_marker_dict_with_heatmap_config(marker, trace_model, trace_data_df, unique_str)
@@ -169,7 +174,7 @@ class TernaryTraceMaker:
         return molar_converter.nonmolar_conversion()
     
     def _generate_contours(self, trace_data_df: pd.DataFrame,
-                           unique_str: str, contour_level: float):
+                           unique_str: str, contour_level):
         trace_data_df_for_transformation = trace_data_df[
             [self.APEX_PATTERN.format(apex='top',   us=unique_str),
              self.APEX_PATTERN.format(apex='left',  us=unique_str),
@@ -295,7 +300,7 @@ class TernaryTraceMaker:
             size   = float(trace_model.point_size),
             symbol = trace_model.selected_point_shape,
             color  = trace_model.color,
-            line   = {'width': trace_model.line_thickness}
+            #line   = {'width': trace_model.line_thickness}
         )
         return marker
     
@@ -319,9 +324,7 @@ class TernaryTraceMaker:
             data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
                 data_df[color_column]
             
-        # sort df so that points are plotted in order from lowest
-        # heatmap value abundance to highest heatmap value abundance
-        # TODO add this is a default checkec option but allow users to uncheck
+        # Handle heatmap sort mode
         if trace_model.heatmap_model.sorting_mode == 'no change':
             pass
         elif trace_model.heatmap_model.sorting_mode == 'high on top':

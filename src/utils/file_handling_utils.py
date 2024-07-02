@@ -14,7 +14,7 @@ def find_header_row_excel(file, max_rows_scan, sheet_name):
         print(err)
         return None
 
-    n_rows_search = min(len(df)-1, max_rows_scan)
+    n_rows_search = min(len(df), max_rows_scan)
 
     for i in range(n_rows_search):
         df = pd.read_excel(file, sheet_name, header=i, nrows=n_rows_search+1)

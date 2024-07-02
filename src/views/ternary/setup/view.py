@@ -99,8 +99,8 @@ class TernaryStartSetupView(QWidget):
         self.content_layout.addWidget(self.custom_apex_selection_view)
         self.content_layout.addWidget(self.labeled_line_edit_ternary_title)
         self.content_layout.addWidget(self.labeled_line_edit_top_apex_display_name)
-        self.content_layout.addWidget(self.labeled_line_edit_right_apex_display_name)
         self.content_layout.addWidget(self.labeled_line_edit_left_apex_display_name)
+        self.content_layout.addWidget(self.labeled_line_edit_right_apex_display_name)
         self.content_layout.addWidget(self.labeled_checkbox_customize_hover_data)
         self.content_layout.addWidget(self.custom_hover_data_selection_view)
 

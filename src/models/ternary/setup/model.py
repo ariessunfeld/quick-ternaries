@@ -24,16 +24,16 @@ class TernaryType:
         self.left: list = left
         self.formatted_name = self.get_short_formatted_name()
 
-    def get_name(self) -> str:
+    def get_name(self) -> List[str]:
         return self.name
-
-    def get_top(self) -> list:
+    
+    def get_top(self) -> List[str]:
         return self.top
 
-    def get_right(self) -> list:
+    def get_right(self) -> List[str]:
         return self.right
-
-    def get_left(self) -> list:
+        
+    def get_left(self) -> List[str]:
         return self.left
 
     def add_to_top(self, col: str):
@@ -55,8 +55,7 @@ class TernaryType:
             self.update_short_formatted_name()
 
     def get_short_formatted_name(self) -> str:
-        """
-        Return space-separated string with first character of each part of each apex
+        """Return space-separated string with first character of each part of each apex
         
         Example: self.top = ['Al2O3', 'SiO2']; self.left = ['Cao', 'Na2O', 'K2O']; self.right = ['FeOT']
             returns: 'AS CNK F'
@@ -64,13 +63,13 @@ class TernaryType:
         return "".join(s[0] if s else '' for s in self.top) + " " + \
             "".join(s[0] if s else '' for s in self.left) + " " + \
             "".join(s[0] if s else '' for s in self.right)
-
+    
     def get_combobox_formatted_name(self) -> str:
         return "+".join(s[0] if s else '' for s in self.top) + "  " + \
             "+".join(s[0] if s else '' for s in self.left) + "  " + \
             "+".join(s[0] if s else '' for s in self.right)
     
-    def update_short_formatted_name(self):
+    def update_short_formatted_name(self) -> str:
         self.formatted_name = self.get_short_formatted_name()
     
     def __str__(self):
