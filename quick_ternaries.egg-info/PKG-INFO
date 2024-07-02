@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: quick-ternaries
-Version: 0.0.10
+Version: 0.1.0
 Summary: A tool for making ternary diagrams.
 Author: Ari Essunfeld, Reid Morris
 Author-email: ariessunfeld@gmail.com, reidmorris0419@gmail.com
@@ -8,15 +8,15 @@ License: MIT
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy==1.26.4
 Requires-Dist: matplotlib==3.7.1
+Requires-Dist: scipy==1.11.4
 Requires-Dist: molmass==2023.4.10
 Requires-Dist: openpyxl==3.1.2
 Requires-Dist: pandas==2.0.2
-Requires-Dist: pip-chill==1.0.3
 Requires-Dist: plotly==5.15.0
-Requires-Dist: pyinstaller==5.12.0
 Requires-Dist: pyside6==6.5.1.1
-Requires-Dist: tqdm==4.65.0
 Requires-Dist: kaleido==0.1.0.post1; sys_platform == "win32"
 Requires-Dist: kaleido==0.2.1; sys_platform == "linux"
 Requires-Dist: kaleido==0.2.1; sys_platform == "darwin"
@@ -118,4 +118,7 @@ TODO, setting range bounds, default values, etc
 TODO
 
 
+# Copyright and License
 
+O#: O4762  
+see LICENSE for OSS and MIT license details
