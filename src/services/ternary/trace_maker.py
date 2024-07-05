@@ -200,7 +200,7 @@ class TernaryTraceMaker:
             top_columns: List[str], left_columns: List[str], right_columns: List[str],
             scale_map:dict) -> Tuple[np.array, str]:
         """
-        Generates hover data and template for a standard Plotly trace.
+        Generates custom data for standard Plotly points and an HTML template for the hover data.
 
         If custom hover data is unchecked, default hover data is provided as follows:
          - Each column used in an apex
@@ -216,7 +216,7 @@ class TernaryTraceMaker:
             scale_map: a dictionary mapping column names to their scale factors
 
         Returns:
-            customdata: Numpy representation of hover data columns from trace_data_df
+            customdata: Numpy representation of what information a plotted point should have
             hovertemplate: HTML formatting for hover data.
         """
         # Collecting display names for the apices
@@ -241,27 +241,32 @@ class TernaryTraceMaker:
             for i, header in enumerate(hover_cols)
         )
 
-        # Structure hover data
+        # Structure custom data
         customdata = trace_data_df[hover_cols].values
 
         hovertemplate += "<extra></extra>" # Disable default hover text
 
         return customdata, hovertemplate
     
-    def _get_bootstrap_hover_data_and_template(self, trace_model :TernaryTraceEditorModel, scale_map) -> Tuple[np.array, str]:
+    def _get_bootstrap_hover_data_and_template(self, trace_model:TernaryTraceEditorModel, scale_map) -> Tuple[np.array, str]:
         """
-        Generates hover data and template for a bootstrapped Plotly trace.
+        Generates custom data for a bootstrapped contour and an HTML template for its hover data.
 
         Returns:
-            customdata: Numpy representation of hover data columns from trace_data_df
+            customdata: Numpy representation of what information the bootstrapped contour should have
             hovertemplate: HTML formatting for hover data.
         """
 
+        # add uncertainties
         err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr(), scale_map)
         hovertemplate = "".join(
             f"<br><b>{f'{scale_map[col]}&times;' if col in scale_map and scale_map[col] != 1 else ''}{col}:</b> &#177;{err_repr[col]}" 
             for col in err_repr
         )
+
+        # add contour levels (sigma or percentiles)
+        contour_mode = trace_model.selected_contour_mode
+        hovertemplate += f"<br><b>Contour:</b> {str(trace_model.contour_level) + '%' if contour_mode == 'custom' else trace_model.selected_contour_mode}"
 
         customdata = None
         hovertemplate += "<extra></extra>" # disable default hover text
