@@ -244,8 +244,8 @@ class TernaryTraceMaker:
             for i, header in enumerate(hover_cols)
         )
 
-        # Structure custom data
-        customdata = trace_data_df[hover_cols].values
+        # round the custom data to mitigate floating point error
+        customdata = np.round(trace_data_df[hover_cols].values, 4)
 
         hovertemplate += "<extra></extra>" # Disable default hover text
 
@@ -262,6 +262,8 @@ class TernaryTraceMaker:
 
         # add uncertainties
         err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr(), scale_map)
+        # round to mitigate floating point error
+        err_repr = {col: round(err, 4) for col, err in err_repr.items()}
         hovertemplate = "".join(
             f"<br><b>{f'{scale_map[col]}&times;' if col in scale_map and scale_map[col] != 1 else ''}{col}:</b> &#177;{err_repr[col]}" 
             for col in err_repr
