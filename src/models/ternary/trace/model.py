@@ -32,7 +32,7 @@ class TernaryTraceEditorModel:
             heatmap_model: Optional[HeatmapModel] = None,
             filter_tab_model: Optional[FilterTabsPanelModel] = None,
             series: Optional[pd.Series] = None,
-            line_thickness: Optional[float] = 1.0,
+            line_thickness: Optional[float] = 2.0,
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
             contour_level: Optional[float] = 68.0,

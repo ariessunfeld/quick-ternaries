@@ -46,6 +46,7 @@ class TernaryTraceEditorController(QObject):
         self.view.use_filter_checkbox.stateChanged.connect(self._filter_checkbox_statechanged_event)
         self.view.advanced_settings_checkbox.stateChanged.connect(self._advanced_settings_checkbox_statechanged_event)
         self.view.sigma_dropdown.valueChanged.connect(self._selected_contour_event)
+        self.view.line_thickness.valueChanged.connect(self._line_thickness_changed_event)
         self.view.percentile_edit.textChanged.connect(self._on_percentile_edit_text_changed)
 
     def change_tab(self, trace_model: TernaryTraceEditorModel):
@@ -67,7 +68,8 @@ class TernaryTraceEditorController(QObject):
         if series is not None:
             self.view.refresh_table_from_series(series)
         self.view.sigma_dropdown.setCurrentText(trace_model.selected_contour_mode, block=False)
-        self.view.percentile_edit.setText(trace_model.contour_level)
+        self.view.line_thickness.setValue(trace_model.line_thickness)
+        self.view.percentile_edit.setText(str(trace_model.contour_level))
         
 
     def _selected_data_event(self, value: str):
@@ -80,6 +82,9 @@ class TernaryTraceEditorController(QObject):
 
     def _name_changed_event(self, value: str):
         self.model.current_tab.legend_name = value
+
+    def _line_thickness_changed_event(self, value: int):
+        self.model.current_tab.line_thickness = value
 
     def _wtp_molar_checkbox_changed_event(self, value: int):
         self.model.current_tab.wtp_to_molar_checked = self.view.convert_wtp_molar_checkbox.isChecked()
