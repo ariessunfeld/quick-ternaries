@@ -132,6 +132,10 @@ class TernaryTraceEditorView(QWidget):
         self.color_picker = LeftLabeledColorPicker('Color:')
         self.content_layout.addWidget(self.color_picker)
 
+        # Contour line thickness
+        self.line_thickness = LeftLabeledSpinBox("Thickness:", step_size=0.1)
+        self.line_thickness.setValue(1)
+
         # Dropdown for sigma selection
         self.sigma_dropdown = LeftLabeledComboBox("Contour:")
         self.sigma_dropdown.addItems(["1 sigma", "2 sigma", "custom"])
@@ -140,8 +144,10 @@ class TernaryTraceEditorView(QWidget):
         self.percentile_edit = LeftLabeledLineEdit("Percentile:", 1)
         self.percentile_edit.setEnabled(False)
 
+        self.line_thickness.setVisible(False)
         self.sigma_dropdown.setVisible(False)
         self.percentile_edit.setVisible(False)
+        self.content_layout.addWidget(self.line_thickness)
         self.content_layout.addWidget(self.sigma_dropdown)
         self.content_layout.addWidget(self.percentile_edit)
 
@@ -189,6 +195,7 @@ class TernaryTraceEditorView(QWidget):
 
         # Show the bootstrap widgets
         self.group_box.setVisible(True)
+        self.line_thickness.setVisible(True)
         self.sigma_dropdown.setVisible(True)
         self.percentile_edit.setVisible(True)
         self.error_entry_view.setVisible(True)
@@ -207,6 +214,7 @@ class TernaryTraceEditorView(QWidget):
 
         # Hide the bootstrap widgets
         self.group_box.setVisible(False)
+        self.line_thickness.setVisible(False)
         self.sigma_dropdown.setVisible(False)
         self.percentile_edit.setVisible(False)
         self.error_entry_view.setVisible(False)

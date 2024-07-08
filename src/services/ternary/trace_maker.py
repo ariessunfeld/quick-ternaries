@@ -77,32 +77,34 @@ class TernaryTraceMaker:
         scaling_map = self.get_scaling_map(model) if scale_apices else {}
         
         if trace_model.kind == 'bootstrap':
-            trace_data_df = self._prepare_bootstrap_data(model, trace_model, ternary_type,
-                                                         top_columns, left_columns, right_columns,
-                                                         unique_str, trace_id,
-                                                         marker,
-                                                         scaling_map)
+            marker, trace_data_df = self._prepare_bootstrap_data(model, trace_model, ternary_type,
+                                                                 top_columns, left_columns, right_columns,
+                                                                 unique_str, trace_id,
+                                                                 marker,
+                                                                 scaling_map)
             mode = 'lines'
             customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
             a, b, c = self._generate_contours(trace_data_df, unique_str, trace_model.contour_level)
+            line = dict(width=trace_model.line_thickness)
         else:
-            trace_data_df = self._prepare_standard_data(model, trace_model, ternary_type,
-                                                        top_columns, left_columns, right_columns,
-                                                        unique_str, trace_id,
-                                                        marker,
-                                                        scaling_map)
+            marker, trace_data_df = self._prepare_standard_data(model, trace_model, ternary_type,
+                                                                top_columns, left_columns, right_columns,
+                                                                unique_str, trace_id,
+                                                                marker,
+                                                                scaling_map)
             mode = 'markers'
             customdata, hovertemplate = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, top_columns, left_columns, right_columns, scaling_map)
             a = trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)]
             b = trace_data_df[self.APEX_PATTERN.format(apex='left',  us=unique_str)]
             c = trace_data_df[self.APEX_PATTERN.format(apex='right', us=unique_str)]
+            line = None
 
             indices = trace_data_df.index.to_numpy().reshape(-1, 1)
             customdata = np.hstack((customdata, indices))
 
         return go.Scatterternary(
             a=a, b=b, c=c, name=name, mode=mode,
-            marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True
+            marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True, line=line
         )
     
     def _prepare_standard_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
@@ -131,7 +133,7 @@ class TernaryTraceMaker:
         if trace_model.advanced_settings_checked:
             marker = self._update_marker_dict_with_advanced_settings(marker, trace_model)
 
-        return trace_data_df
+        return marker, trace_data_df
     
     def _prepare_bootstrap_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
                                 ternary_type,
@@ -160,7 +162,7 @@ class TernaryTraceMaker:
                                                 unique_str, trace_id,
                                                 convert_to_molar, bootstrap=True)
 
-        return trace_data_df
+        return marker, trace_data_df
     
     def _molar_calibration(self,
                            model:TernaryModel, ternary_type,
