@@ -128,6 +128,9 @@ class TernaryTraceMaker:
         if trace_model.add_heatmap_checked:
             marker, trace_data_df = self._update_marker_dict_with_heatmap_config(marker, trace_model, trace_data_df, unique_str)
 
+        if trace_model.advanced_settings_checked:
+            marker = self._update_marker_dict_with_advanced_settings(marker, trace_model)
+
         return trace_data_df
     
     def _prepare_bootstrap_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
@@ -307,11 +310,27 @@ class TernaryTraceMaker:
         marker = dict(
             size   = float(trace_model.point_size),
             symbol = trace_model.selected_point_shape,
-            color  = trace_model.color,
-            #line   = {'width': trace_model.line_thickness}
+            color  = trace_model.color
         )
         return marker
     
+    def _update_marker_dict_with_advanced_settings(self, 
+            marker: dict, 
+            trace_model: TernaryTraceEditorModel) -> dict:
+        
+        advanced_settings_model = trace_model.advanced_settings_model
+
+        marker.update(
+            dict(
+                opacity = advanced_settings_model.opacity / 100,
+                line = dict(
+                    color = advanced_settings_model.outline_color,
+                    width = advanced_settings_model.outline_thickness / 10
+                    )
+                )
+        )
+        return marker
+
     def _update_marker_dict_with_heatmap_config(
             self, 
             marker: dict, 

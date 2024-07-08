@@ -7,6 +7,7 @@ import pandas as pd
 from src.models.utils.data_models import DataFile
 from src.models.ternary.trace.heatmap_model import HeatmapModel
 from src.models.ternary.trace.filter.tab_model import FilterTabsPanelModel
+from src.models.ternary.trace.advanced_settings_model import AdvancedSettingsModel
 from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapErrorEntryModel
 
 class TernaryTraceEditorModel:
@@ -27,14 +28,16 @@ class TernaryTraceEditorModel:
             color: Optional[str] = None,
             add_heatmap_checked: bool = False,
             filter_data_checked: bool = False,
+            advanced_settings_checked: bool = False,
             heatmap_model: Optional[HeatmapModel] = None,
             filter_tab_model: Optional[FilterTabsPanelModel] = None,
             series: Optional[pd.Series] = None,
-            line_thickness: Optional[float] = 1,
+            line_thickness: Optional[float] = 1.0,
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
             contour_level: Optional[float] = 68.0,
-            error_entry_model: Optional[TernaryBootstrapErrorEntryModel] = None):
+            error_entry_model: Optional[TernaryBootstrapErrorEntryModel] = None,
+            advanced_settings_model: Optional[AdvancedSettingsModel] = None):
         
         # Direct access
         self.kind = kind
@@ -54,6 +57,11 @@ class TernaryTraceEditorModel:
         else:
             self.error_entry_model = error_entry_model
 
+        if advanced_settings_model is None:
+            self.advanced_settings_model = AdvancedSettingsModel()
+        else:
+            self.advanced_settings_model = advanced_settings_model
+
         # Controlled access
         self._available_data_file_names = available_data_file_names
         self._selected_data_file_name = selected_data_file_name
@@ -68,6 +76,7 @@ class TernaryTraceEditorModel:
         self._color = color
         self._add_heatmap_checked = add_heatmap_checked
         self._filter_data_checked = filter_data_checked
+        self._advanced_settings_checked = advanced_settings_checked
         self._series = series
         self._line_thickness = line_thickness
         self._line_style = line_style
@@ -113,6 +122,14 @@ class TernaryTraceEditorModel:
     @wtp_to_molar_checked.setter
     def wtp_to_molar_checked(self, value: bool):
         self._wtp_to_molar_checked = value
+
+    @property
+    def advanced_settings_checked(self) -> bool:
+        return self._advanced_settings_checked
+    
+    @advanced_settings_checked.setter
+    def advanced_settings_checked(self, value: bool):
+        self._advanced_settings_checked = value
 
     @property
     def tab_name(self) -> Optional[str]:
