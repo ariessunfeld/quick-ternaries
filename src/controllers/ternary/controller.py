@@ -13,6 +13,7 @@ from src.controllers.ternary.trace.filter.tab_controller import FilterTabControl
 from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
 from src.controllers.ternary.trace.molar_conversion_controller import TernaryTraceMolarConversionController
 from src.controllers.ternary.trace.bootstrap.error_entry_controller import TernaryBootstrapErrorEntryController
+from src.controllers.ternary.trace.advanced_settings_controller import AdvancedSettingsController
 
 
 # For type hints
@@ -52,6 +53,11 @@ class TernaryController:
         self.heatmap_editor_controller = HeatmapEditorController(
             self.model.tab_model, 
             self.view.ternary_trace_editor_view.heatmap_view)
+        
+        self.advanced_settings_controller = AdvancedSettingsController(
+            self.model.tab_model,
+            self.view.ternary_trace_editor_view.trace_editor_advanced_settings_view
+        )
         
         self.molar_conversion_controller = TernaryTraceMolarConversionController(
             self.model.molar_conversion_model,

@@ -36,3 +36,9 @@ class LeftLabeledSpinBox(QWidget):
     
     def setValue(self, value: int):
         self.spinbox.setValue(value)
+
+    def setMaximum(self, value: int):
+        self.spinbox.setMaximum(value)
+
+    def setMinimum(self, value: int):
+        self.spinbox.setMinimum(value)

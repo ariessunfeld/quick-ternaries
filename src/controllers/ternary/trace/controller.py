@@ -44,6 +44,7 @@ class TernaryTraceEditorController(QObject):
         self.view.color_picker.colorChanged.connect(self._color_changed_event)
         self.view.use_heatmap_checkbox.stateChanged.connect(self._heatmap_checkbox_statechanged_event)
         self.view.use_filter_checkbox.stateChanged.connect(self._filter_checkbox_statechanged_event)
+        self.view.advanced_settings_checkbox.stateChanged.connect(self._advanced_settings_checkbox_statechanged_event)
         self.view.sigma_dropdown.valueChanged.connect(self._selected_contour_event)
         self.view.percentile_edit.textChanged.connect(self._on_percentile_edit_text_changed)
 
@@ -59,6 +60,7 @@ class TernaryTraceEditorController(QObject):
         self.view.color_picker.setColor(trace_model.color)
         self.view.use_heatmap_checkbox.setChecked(trace_model.add_heatmap_checked)
         self.view.use_filter_checkbox.setChecked(trace_model.filter_data_checked)
+        self.view.advanced_settings_checkbox.setChecked(trace_model.advanced_settings_checked)
 
         # Bootstrap config
         series = trace_model.series
@@ -108,6 +110,11 @@ class TernaryTraceEditorController(QObject):
         is_checked = self.view.use_filter_checkbox.isChecked()
         self.model.current_tab.filter_data_checked = is_checked
         self.view.filter_view.setVisible(is_checked)
+    
+    def _advanced_settings_checkbox_statechanged_event(self, event):
+        is_checked = self.view.advanced_settings_checkbox.isChecked()
+        self.model.current_tab.advanced_settings_checked = is_checked
+        self.view.trace_editor_advanced_settings_view.setVisible(is_checked)
 
     def _selected_contour_event(self, value: str):
         self.model.current_tab.selected_contour_mode = value

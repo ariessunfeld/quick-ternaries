@@ -7,6 +7,7 @@ and is used in the dynamic content area of the MainWindow
 from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
 from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
 from src.views.ternary.trace.filter.view import FilterPanelView
+from src.views.ternary.trace.advanced_settings_view import AdvancedSettingsView
 from src.views.ternary.trace.bootstrap.error_entry_view import TernaryBootstrapErrorEntryView
 
 from src.models.utils.pandas_series_model import PandasSeriesModel
@@ -153,6 +154,15 @@ class TernaryTraceEditorView(QWidget):
         self.content_layout.addWidget(self.filter_view)
         self.filter_view.setVisible(False)
 
+        # Advanced settings
+        self.advanced_settings_checkbox = LeftLabeledCheckbox('Show Advanced Settings')
+        self.content_layout.addWidget(self.advanced_settings_checkbox)
+
+        # Trace editor advanced settings view (hide at first)
+        self.trace_editor_advanced_settings_view = AdvancedSettingsView()
+        self.content_layout.addWidget(self.trace_editor_advanced_settings_view)
+        self.trace_editor_advanced_settings_view.setVisible(False)
+
         # Add the scroll area to the main layout
         self.main_layout.addWidget(self.scroll_area)
 
@@ -166,6 +176,7 @@ class TernaryTraceEditorView(QWidget):
         self.select_point_shape.setVisible(False)
         self.use_heatmap_checkbox.setVisible(False)
         self.use_filter_checkbox.setVisible(False)
+        self.advanced_settings_checkbox.setVisible(False)
 
         # Show the bootstrap widgets
         self.group_box.setVisible(True)
@@ -183,6 +194,7 @@ class TernaryTraceEditorView(QWidget):
         self.select_point_shape.setVisible(True)
         self.use_heatmap_checkbox.setVisible(True)
         self.use_filter_checkbox.setVisible(True)
+        self.advanced_settings_checkbox.setVisible(True)
 
         # Hide the bootstrap widgets
         self.group_box.setVisible(False)
