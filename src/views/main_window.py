@@ -19,6 +19,11 @@ from PySide6.QtWidgets import (
     QFileDialog, 
     QInputDialog
 )
+
+from PySide6.QtCore import Qt, QRect, QSize
+from PySide6.QtGui import QMovie
+
+from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, Slot, QSize, QUrl
 from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette
@@ -31,6 +36,27 @@ from src.services.utils.plotly_interface import PlotlyInterface
 
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
+
+
+class GifPopup(QWidget):
+    def __init__(self, gif_path, width, height, text, parent=None):
+        super(GifPopup, self).__init__(parent)
+        self.setWindowFlag(Qt.Popup)
+
+        self.text_label = QLabel(text, self)
+        self.gif_label = QLabel(self)
+        self.movie = QMovie(gif_path)
+        self.movie.setScaledSize(QSize(width, height))
+        self.gif_label.setMovie(self.movie)
+        self.gif_label.setFixedSize(width, height)
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.text_label)
+        layout.addWidget(self.gif_label)
+        self.setLayout(layout)
+
+        self.movie.start()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -226,3 +252,16 @@ class MainWindow(QMainWindow):
             'settings_icon.png')
         icon = QIcon(settings_gear_icon)
         button.setIcon(icon)
+
+    def show_bootstrap_tutorial_gif(self):
+        tutorial_gif = os.path.join(
+            os.path.dirname(__file__), 
+            '..', 
+            'resources', 
+            'bootstrap-tutorial.gif')
+        msg = "Use the Lasso tool in the top-right of the ternary\nplot window to select a single point.\n\n"
+        msg += "Then click `Bootstrap` to configure an uncertainty\ncontour around this point.\n\n"
+        msg += "Ensure that only a single point is selected with the lasso."
+        gif_popup = GifPopup(tutorial_gif, 400, 300, msg, self)
+        gif_popup.setGeometry(QRect(50, 50, 400, 300))  # Adjust size to accommodate text and GIF
+        gif_popup.show()

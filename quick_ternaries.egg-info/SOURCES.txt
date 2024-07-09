@@ -78,6 +78,7 @@ src/models/utils/pandas_series_model.py
 src/models/utils/selection_models.py
 src/models/zmaps/__init__.py
 src/resources/blank_ternary_plot.html
+src/resources/bootstrap-tutorial.gif
 src/services/__init__.py
 src/services/app_service.py
 src/services/cartesian/__init__.py

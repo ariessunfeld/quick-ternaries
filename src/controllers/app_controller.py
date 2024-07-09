@@ -75,9 +75,7 @@ class AppController:
             right = self.model.current_model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
             success = self.current_controller.tab_controller.add_bootstrap_trace(None, selected_indices, top+left+right)
             if not success:
-                # TODO
-                pass
-                # show gif with tutorial
+                self.view.show_bootstrap_tutorial_gif()
 
     def _on_plot_type_changed(self):
         selected_plot_type = self.view.plot_type_combo.currentText()
