@@ -233,3 +233,8 @@ class TabView(QWidget):
                 ret.append(item)
 
         return ret
+
+    def update_font(self, font):
+        self.setFont(font)
+        for widget in self.findChildren(QWidget):
+            widget.setFont(font)

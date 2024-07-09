@@ -1,6 +1,7 @@
 """Contains the MainWindow(QWidget) view class, which encompasses the navigation panel, dynamic content area, preview/save buttons, and plot view area"""
 
-import os 
+import os
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QMainWindow, 
@@ -23,6 +24,8 @@ from PySide6.QtCore import Qt, QRect, QSize, QUrl
 from PySide6.QtGui import QMovie, QAction
 
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import Qt, Slot, QSize, QUrl
+from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -64,8 +67,8 @@ class MainWindow(QMainWindow):
 
         # Top Bar
         self.top_bar = QHBoxLayout()
-        self.app_name_label = QLabel("Quick Ternaries")
-        self.settings_button = QPushButton("Settings")
+        self.app_name_label = self.setup_title("quick ternaries")
+        self.settings_button = self.create_settings_button()
 
         # Bottom Bar
         self.bottom_bar = QHBoxLayout()
@@ -201,3 +204,65 @@ class MainWindow(QMainWindow):
         gif_popup = GifPopup(tutorial_gif, 400, 300, msg, self)
         gif_popup.setGeometry(QRect(50, 50, 400, 300))  # Adjust size to accommodate text and GIF
         gif_popup.show()
+
+    def setup_title(self, title:str):
+        """
+        Load the 'Motter Tektura' font and use it to set up the application's title label.
+        The title label is configured to display the 'quick ternaries' logo which includes a
+        hyperlink to the project repository.
+        """
+        font_path = os.path.join(
+            os.path.dirname(__file__),
+            '..', 
+            'assets', 
+            'fonts',
+            'Motter Tektura Normal.ttf')
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        title_label = QLabel()
+        if font_id != -1:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                custom_font = QFont(font_families[0], pointSize=20)
+                title_label.setFont(custom_font)
+        title_label = self.update_title_view(title_label, title)
+        title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
+        title_label.setOpenExternalLinks(True) # Allow the label to open links
+        return title_label
+
+    def update_title_view(self, title_label: QLabel, title:str):
+        """
+        Update the title label hyperlink color based on the current theme.
+        """
+        # Check the palette to determine if it's dark mode
+        palette = self.palette()
+        is_dark_mode = palette.color(QPalette.Base).lightness() < palette.color(QPalette.Text).lightness()
+        color = 'white' if is_dark_mode else 'black'  # Choose color based on the theme
+        title_label.setText(
+            '<a href=https://github.com/ariessunfeld/quick-ternaries ' +
+            f'style="color: {color}; text-decoration:none;">' +
+            f'{title}' +
+            '</a>'
+        )
+        return title_label
+
+    def create_settings_button(self):
+        button = QPushButton(self)
+        button.setStyleSheet('border: none;')
+        button.setIconSize(QSize(20, 20))
+        button.setFixedSize(20, 20)
+        button.setCursor(Qt.PointingHandCursor)
+        self.updateSettingsIcon(button)
+        return button
+
+    def updateSettingsIcon(self, button):
+        """
+        Update the settings icon based on the current theme.
+        """
+        settings_gear_icon = os.path.join(
+            os.path.dirname(__file__),
+            '..', 
+            'assets', 
+            'icons',
+            'settings_icon.png')
+        icon = QIcon(settings_gear_icon)
+        button.setIcon(icon)
