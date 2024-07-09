@@ -5,6 +5,7 @@ from src.views.main_window import MainWindow
 from src.services.app_service import AppService
 
 from src.controllers.ternary.controller import TernaryController
+from src.views.settings_window import SettingsDialog
 
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -55,9 +56,9 @@ class AppController:
         plot_maker.save_plot(fig, filepath, dpi)
 
     def _on_settings_clicked(self):
-        # TODO show the settings menu from the older version of the code
-        # Connect it to the font size somehow (?)
-        pass
+        dialog = SettingsDialog(self.view)
+        dialog.font_changed.connect(self.view.tab_view.update_font)
+        dialog.exec()
 
     def _on_bootstrap_clicked(self):
         # TODO make this more dynamic based on plot type
