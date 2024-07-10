@@ -42,15 +42,30 @@ def compute_kde_contours(
     
     # Convert levels to capture the densest regions first
     density_levels = []
-    for level in levels:
-        target_volume = level * total_kde_volume
-        idx = np.argmax(cumulative_Z >= target_volume)
-        density_levels.append(sorted_Z[idx] if idx < len(sorted_Z) else sorted_Z[-1])
+    try:
+        for level in levels:
+            target_volume = level * total_kde_volume
+            idx = np.argmax(cumulative_Z >= target_volume)
+            density_levels.append(sorted_Z[idx] if idx < len(sorted_Z) else sorted_Z[-1])
+    except TypeError:
+        return False, []
 
     fig, ax = plt.subplots()
     CS = ax.contour(X, Y, Z, levels=sorted(density_levels))
     plt.close(fig)
-    return CS.allsegs  # Returns all contour segments for each requested level
+
+    # Check if contours are generated and are sufficiently smooth
+    min_segment_length = 12  # Minimum number of points in a valid contour segment
+    valid_contours = []
+    for segs in CS.allsegs:
+        if any(len(seg) >= min_segment_length for seg in segs):
+            valid_contours.append(segs)
+
+    # Return True if valid contours are found, False otherwise
+    success = len(valid_contours) == len(levels)
+    return success, valid_contours
+
+    #return CS.allsegs  # Returns all contour segments for each requested level
 
 def convert_contour_to_ternary(contour: List[np.array]):
     """Convert 2D contour coordinates back to ternary coordinates."""
