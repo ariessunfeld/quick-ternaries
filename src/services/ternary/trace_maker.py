@@ -321,7 +321,21 @@ class TernaryTraceMaker:
         )
 
         # round the custom data to mitigate floating point error
-        customdata = np.round(trace_data_df[hover_cols].values, 4)
+        # customdata = np.round(trace_data_df[hover_cols].values, 4)
+        
+        # Construct customdata with rounded values for numeric columns and raw values for others
+        customdata = []
+        for header in hover_cols:
+            try:
+                # Try to round the column if it's numeric
+                rounded_values = np.round(trace_data_df[header].values.astype(float), 4)
+            except ValueError:
+                # If rounding fails (e.g., for non-numeric columns), use raw values
+                rounded_values = trace_data_df[header].values
+            customdata.append(rounded_values)
+
+        # Transpose customdata to match the shape expected by plotly
+        customdata = np.array(customdata).T
 
         hovertemplate += "<extra></extra>" # Disable default hover text
 
