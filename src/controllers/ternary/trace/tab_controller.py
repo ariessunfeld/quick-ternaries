@@ -108,6 +108,7 @@ class TabController(QObject):
         new_trace_model.legend_name = f'Contour (tr {tab_id})'
         self.view.add_trace_tab_to_view(f'Contour (tr {tab_id})', tab_id)
         self.change_tab(tab_id)
+        return True
 
     def remove_tab(self, tab_id: str, ask=True):
         if not ask or QMessageBox.question(

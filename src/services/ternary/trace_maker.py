@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
 
 from src.models.ternary.model import TernaryModel
+from src.models.ternary.setup.model import TernaryType
 from src.models.ternary.trace.model import TernaryTraceEditorModel
 from src.models.ternary.model import TernaryModel
 from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
@@ -19,6 +20,7 @@ from src.services.utils import (
 )
 from src.services.utils.contour_utils import transform_to_cartesian, compute_kde_contours, convert_contour_to_ternary
 
+
 class TraceMolarConversionException(Exception):
     """Exception raised for errors in molar conversion"""
     def __init__(self, trace_id: str, column: str, bad_formula: str, message: str):
@@ -26,6 +28,7 @@ class TraceMolarConversionException(Exception):
         self.column = column
         self.bad_formula = bad_formula
         self.message = message
+
 
 class TraceFilterFloatConversionException(Exception):
     """Exception raised for errors converting filter values"""
@@ -35,11 +38,20 @@ class TraceFilterFloatConversionException(Exception):
         self.message = message
 
 
+class BootstrapTraceContourException(Exception):
+    """Exception raised when contour calculation fails"""
+    def __init__(self, trace_id: str, message: str):
+        self.trace_id = trace_id
+        self.message = message
+
+
 class TernaryTraceMaker:
     
     APEX_PATTERN = '__{apex}_{us}'
     HEATMAP_PATTERN = '__{col}_heatmap_{us}'
     SIMULATED_PATTERN = '__{col}_simulated_{us}'
+
+    N_SIMULATION_POINTS = 10_000
 
     def __init__(self):
         super().__init__()
@@ -84,7 +96,7 @@ class TernaryTraceMaker:
                                                                  scaling_map)
             mode = 'lines'
             customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
-            a, b, c = self._generate_contours(trace_data_df, unique_str, trace_model.contour_level)
+            a, b, c = self._generate_contours(trace_id, trace_data_df, unique_str, trace_model.contour_level)
             line = dict(width=trace_model.line_thickness)
         else:
             marker, trace_data_df = self._prepare_standard_data(model, trace_model, ternary_type,
@@ -135,54 +147,109 @@ class TernaryTraceMaker:
 
         return marker, trace_data_df
     
-    def _prepare_bootstrap_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
-                                ternary_type,
-                                top_columns:List[str], left_columns:List[str], right_columns:List[str],
-                                unique_str:str, trace_id:str,
-                                marker:dict, scaling_map:dict) -> pd.DataFrame:
+    def _prepare_bootstrap_data(
+            self, 
+            model: TernaryModel, 
+            trace_model: TernaryTraceEditorModel,
+            ternary_type: TernaryType,
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str],
+            unique_str: str, 
+            trace_id: str,
+            marker: dict, 
+            scaling_map: dict) -> pd.DataFrame:
+        """
+        TODO docstring
+        """
+
+        # Create a dataframe from the single-row series
         trace_data_df = trace_model.series.to_frame().T
 
+        # Apply scaling if necessary
         if scaling_map:
             trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
             err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr(), scaling_map)
         else:
             err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr())
 
-        # Expand the dataframe
-        trace_data_df = pd.DataFrame(np.repeat(trace_data_df.values, 5_000, axis=0), columns=trace_data_df.columns)
+        # Expand the dataframe to make room for simulated points
+        trace_data_df = pd.DataFrame(
+            data=np.repeat(
+                trace_data_df.values, 
+                self.N_SIMULATION_POINTS, 
+                axis=0), 
+            columns=trace_data_df.columns)
 
+        # Fill the expanded dataframe with simulated data
         for col, err in err_repr.items():
             sim_col_fmt = self.SIMULATED_PATTERN.format(col=col, us=unique_str)
-            trace_data_df[sim_col_fmt] = np.random.normal(trace_data_df[col].values[0], err, 5_000)
+            # TODO allow users to pick other distributions besides Normal, and apply them here
+            trace_data_df[sim_col_fmt] = np.random.normal(trace_data_df[col].values[0], err, self.N_SIMULATION_POINTS)
 
+        # Check whether molar conversion is necessary
         convert_to_molar = trace_model.wtp_to_molar_checked
-        trace_data_df = self._molar_calibration(model, ternary_type,
-                                                trace_data_df,
-                                                top_columns, left_columns, right_columns,
-                                                unique_str, trace_id,
-                                                convert_to_molar, bootstrap=True)
+
+        # Apply molar conversion if needed, and siomple normalization if not
+        trace_data_df = self._molar_calibration(
+            model, 
+            ternary_type,
+            trace_data_df,
+            top_columns, 
+            left_columns, 
+            right_columns,
+            unique_str, 
+            trace_id,
+            convert_to_molar, 
+            bootstrap=True)
 
         return marker, trace_data_df
     
-    def _molar_calibration(self,
-                           model:TernaryModel, ternary_type,
-                           trace_data_df:pd.DataFrame,
-                           top_columns:List[str], left_columns:List[str], right_columns:List[str],
-                           unique_str:str, trace_id:str,
-                           convert_to_molar:bool, bootstrap:bool=False):
-        molar_converter = MolarConverter(trace_data_df,
-                                         top_columns, left_columns, right_columns,
-                                         self.APEX_PATTERN,
-                                         unique_str, trace_id,
-                                         bootstrap)
+    def _molar_calibration(
+            self,
+            model:TernaryModel, 
+            ternary_type: TernaryType,
+            trace_data_df: pd.DataFrame,
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str],
+            unique_str: str, 
+            trace_id: str,
+            convert_to_molar: bool, 
+            bootstrap: bool = False):
+        """
+        TODO docstring
+        """
+        
+        # Instantiate a molar converter helper object
+        molar_converter = MolarConverter(
+            trace_data_df,
+            top_columns, 
+            left_columns, 
+            right_columns,
+            self.APEX_PATTERN,
+            unique_str, 
+            trace_id,
+            bootstrap)
+        
         if convert_to_molar:
-            sorted_repr = model.molar_conversion_model.get_sorted_repr()
+            sorted_repr_of_molar_conversion_model = model.molar_conversion_model.get_sorted_repr()
             custom_ternary_type = (ternary_type.name == 'Custom')
-            return molar_converter.molar_conversion(sorted_repr, custom_ternary_type)
-        return molar_converter.nonmolar_conversion()
+            return molar_converter.molar_conversion(
+                sorted_repr_of_molar_conversion_model, custom_ternary_type)
+        else:
+            return molar_converter.nonmolar_conversion()
     
-    def _generate_contours(self, trace_data_df: pd.DataFrame,
-                           unique_str: str, contour_level):
+    def _generate_contours(
+            self, 
+            trace_id: str, 
+            trace_data_df: pd.DataFrame,
+            unique_str: str, 
+            contour_level):
+        """
+        TODO docstring
+        """
+
         trace_data_df_for_transformation = trace_data_df[
             [self.APEX_PATTERN.format(apex='top',   us=unique_str),
              self.APEX_PATTERN.format(apex='left',  us=unique_str),
@@ -194,15 +261,22 @@ class TernaryTraceMaker:
             self.APEX_PATTERN.format(apex='left',  us=unique_str),
             self.APEX_PATTERN.format(apex='right', us=unique_str)
         )
-        contours = compute_kde_contours(trace_data_cartesian, [self._clean_percentile(contour_level)], 100)
-        first_contour = convert_contour_to_ternary(contours)[0]
-        return first_contour[:, 0], first_contour[:, 1], first_contour[:, 2]
+
+        success, contours = compute_kde_contours(trace_data_cartesian, [self._clean_percentile(contour_level)], 100)
+        if not success:
+            raise BootstrapTraceContourException(trace_id, 'Error computing contour for point')
+        else:
+            first_contour = convert_contour_to_ternary(contours)[0]
+            return first_contour[:, 0], first_contour[:, 1], first_contour[:, 2]
         
     def _get_standard_hover_data_and_template(
             self, 
-            model: TernaryModel, trace_model: TernaryTraceEditorModel,
+            model: TernaryModel, 
+            trace_model: TernaryTraceEditorModel,
             trace_data_df: pd.DataFrame,
-            top_columns: List[str], left_columns: List[str], right_columns: List[str],
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str],
             scale_map:dict) -> Tuple[np.array, str]:
         """
         Generates custom data for standard Plotly points and an HTML template for the hover data.
@@ -247,7 +321,21 @@ class TernaryTraceMaker:
         )
 
         # round the custom data to mitigate floating point error
-        customdata = np.round(trace_data_df[hover_cols].values, 4)
+        # customdata = np.round(trace_data_df[hover_cols].values, 4)
+        
+        # Construct customdata with rounded values for numeric columns and raw values for others
+        customdata = []
+        for header in hover_cols:
+            try:
+                # Try to round the column if it's numeric
+                rounded_values = np.round(trace_data_df[header].values.astype(float), 4)
+            except ValueError:
+                # If rounding fails (e.g., for non-numeric columns), use raw values
+                rounded_values = trace_data_df[header].values
+            customdata.append(rounded_values)
+
+        # Transpose customdata to match the shape expected by plotly
+        customdata = np.array(customdata).T
 
         hovertemplate += "<extra></extra>" # Disable default hover text
 

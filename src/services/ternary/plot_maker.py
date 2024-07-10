@@ -1,6 +1,7 @@
 """Plotly Plot Maker for Ternary diagrams"""
 
 from typing import Dict, List, Optional
+from typing import Dict, List, Optional
 
 from src.models.ternary.model import TernaryModel
 from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
@@ -83,6 +84,8 @@ class TernaryPlotMaker:
         self.trace_maker = TernaryTraceMaker()
         self.axis_formatter = AxisFormatter()
         self.layout_creator = LayoutCreator()
+        self.axis_formatter = AxisFormatter()
+        self.layout_creator = LayoutCreator()
 
     def make_plot(self, model: TernaryModel) -> Figure:
         layout = self._create_layout(model)
@@ -155,4 +158,5 @@ class TernaryPlotMaker:
             for trace in fig.data:
                 if 'marker' in trace and 'size' in trace.marker:
                     modified_size = trace.marker.size
+                    trace.marker.size = 1.8 * modified_size
                     trace.marker.size = 1.8 * modified_size

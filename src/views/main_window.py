@@ -17,13 +17,13 @@ from PySide6.QtWidgets import (
     QMenu, 
     QSizePolicy, 
     QFileDialog, 
-    QInputDialog
+    QInputDialog,
+    QApplication
 )
 
-from PySide6.QtCore import Qt, QRect, QSize
-from PySide6.QtGui import QMovie
+from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer
+from PySide6.QtGui import QMovie, QAction
 
-from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, Slot, QSize, QUrl
 from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette
@@ -141,6 +141,15 @@ class MainWindow(QMainWindow):
         self.central_widget.setLayout(self.central_layout)
         self.setCentralWidget(self.central_widget)
 
+        QApplication.instance().paletteChanged.connect(self.on_palette_changed)
+
+    @Slot()
+    def on_palette_changed(self):
+        """
+        Slot that is called when the application's palette changes.
+        """
+        QTimer.singleShot(750, lambda: self.update_title_view("quick ternaries"))
+
     def switch_to_start_setup_view(self):
         self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
 
@@ -189,7 +198,9 @@ class MainWindow(QMainWindow):
             '..', 
             'resources', 
             'blank_ternary_plot.html')
-        self.plot_view.setUrl(f'file://{blank_ternary}')
+
+        url = QUrl.fromLocalFile(blank_ternary)
+        self.plot_view.setUrl(url)
 
     def setup_title(self, title:str):
         """
@@ -265,3 +276,69 @@ class MainWindow(QMainWindow):
         gif_popup = GifPopup(tutorial_gif, 400, 300, msg, self)
         gif_popup.setGeometry(QRect(50, 50, 400, 300))  # Adjust size to accommodate text and GIF
         gif_popup.show()
+
+    def setup_title(self, title: str):
+        """
+        Load the 'Motter Tektura' font and use it to set up the application's title label.
+        The title label is configured to display the 'quick ternaries' logo which includes a
+        hyperlink to the project repository.
+        """
+        font_path = os.path.join(
+            os.path.dirname(__file__),
+            '..',
+            'assets',
+            'fonts',
+            'Motter Tektura Normal.ttf')
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        self.title_label = QLabel()
+        if font_id != -1:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                custom_font = QFont(font_families[0], pointSize=20)
+                self.title_label.setFont(custom_font)
+        self.update_title_view(title)
+        self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
+        self.title_label.setOpenExternalLinks(True)  # Allow the label to open links
+        return self.title_label
+
+    def update_title_view(self, title: str):
+        """
+        Update the title label hyperlink color based on the current theme.
+        """
+        self.title_label.setText(
+            '<a href=https://github.com/ariessunfeld/quick-ternaries ' +
+            f'style="color: {self.get_title_color()}; text-decoration:none;">' +
+            f'{title}' +
+            '</a>'
+        )
+
+    def get_title_color(self):
+        """
+        Determine the appropriate title color based on the current palette.
+        """
+        palette = self.palette()
+        background_color = palette.color(QPalette.Window)
+        is_dark_mode = background_color.value() < 128  # Assuming dark mode if background is dark
+        return 'white' if is_dark_mode else 'black'
+
+    def create_settings_button(self):
+        button = QPushButton(self)
+        button.setStyleSheet('border: none;')
+        button.setIconSize(QSize(20, 20))
+        button.setFixedSize(20, 20)
+        button.setCursor(Qt.PointingHandCursor)
+        self.updateSettingsIcon(button)
+        return button
+
+    def updateSettingsIcon(self, button):
+        """
+        Update the settings icon based on the current theme.
+        """
+        settings_gear_icon = os.path.join(
+            os.path.dirname(__file__),
+            '..',
+            'assets',
+            'icons',
+            'settings_icon.png')
+        icon = QIcon(settings_gear_icon)
+        button.setIcon(icon)
