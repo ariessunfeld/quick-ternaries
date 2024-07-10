@@ -11,7 +11,9 @@ class AdvancedSettingsModel:
             title_font: str = 'Open Sans',
             title_font_size: int = 17,
             axis_font: str = 'Open Sans',
-            axis_font_size: int = 12
+            axis_font_size: int = 12,
+            tick_font: str = 'Open Sans',
+            tick_font_size: int = 14
             ):
         self._background_color = background_color
         self._gridline_step_size = gridline_step_size
@@ -22,6 +24,8 @@ class AdvancedSettingsModel:
         self._title_font_size = title_font_size
         self._axis_font = axis_font
         self._axis_font_size = axis_font_size
+        self._tick_font = tick_font
+        self._tick_font_size = tick_font_size
 
     @property
     def background_color(self) -> str:
@@ -94,3 +98,19 @@ class AdvancedSettingsModel:
     @axis_font_size.setter
     def axis_font_size(self, value: int):
         self._axis_font_size = value
+
+    @property
+    def tick_font(self) -> str:
+        return self._tick_font
+    
+    @tick_font.setter
+    def tick_font(self, value: str):
+        self._tick_font = value
+
+    @property
+    def tick_font_size(self) -> int:
+        return self._tick_font_size
+    
+    @tick_font_size.setter
+    def tick_font_size(self, value: int):
+        self._tick_font_size = value

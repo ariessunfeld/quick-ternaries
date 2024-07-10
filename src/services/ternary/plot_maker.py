@@ -70,7 +70,7 @@ class LayoutCreator:
     def create_axis_settings(settings) -> dict:
         return dict(
             title=dict(font=dict(family=settings.axis_font, size=settings.axis_font_size)),
-            tickfont=dict(family=settings.axis_font, size=settings.axis_font_size),
+            tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
             gridcolor=settings.gridline_color,
             dtick=settings.gridline_step_size,
             showgrid=True,
@@ -106,15 +106,15 @@ class TernaryPlotMaker:
         setup = model.start_setup_model
         ternary_type = setup.get_ternary_type()
 
-        axis_names = {
-            'top':   self._format_axis_name(setup.get_top_apex_display_name(),   ternary_type.get_top(),   model),
-            'left':  self._format_axis_name(setup.get_left_apex_display_name(),  ternary_type.get_left(),  model, side='left'),
-            'right': self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model, side='right')
-        }
+        axis_names = dict(
+            top  =self._format_axis_name(setup.get_top_apex_display_name(),   ternary_type.get_top(),   model),
+            left =self._format_axis_name(setup.get_left_apex_display_name(),  ternary_type.get_left(),  model, side='left'),
+            right=self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model, side='right')
+        )
 
-        layout.ternary.aaxis.title = axis_names['top']
-        layout.ternary.baxis.title = f"<br>{axis_names['left']}"
-        layout.ternary.caxis.title = f"<br>{axis_names['right']}"
+        layout.ternary.aaxis.title.update(text = axis_names['top'])
+        layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
+        layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
 
     def _add_title(self, layout: Layout, model: TernaryModel):
         title = model.start_setup_model.get_title()

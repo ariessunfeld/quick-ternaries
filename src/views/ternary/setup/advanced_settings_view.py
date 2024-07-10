@@ -54,17 +54,18 @@ class AdvancedSettingsView(QWidget):
 
         # title font and size
         self.title_font_combo = LeftLabeledFontComboBox("Title Font:")
-        self.title_font_combo.setCurrentFont(QFont("Arial"))
         self.title_font_size_spinbox = LeftLabeledSpinBox("Title Font Size:")
         self.title_font_size_spinbox.setMinimum(1)
-        self.title_font_size_spinbox.setMaximum(100)
 
         # axis label font and size
         self.axis_font_combo = LeftLabeledFontComboBox("Axis Label Font:")
-        self.axis_font_combo.setCurrentFont(QFont("Arial"))
         self.axis_font_size_spinbox = LeftLabeledSpinBox("Axis Label Font Size:")
         self.axis_font_size_spinbox.setMinimum(1)
-        self.axis_font_size_spinbox.setMaximum(100)
+
+        # tick font and size
+        self.tick_font_combo = LeftLabeledFontComboBox("Tick Font:")
+        self.tick_font_size_spinbox = LeftLabeledSpinBox("Tick Font Size:")
+        self.tick_font_size_spinbox.setMinimum(1)
 
         # add widgets to their respective layout
         self.main_layout.addWidget(self.container_widget)
@@ -76,3 +77,5 @@ class AdvancedSettingsView(QWidget):
         self.container_layout.addWidget(self.title_font_size_spinbox)
         self.container_layout.addWidget(self.axis_font_combo)
         self.container_layout.addWidget(self.axis_font_size_spinbox)
+        self.container_layout.addWidget(self.tick_font_combo)
+        self.container_layout.addWidget(self.tick_font_size_spinbox)
