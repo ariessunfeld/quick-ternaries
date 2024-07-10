@@ -24,7 +24,10 @@ class AdvancedSettingsController:
         self.model.background_color = color
 
     def _on_gridline_step_size_changed(self, value: int):
-        self.model.gridline_step_size = value
+        if self.model.ternary_sum == "1":
+            self.model.gridline_step_size = value/100
+        else:
+            self.model.gridline_step_size = value
 
     def _on_ternary_sum_changed(self, value: str):
         if value=="1":
