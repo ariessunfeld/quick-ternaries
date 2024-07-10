@@ -108,8 +108,8 @@ class TernaryPlotMaker:
 
         axis_names = {
             'top':   self._format_axis_name(setup.get_top_apex_display_name(),   ternary_type.get_top(),   model),
-            'left':  self._format_axis_name(setup.get_left_apex_display_name(),  ternary_type.get_left(),  model),
-            'right': self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model)
+            'left':  self._format_axis_name(setup.get_left_apex_display_name(),  ternary_type.get_left(),  model, side='left'),
+            'right': self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model, side='right')
         }
 
         layout.ternary.aaxis.title = axis_names['top']
@@ -127,15 +127,23 @@ class TernaryPlotMaker:
                 for trace_id in model.tab_model.order
                 if trace_id != 'StartSetup']
 
-    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: TernaryModel) -> str:
+    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: TernaryModel, side: str = None) -> str:
         if custom_name.strip():
             return custom_name
         if not apex_columns:
             return 'Untitled Apex'
         if model.start_setup_model.scale_apices_is_checked:
             scale_map = self.trace_maker.get_scaling_map(model)
-            return self.axis_formatter.format_scaled_name(apex_columns, scale_map)
-        return '+'.join(map(self.axis_formatter.format_subscripts, apex_columns))
+            ret = self.axis_formatter.format_scaled_name(apex_columns, scale_map)
+        else:
+            ret = '+'.join(map(self.axis_formatter.format_subscripts, apex_columns))
+        
+        if not side:
+            return ret
+        elif side == 'left':
+            return '&nbsp;'*int(0.6*len(ret)) + ret
+        elif side == 'right':
+            return ret + '&nbsp;'*int(0.6*len(ret))
     
     def save_plot(self, fig: Figure, filepath: str, dpi: float|None=None):
         # Get the extension from the selected filter if the file_name has no extension
@@ -184,35 +192,35 @@ class TernaryPlotMaker:
                 ret.extend(map(self._format_subscripts, cols_with_this_val))
         return '+'.join(ret)
 
-    def _format_axis_name(self, custom_name: str, default_name: str, apex_columns: List[str], model: TernaryModel) -> str:
-        """Handles blank apex name cases, attempting to build from ternary type."""
-        if custom_name.strip():
-            return custom_name
+    # def _format_axis_name(self, custom_name: str, default_name: str, apex_columns: List[str], model: TernaryModel) -> str:
+    #     """Handles blank apex name cases, attempting to build from ternary type."""
+    #     if custom_name.strip():
+    #         return custom_name
         
-        if not apex_columns:
-            return default_name
+    #     if not apex_columns:
+    #         return default_name
         
-        if model.start_setup_model.scale_apices_is_checked:
-            scale_map = self.trace_maker.get_scaling_map(model)
-            unique_scale_vals = sorted(set(scale_map[col] for col in apex_columns), reverse=True)
-            return self._build_str_fmt(apex_columns, scale_map, unique_scale_vals)
+    #     if model.start_setup_model.scale_apices_is_checked:
+    #         scale_map = self.trace_maker.get_scaling_map(model)
+    #         unique_scale_vals = sorted(set(scale_map[col] for col in apex_columns), reverse=True)
+    #         return self._build_str_fmt(apex_columns, scale_map, unique_scale_vals)
         
-        return '+'.join(map(self._format_subscripts, apex_columns))
+    #     return '+'.join(map(self._format_subscripts, apex_columns))
 
-    def _format_top_axis_name(self, top_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
-        top_apex_columns = ternary_type.get_top()
-        str_fmt = self._format_axis_name(top_name, 'Untitled Top Apex', top_apex_columns, model)
-        return str_fmt
+    # def _format_top_axis_name(self, top_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
+    #     top_apex_columns = ternary_type.get_top()
+    #     str_fmt = self._format_axis_name(top_name, 'Untitled Top Apex', top_apex_columns, model)
+    #     return str_fmt
         
-    def _format_left_axis_name(self, left_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
-        left_apex_columns = ternary_type.get_left()
-        str_fmt = self._format_axis_name(left_name, 'Untitled Left Apex', left_apex_columns, model)
-        return '<br>' + '&nbsp;'*int(0.6*len(str_fmt)) + str_fmt
+    # def _format_left_axis_name(self, left_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
+    #     left_apex_columns = ternary_type.get_left()
+    #     str_fmt = self._format_axis_name(left_name, 'Untitled Left Apex', left_apex_columns, model)
+    #     return '<br>' + '&nbsp;'*int(0.6*len(str_fmt)) + str_fmt
         
-    def _format_right_axis_name(self, right_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
-        right_apex_columns = ternary_type.get_right()
-        str_fmt = self._format_axis_name(right_name, 'Untitled Right Apex', right_apex_columns, model)
-        return '<br>' + str_fmt + '&nbsp;'*int(0.6*len(str_fmt))
+    # def _format_right_axis_name(self, right_name: str, ternary_type: TernaryType, model: TernaryModel) -> str:
+    #     right_apex_columns = ternary_type.get_right()
+    #     str_fmt = self._format_axis_name(right_name, 'Untitled Right Apex', right_apex_columns, model)
+    #     return '<br>' + str_fmt + '&nbsp;'*int(0.6*len(str_fmt))
         
 
     def _add_axis_labels_to_layout(
