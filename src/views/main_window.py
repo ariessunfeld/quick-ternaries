@@ -19,12 +19,10 @@ from PySide6.QtWidgets import (
     QInputDialog
 )
 
-from PySide6.QtCore import Qt, QRect, QSize
-from PySide6.QtGui import QMovie
+from PySide6.QtCore import Qt, QRect, QSize, QUrl
+from PySide6.QtGui import QMovie, QAction
 
-from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import Qt
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -186,7 +184,9 @@ class MainWindow(QMainWindow):
             '..', 
             'resources', 
             'blank_ternary_plot.html')
-        self.plot_view.setUrl(f'file://{blank_ternary}')
+
+        url = QUrl.fromLocalFile(blank_ternary)
+        self.plot_view.setUrl(url)
 
 
     def show_bootstrap_tutorial_gif(self):
