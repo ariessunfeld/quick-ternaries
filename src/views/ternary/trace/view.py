@@ -35,6 +35,7 @@ from src.views.utils import (
     LeftLabeledLineEdit, 
     LeftLabeledCheckbox, 
     LeftLabeledComboBox, 
+    LeftLabeledImageComboBox,
     LeftLabeledSpinBox, 
     LeftLabeledColorPicker,
     InfoButton
@@ -110,8 +111,8 @@ class TernaryTraceEditorView(QWidget):
         self.content_layout.addWidget(self.point_size_spinbox)
 
         # Select Point Shape
-        self.select_point_shape = LeftLabeledComboBox('Select Point Shape:')
-        self.select_point_shape.addItems([
+        self.select_point_shape = LeftLabeledImageComboBox('Select Point Shape:')
+        self.select_point_shape.addPlotlyIcons([
             'circle', 'square', 'diamond', 'cross', 'x', 'triangle-up', 
             'triangle-down', 'triangle-left', 'triangle-right', 'pentagon', 
             'hexagon', 'star', 'hexagram', 'star-square', 'star-diamond', 

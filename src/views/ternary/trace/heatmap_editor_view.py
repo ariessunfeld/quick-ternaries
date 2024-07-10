@@ -15,7 +15,8 @@ from src.views.utils import (
     LeftLabeledComboBox, 
     InfoButton, 
     LeftLabeledCheckbox,
-    LeftLabeledRadioButton
+    LeftLabeledRadioButton,
+    LeftLabeledImageComboBox
 )
 
 from src.services.utils.sequential_color_scales import SEQUENTIAL_COLOR_SCALE_NAMES
@@ -77,8 +78,8 @@ class TernaryHeatmapEditorView(QWidget):
         self.container_layout.addWidget(self.advanced_options_layout_widget)
 
         # Add some advanced options
-        self.heatmap_colorscale_combobox = LeftLabeledComboBox('Colorscale:')
-        self.heatmap_colorscale_combobox.addItems(SEQUENTIAL_COLOR_SCALE_NAMES)
+        self.heatmap_colorscale_combobox = LeftLabeledImageComboBox('Colorscale:')
+        self.heatmap_colorscale_combobox.addColorscaleIcons(SEQUENTIAL_COLOR_SCALE_NAMES)
         self.log_transform_checkbox = LeftLabeledCheckbox("Log-Transform Range:")
         self.reverse_colorscale_checkbox = LeftLabeledCheckbox("Reverse Colorscale:")
         self.log_and_reverse_layout = QHBoxLayout()
