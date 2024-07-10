@@ -49,6 +49,8 @@ class LeftLabeledLineEdit(QWidget):
         return self.line_edit.text()
     
     def setText(self, value: str):
+        if isinstance(value, float):
+            value = str(value)
         self.line_edit.setText(value)
 
     def setCompleter(self, value: List[str]):
