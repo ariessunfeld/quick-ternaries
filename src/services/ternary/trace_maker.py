@@ -141,11 +141,12 @@ class TernaryTraceMaker:
             err_repr = self._clean_err_repr(trace_model.error_entry_model.get_sorted_repr())
 
         # Expand the dataframe
-        trace_data_df = pd.DataFrame(np.repeat(trace_data_df.values, 5_000, axis=0), columns=trace_data_df.columns)
+        N_SIM_PTS = 10_000
+        trace_data_df = pd.DataFrame(np.repeat(trace_data_df.values, N_SIM_PTS, axis=0), columns=trace_data_df.columns)
 
         for col, err in err_repr.items():
             sim_col_fmt = self.SIMULATED_PATTERN.format(col=col, us=unique_str)
-            trace_data_df[sim_col_fmt] = np.random.normal(trace_data_df[col].values[0], err, 5_000)
+            trace_data_df[sim_col_fmt] = np.random.normal(trace_data_df[col].values[0], err, N_SIM_PTS)
 
         convert_to_molar = trace_model.wtp_to_molar_checked
         trace_data_df = self._molar_calibration(model, ternary_type,
