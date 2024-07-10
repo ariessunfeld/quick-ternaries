@@ -12,7 +12,8 @@ from src.views.ternary.setup import (
     CustomApexSelectionView,
     CustomHoverDataSelectionView,
     LoadedDataScrollView,
-    TernaryApexScalingView)
+    TernaryApexScalingView,
+    AdvancedSettingsView)
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -92,6 +93,10 @@ class TernaryStartSetupView(QWidget):
         self.apex_scaling_view = TernaryApexScalingView()
         self.apex_scaling_view.setVisible(False)
 
+        self.advanced_settings_checkbox = LeftLabeledCheckbox("Advanced Settings")
+        self.advanced_settings_view = AdvancedSettingsView()
+        self.advanced_settings_view.setVisible(False)
+
         # Add widgets to the content layout
         self.content_layout.addWidget(self.loaded_data_scroll_view)
         self.content_layout.addWidget(self.button_add_data)
@@ -108,6 +113,9 @@ class TernaryStartSetupView(QWidget):
         self.checkbox_scale_apices_layout.addWidget(self.scale_apices_infobutton, alignment=Qt.AlignRight)
         self.content_layout.addLayout(self.checkbox_scale_apices_layout)
         self.content_layout.addWidget(self.apex_scaling_view)
+
+        self.content_layout.addWidget(self.advanced_settings_checkbox)
+        self.content_layout.addWidget(self.advanced_settings_view)
 
         # Add the scroll area to the main layout
         self.main_layout.addWidget(self.scroll_area)
