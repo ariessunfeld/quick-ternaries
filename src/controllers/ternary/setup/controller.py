@@ -21,6 +21,7 @@ from src.views.ternary.setup.view import TernaryStartSetupView
 from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
 from src.controllers.ternary.setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
 from src.controllers.ternary.setup.apex_scaling_controller import TernaryApexScalingController
+from src.controllers.ternary.setup.advanced_settings_controller import AdvancedSettingsController
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 from src.utils.ternary_types import TERNARY_TYPES
@@ -80,9 +81,18 @@ class TernaryStartSetupController(QWidget):
         # Handle changes to the scale apices checkbox
         self.view.labeled_checkbox_scale_apices.stateChanged.connect(self.checkbox_scale_apices_changed)
 
+        # Handle changes to the advanced settings checkbox
+        self.view.advanced_settings_checkbox.stateChanged.connect(self.checkbox_advanced_settings_changed)
+
+        # Set up advanced settings connections
+        self.advanced_settings_controller = AdvancedSettingsController(
+            self.model.advanced_settings_model,
+            self.view.advanced_settings_view
+        )
+
         # Set up custom apex selection connections
         self.custom_apex_selection_controller = CustomApexSelectionController(
-            self.model.custom_apex_selection_model, 
+            self.model.custom_apex_selection_model,
             self.view.custom_apex_selection_view)
         
         # Set up custom hover data selection connections
@@ -279,6 +289,11 @@ class TernaryStartSetupController(QWidget):
         is_checked = self.view.labeled_checkbox_customize_hover_data.isChecked()
         self.model.custom_hover_data_is_checked = is_checked
         self.view.update_custom_hover_data_selection_view_visibility(is_checked)
+
+    def checkbox_advanced_settings_changed(self):
+        is_checked = self.view.advanced_settings_checkbox.isChecked()
+        self.model.advanced_settings_is_checked = is_checked
+        self.view.advanced_settings_view.setVisible(is_checked)
 
     def checkbox_scale_apices_changed(self):
         is_checked = self.view.labeled_checkbox_scale_apices.isChecked()

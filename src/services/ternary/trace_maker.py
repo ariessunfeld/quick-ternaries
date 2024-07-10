@@ -143,7 +143,7 @@ class TernaryTraceMaker:
             marker, trace_data_df = self._update_marker_dict_with_heatmap_config(marker, trace_model, trace_data_df, unique_str)
 
         if trace_model.advanced_settings_checked:
-            marker = self._update_marker_dict_with_advanced_settings(marker, trace_model)
+            marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
 
         return marker, trace_data_df
     
@@ -406,7 +406,7 @@ class TernaryTraceMaker:
         )
         return marker
     
-    def _update_marker_dict_with_advanced_settings(self, 
+    def _update_marker_with_trace_advanced_settings(self, 
             marker: dict, 
             trace_model: TernaryTraceEditorModel) -> dict:
         

@@ -2,9 +2,12 @@
 
 from typing import List
 
-from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
-from src.models.ternary.setup.custom_hover_data_selection_model import CustomHoverDataSelectionModel
-from src.models.ternary.setup.apex_scaling_model import TernaryApexScalingModel
+from src.models.ternary.setup import (
+    CustomApexSelectionModel,
+    CustomHoverDataSelectionModel,
+    TernaryApexScalingModel,
+    AdvancedSettingsModel
+    )
 from src.models.utils.data_models import DataLibrary
 from src.models.utils.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 from src.utils.ternary_types import TERNARY_TYPES
@@ -93,6 +96,7 @@ class TernaryStartSetupModel:
         self.header_row_selection_model = HeaderRowSelectionModel([])
         self.sheet_selection_model = SheetSelectionModel([''])
         self.apex_scaling_model = TernaryApexScalingModel()
+        self.advanced_settings_model = AdvancedSettingsModel()
         
         self.title: str = ''
         self.top_apex_display_name: str = ''
@@ -101,6 +105,7 @@ class TernaryStartSetupModel:
 
         self.custom_hover_data_is_checked = False
         self.scale_apices_is_checked = False
+        self.advanced_settings_is_checked = False
         
         self.controller = None
         self.view = None
