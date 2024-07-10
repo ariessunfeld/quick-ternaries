@@ -1,5 +1,3 @@
-from PySide6.QtGui import QColor, QFont
-
 from src.models.ternary.setup.advanced_settings_model import AdvancedSettingsModel
 from src.views.ternary.setup.advanced_settings_view import AdvancedSettingsView
 
@@ -41,17 +39,23 @@ class AdvancedSettingsController:
     def _on_paper_color_changed(self, color: str):
         self.model.paper_color = color
 
-    def _on_title_font_changed(self, font: QFont):
+    def _on_title_font_changed(self, font: str):
         self.model.title_font = font
 
     def _on_title_font_size_changed(self, value: int):
         self.model.title_font_size = value
 
-    def _on_axis_font_changed(self, font: QFont):
+    def _on_axis_font_changed(self, font: str):
         self.model.axis_font = font
 
     def _on_axis_font_size_changed(self, value: int):
         self.model.axis_font_size = value
+
+    def _on_tick_font_changed(self, font: str):
+        self.model.tick_font = font
+
+    def _on_tick_font_size_changed(self, value: int):
+        self.model.tick_font_size = value
 
     def _set_default_values(self):
         """
@@ -66,3 +70,5 @@ class AdvancedSettingsController:
         self.view.title_font_size_spinbox.setValue(self.model.title_font_size)
         self.view.axis_font_combo.setCurrentText(self.model.axis_font)
         self.view.axis_font_size_spinbox.setValue(self.model.axis_font_size)
+        self.view.tick_font_combo.setCurrentText(self.model.tick_font)
+        self.view.tick_font_size_spinbox.setValue(self.model.tick_font_size)
