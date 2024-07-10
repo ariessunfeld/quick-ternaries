@@ -9,6 +9,7 @@ from .info_button import InfoButton
 from .left_labeled_radiobutton import LeftLabeledRadioButton
 from .left_labeled_slider import LeftLabeledSlider
 from .left_labeled_font_combobox import LeftLabeledFontComboBox
+from .left_labeled_image_combobox import LeftLabeledImageComboBox
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -21,5 +22,6 @@ __all__ = [
     "InfoButton",
     "LeftLabeledRadioButton",
     "LeftLabeledSlider",
-    "LeftLabeledFontComboBox"
+    "LeftLabeledFontComboBox",
+    "LeftLabeledImageComboBox"
 ]
