@@ -103,6 +103,8 @@ class DataLibrary:
         self.disambiguation_list = None
 
     def hash_function(self, filepath: str, sheet: str|None=None):
+        filepath = str(filepath)  # clean up for Windows paths
+        filepath = filepath.replace("\\", "/")
         return hash(f'{filepath}{sheet}') # Unique up to filepath/sheet combination
 
     def add_data(self, filepath: str, sheet: str|None=None, header: int=0, parse=True):
