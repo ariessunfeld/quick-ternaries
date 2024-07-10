@@ -7,7 +7,8 @@ from PySide6.QtWidgets import (
 
 from src.views.utils import (
     LeftLabeledSpinBox,
-    LeftLabeledColorPicker
+    LeftLabeledColorPicker,
+    LeftLabeledSlider
 )
 
 class AdvancedSettingsView(QWidget):
@@ -28,7 +29,7 @@ class AdvancedSettingsView(QWidget):
         self.main_layout.addWidget(self.container_widget)
 
         # point opacity
-        self.opacity = LeftLabeledSpinBox('Opacity:')
+        self.opacity = LeftLabeledSlider('Opacity:')
         self.opacity.setMaximum(100)
         self.opacity.setValue(100)
         self.container_layout.addWidget(self.opacity)

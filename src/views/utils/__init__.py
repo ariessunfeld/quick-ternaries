@@ -7,6 +7,7 @@ from .left_labeled_spinbox import LeftLabeledSpinBox
 from .left_labeled_color_picker import LeftLabeledColorPicker
 from .info_button import InfoButton
 from .left_labeled_radiobutton import LeftLabeledRadioButton
+from .left_labeled_slider import LeftLabeledSlider
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -17,5 +18,6 @@ __all__ = [
     "LeftLabeledSpinBox",
     "LeftLabeledColorPicker",
     "InfoButton",
-    "LeftLabeledRadioButton"
+    "LeftLabeledRadioButton",
+    "LeftLabeledSlider"
 ]
