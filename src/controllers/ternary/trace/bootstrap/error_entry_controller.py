@@ -32,22 +32,20 @@ class TernaryBootstrapErrorEntryController(QObject):
             self.model.current_tab.error_entry_model.update_error_value(column, error)
 
     def on_new_custom_column_added(self, column: str):
-        current_tab = self.model.current_tab
-        if current_tab:
-            self.model.current_tab.error_entry_model.add_column(column)
-            self._refresh()
+        all_bootstrapped_traces = [trace for trace in self.model.traces.values() if trace.kind == "bootstrap"]
+        for bootstrapped_trace in all_bootstrapped_traces:
+            bootstrapped_trace.error_entry_model.add_column(column)
+            self.refresh_bootstrapped_trace(bootstrapped_trace)
 
     def on_new_custom_column_removed(self, column: str):
-        current_tab = self.model.current_tab
-        if current_tab:
-            self.model.current_tab.error_entry_model.rem_column(column)
-            self._refresh()
+        all_bootstrapped_traces = [trace for trace in self.model.traces.values() if trace.kind == "bootstrap"]
+        for bootstrapped_trace in all_bootstrapped_traces:
+            bootstrapped_trace.error_entry_model.rem_column(column)
+            self.refresh_bootstrapped_trace(bootstrapped_trace)
 
-    def _refresh(self):
-        current_tab = self.model.current_tab
-        if current_tab:
-            self._set_default_values(current_tab)
-            self.view.update_view(self.model.current_tab.error_entry_model.get_sorted_repr())
+    def refresh_bootstrapped_trace(self, bootstrapped_trace: TernaryTraceEditorModel):
+        self._set_default_values(bootstrapped_trace)
+        self.view.update_view(bootstrapped_trace.error_entry_model.get_sorted_repr())
 
     def _set_default_values(self, trace_model: TernaryTraceEditorModel):
         """
@@ -64,4 +62,3 @@ class TernaryBootstrapErrorEntryController(QObject):
                 default_uncertainty = series_df[rmsep_col].values[0]
                 default_uncertainty = str(default_uncertainty)
                 error_entry_model.update_error_value(col, default_uncertainty)
-        #self._refresh()
