@@ -31,3 +31,5 @@ call python updater.py
 echo Launching Quick Ternaries... (please keep this window open)
 call quick-ternaries
 
+pause
+
