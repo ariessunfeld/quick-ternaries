@@ -1,5 +1,6 @@
 """Updater script for quick-ternaries python package"""
 
+import os
 import sys
 import socket
 import subprocess
@@ -39,6 +40,7 @@ def get_installed_version(package_name):
 def update_to_latest(username, repo, package_name, log_file_path):
     
     lanl_proxy_url = 'http://proxyout.lanl.gov:8080'
+    python_invocation = 'python3' if os.name != 'nt' else 'python'
 
     latest_version = get_latest_release(username, repo)
     installed_version = get_installed_version(package_name)
@@ -49,9 +51,9 @@ def update_to_latest(username, repo, package_name, log_file_path):
         if ans.lower() in ['', 'y', 'yes']:
 
             if can_connect_to_proxy(lanl_proxy_url):
-                cmd = f"python3 -m pip install --proxy={lanl_proxy_url} --upgrade https://github.com/{username}/{repo}/archive/tags/v{latest_version}.tar.gz"
+                cmd = f"{python_invocation} -m pip install --proxy={lanl_proxy_url} --upgrade https://github.com/{username}/{repo}/archive/tags/v{latest_version}.tar.gz"
             else:
-                cmd = f"python3 -m pip install --upgrade https://github.com/{username}/{repo}/archive/tags/v{latest_version}.tar.gz"
+                cmd = f"{python_invocation} -m pip install --upgrade https://github.com/{username}/{repo}/archive/tags/v{latest_version}.tar.gz"
             with open(log_file_path, 'a') as log_file:
                 log_file.write(f"{datetime.now()}: Executing command: {cmd}\n")
                 print('\nDownloading and installing... (this may take a minute)')
