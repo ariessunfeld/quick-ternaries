@@ -43,7 +43,7 @@ class LayoutCreator:
                 baxis=linestyle,
                 caxis=linestyle
             ),
-            paper_bgcolor="rgba(0,0,0,0)"
+            paper_bgcolor="#ececec"
         )
 
     @staticmethod
