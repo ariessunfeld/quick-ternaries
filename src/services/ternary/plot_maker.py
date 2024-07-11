@@ -1,7 +1,6 @@
 """Plotly Plot Maker for Ternary diagrams"""
 
 from typing import Dict, List, Optional
-from typing import Dict, List, Optional
 
 from src.models.ternary.model import TernaryModel
 from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
@@ -45,7 +44,6 @@ class LayoutCreator:
                 caxis=linestyle
             ),
             paper_bgcolor="#ececec"
-            paper_bgcolor="#ececec"
         )
 
     @staticmethod
@@ -72,7 +70,6 @@ class LayoutCreator:
     def create_axis_settings(settings) -> dict:
         return dict(
             title=dict(font=dict(family=settings.axis_font, size=settings.axis_font_size)),
-            tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
             tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
             gridcolor=settings.gridline_color,
             dtick=settings.gridline_step_size,
@@ -118,9 +115,6 @@ class TernaryPlotMaker:
         layout.ternary.aaxis.title.update(text = axis_names['top'])
         layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
         layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
-        layout.ternary.aaxis.title.update(text = axis_names['top'])
-        layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
-        layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
 
     def _add_title(self, layout: Layout, model: TernaryModel):
         title = model.start_setup_model.get_title()
@@ -161,5 +155,4 @@ class TernaryPlotMaker:
             for trace in fig.data:
                 if 'marker' in trace and 'size' in trace.marker:
                     modified_size = trace.marker.size
-                    trace.marker.size = 1.8 * modified_size
                     trace.marker.size = 1.8 * modified_size
