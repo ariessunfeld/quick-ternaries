@@ -12,6 +12,7 @@ quick_ternaries.egg-info/top_level.txt
 src/__init__.py
 src/main.py
 src/main2.py
+src/assets/icons/settings_icon.png
 src/controllers/__init__.py
 src/controllers/app_controller.py
 src/controllers/cartesian/__init__.py
@@ -27,11 +28,13 @@ src/controllers/depth_profiles/trace/controller.py
 src/controllers/ternary/__init__.py
 src/controllers/ternary/controller.py
 src/controllers/ternary/setup/__init__.py
+src/controllers/ternary/setup/advanced_settings_controller.py
 src/controllers/ternary/setup/apex_scaling_controller.py
 src/controllers/ternary/setup/controller.py
 src/controllers/ternary/setup/custom_apex_selection_controller.py
 src/controllers/ternary/setup/custom_hover_data_selection_controller.py
 src/controllers/ternary/trace/__init__.py
+src/controllers/ternary/trace/advanced_settings_controller.py
 src/controllers/ternary/trace/controller.py
 src/controllers/ternary/trace/heatmap_editor_controller.py
 src/controllers/ternary/trace/molar_conversion_controller.py
@@ -58,11 +61,13 @@ src/models/ternary/model.py
 src/models/ternary/plot/__init__.py
 src/models/ternary/plot/model.py
 src/models/ternary/setup/__init__.py
+src/models/ternary/setup/advanced_settings_model.py
 src/models/ternary/setup/apex_scaling_model.py
 src/models/ternary/setup/custom_apex_selection_model.py
 src/models/ternary/setup/custom_hover_data_selection_model.py
 src/models/ternary/setup/model.py
 src/models/ternary/trace/__init__.py
+src/models/ternary/trace/advanced_settings_model.py
 src/models/ternary/trace/heatmap_model.py
 src/models/ternary/trace/model.py
 src/models/ternary/trace/molar_conversion_model.py
@@ -100,6 +105,7 @@ src/utils/file_handling_utils.py
 src/utils/ternary_types.py
 src/views/__init__.py
 src/views/main_window.py
+src/views/settings_window.py
 src/views/cartesian/__init__.py
 src/views/cartesian/setup/__init__.py
 src/views/cartesian/setup/view.py
@@ -115,6 +121,7 @@ src/views/depth_profiles/trace/view.py
 src/views/depth_profiles/trace/filters/__init__.py
 src/views/ternary/__init__.py
 src/views/ternary/setup/__init__.py
+src/views/ternary/setup/advanced_settings_view.py
 src/views/ternary/setup/apex_scaling_view.py
 src/views/ternary/setup/custom_apex_selection_view.py
 src/views/ternary/setup/custom_hover_data_selection_view.py
@@ -122,6 +129,7 @@ src/views/ternary/setup/error_selection_view.py
 src/views/ternary/setup/loaded_data_scroll_view.py
 src/views/ternary/setup/view.py
 src/views/ternary/trace/__init__.py
+src/views/ternary/trace/advanced_settings_view.py
 src/views/ternary/trace/heatmap_editor_view.py
 src/views/ternary/trace/molar_conversion_view.py
 src/views/ternary/trace/trace_scroll_area.py
@@ -138,8 +146,11 @@ src/views/utils/info_button.py
 src/views/utils/left_labeled_checkbox.py
 src/views/utils/left_labeled_color_picker.py
 src/views/utils/left_labeled_combobox.py
+src/views/utils/left_labeled_font_combobox.py
+src/views/utils/left_labeled_image_combobox.py
 src/views/utils/left_labeled_line_edit.py
 src/views/utils/left_labeled_radiobutton.py
+src/views/utils/left_labeled_slider.py
 src/views/utils/left_labeled_spinbox.py
 src/views/utils/removable_list_item.py
 src/views/zmaps/__init__.py
