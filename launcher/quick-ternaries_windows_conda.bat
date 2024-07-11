@@ -1,33 +1,10 @@
 @echo off
-setlocal
 
-:: Define your Conda environment name
-set "ENV_NAME=quick_ternaries"
+REM Get the directory of the batch file
+set BATCH_FILE_DIR=%~dp0
 
-:: Assume this script is located in the same directory as your Python script and environment.yml
-:: Get the directory where the script is located
-set "DIR=%~dp0"
+REM Command to create and activate the environment, and run the updater script
+set CREATE_AND_ACTIVATE_ENV=cd /d "%BATCH_FILE_DIR%" ^&^& conda env create -f environment.yml ^&^& echo Activating Quick Ternaries environment ^&^& conda activate quick_ternaries ^&^& echo Checking for updates... ^&^& python updater.py ^&^& echo Launching Quick Ternaries... (please keep this window open) ^&^& quick-ternaries
 
-:: Navigate to the script directory
-cd /d "%DIR%"
-
-:: Check if the Conda environment exists
-call conda info --envs | findstr /C:"%ENV_NAME%" > nul
-if errorlevel 1 (
-    echo Conda environment '%ENV_NAME%' does not exist. Creating now...
-    call conda env create -f environment.yml
-) else (
-    echo Conda environment '%ENV_NAME%' exists.
-)
-
-:: Activate the environment
-echo Activating the '%ENV_NAME%' environment...
-call conda activate %ENV_NAME%
-
-:: Run the Python script
-call python updater.py
-
-:: Launch quick-ternaries tool
-echo Launching Quick Ternaries... (please keep this window open)
-call quick-ternaries
-
+REM Start Anaconda Prompt and run the commands
+start "Anaconda Prompt" cmd.exe /K "%CREATE_AND_ACTIVATE_ENV% ^&^& pause"

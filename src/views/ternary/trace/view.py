@@ -171,7 +171,7 @@ class TernaryTraceEditorView(QWidget):
         self.filter_view.setVisible(False)
 
         # Advanced settings
-        self.advanced_settings_checkbox = LeftLabeledCheckbox('Show Advanced Settings')
+        self.advanced_settings_checkbox = LeftLabeledCheckbox('Use Advanced Settings')
         self.content_layout.addWidget(self.advanced_settings_checkbox)
 
         # Trace editor advanced settings view (hide at first)

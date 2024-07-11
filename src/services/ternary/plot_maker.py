@@ -45,6 +45,7 @@ class LayoutCreator:
                 caxis=linestyle
             ),
             paper_bgcolor="#ececec"
+            paper_bgcolor="#ececec"
         )
 
     @staticmethod
@@ -72,6 +73,7 @@ class LayoutCreator:
         return dict(
             title=dict(font=dict(family=settings.axis_font, size=settings.axis_font_size)),
             tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
+            tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
             gridcolor=settings.gridline_color,
             dtick=settings.gridline_step_size,
             showgrid=True,
@@ -82,8 +84,6 @@ class LayoutCreator:
 class TernaryPlotMaker:
     def __init__(self):
         self.trace_maker = TernaryTraceMaker()
-        self.axis_formatter = AxisFormatter()
-        self.layout_creator = LayoutCreator()
         self.axis_formatter = AxisFormatter()
         self.layout_creator = LayoutCreator()
 
@@ -115,6 +115,9 @@ class TernaryPlotMaker:
             right=self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model)
         )
 
+        layout.ternary.aaxis.title.update(text = axis_names['top'])
+        layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
+        layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
         layout.ternary.aaxis.title.update(text = axis_names['top'])
         layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
         layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
