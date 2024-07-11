@@ -11,9 +11,9 @@ class AdvancedSettingsModel:
             title_font: str = 'Open Sans',
             title_font_size: int = 17,
             axis_font: str = 'Open Sans',
-            axis_font_size: int = 12,
+            axis_font_size: int = 14,
             tick_font: str = 'Open Sans',
-            tick_font_size: int = 14
+            tick_font_size: int = 12
             ):
         self._background_color = background_color
         self._gridline_step_size = gridline_step_size
