@@ -5,5 +5,5 @@ dependencies:
   - python=3.11
   - pip
   - pip:
-      - requests
+      - requests=2.31.0
 
