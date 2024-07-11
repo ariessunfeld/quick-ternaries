@@ -7,7 +7,7 @@ class AdvancedSettingsModel:
             gridline_step_size: int = 20,
             ternary_sum: int = 100,
             gridline_color: str = 'rgba(255,255,255,255)',
-            paper_color: str = 'rgba(255,255,255,0)',
+            paper_color: str = '#ececec',
             title_font: str = 'Open Sans',
             title_font_size: int = 17,
             axis_font: str = 'Open Sans',
