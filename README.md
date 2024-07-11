@@ -34,11 +34,11 @@ For basic instructions on how to use the Terminal/Command Prompt, see the [New t
 
 ### Automatic
 
-Two options exist for automatic setup on Windows: With and without Anaconda.
+Two options exist for automatic setup on Windows: with and without Anaconda.
 
 #### With Anaconda
 
-- Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](TODO)
+- Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-conda-launcher/quick-ternaries-windows-conda-launcher.zip)
 - Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
 - Right-click the `quick-ternaries_windows_conda.bat` file, click `Run`, and then click `Run Anyway`
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows_conda.bat` to launch the app.)
