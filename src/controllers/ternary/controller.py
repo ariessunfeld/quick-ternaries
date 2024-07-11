@@ -128,10 +128,6 @@ class TernaryController:
         self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
             self.tab_controller.view.new_tab_button.setEnabled)
 
-        self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
-            self.tab_controller.view.new_tab_button.setEnabled
-        )
-
     def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
         
         # Main window dynamic content area switches to trace view
@@ -142,7 +138,7 @@ class TernaryController:
             self.view.switch_to_standard_trace_view()
         elif kind == 'bootstrap':
             self.view.switch_to_bootstrap_trace_view()
-            self.bootstrap_error_entry_controller._refresh()
+            self.bootstrap_error_entry_controller.refresh_bootstrapped_trace(trace_model)
         
         # Set the available filenames/files for the trace view
         loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
@@ -260,6 +256,7 @@ class TernaryController:
             trace_model = self.model.tab_model.get_trace(tab_id)
             if trace_model.kind == 'bootstrap':
                 trace_model.error_entry_model.add_column(column)
+                self.bootstrap_error_entry_controller.on_new_custom_column_added(column)
 
     def _on_custom_column_removed(self, column: str):
         # Step through the tab model's order
@@ -271,4 +268,4 @@ class TernaryController:
             trace_model = self.model.tab_model.get_trace(tab_id)
             if trace_model.kind == 'bootstrap':
                 trace_model.error_entry_model.rem_column(column)
-        
+                self.bootstrap_error_entry_controller.on_new_custom_column_removed(column)
