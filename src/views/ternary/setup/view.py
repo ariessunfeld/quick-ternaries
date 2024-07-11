@@ -96,7 +96,7 @@ class TernaryStartSetupView(QWidget):
         self.apex_scaling_view = TernaryApexScalingView()
         self.apex_scaling_view.setVisible(False)
 
-        self.advanced_settings_checkbox = LeftLabeledCheckbox("Advanced Settings")
+        self.advanced_settings_checkbox = LeftLabeledCheckbox("Use Advanced Settings")
         self.advanced_settings_view = AdvancedSettingsView()
         self.advanced_settings_view.setVisible(False)
 
