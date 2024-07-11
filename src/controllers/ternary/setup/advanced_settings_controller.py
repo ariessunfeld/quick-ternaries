@@ -19,6 +19,8 @@ class AdvancedSettingsController:
         self.view.title_font_size_spinbox.valueChanged.connect(self._on_title_font_size_changed)
         self.view.axis_font_combo.valueChanged.connect(self._on_axis_font_changed)
         self.view.axis_font_size_spinbox.valueChanged.connect(self._on_axis_font_size_changed)
+        self.view.tick_font_combo.valueChanged.connect(self._on_tick_font_changed)
+        self.view.tick_font_size_spinbox.valueChanged.connect(self._on_tick_font_size_changed)
 
     def _on_background_color_changed(self, color: str):
         self.model.background_color = color

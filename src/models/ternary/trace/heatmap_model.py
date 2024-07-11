@@ -19,6 +19,7 @@ class HeatmapModel:
             colorbar_thickness: float = 18,
             colorbar_x_pos: float = 1.1,
             colorbar_y_pos: float = 0.5,
+            colorbar_font: str = 'Open Sans',
             colorbar_title_font_size: float = 12,
             colorbar_tick_font_size: float = 12,
             colorbar_orientation: str = 'vertical',
@@ -38,6 +39,7 @@ class HeatmapModel:
         self._thickness = colorbar_thickness
         self._x = colorbar_x_pos
         self._y = colorbar_y_pos
+        self._font = colorbar_font
         self._title_font_size = colorbar_title_font_size
         self._tick_font_size = colorbar_tick_font_size
         self._bar_orientation = colorbar_orientation
@@ -154,6 +156,14 @@ class HeatmapModel:
     @y.setter
     def y(self, value: float):
         self._y = value
+
+    @property
+    def font(self) -> float:
+        return self._font
+
+    @font.setter
+    def font(self, value: str):
+        self._font = value
 
     @property
     def title_font_size(self) -> float:

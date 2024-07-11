@@ -29,8 +29,9 @@ class HeatmapEditorController:
         self.view.thickness_line_edit.textChanged.connect(self._on_thickness_changed)
         self.view.x_line_edit.textChanged.connect(self._on_x_changed)
         self.view.y_line_edit.textChanged.connect(self._on_y_changed)
-        self.view.colorbar_title_font_size_line_edit.textChanged.connect(self._on_title_font_size_changed)
-        self.view.colorbar_tick_font_size_line_edit.textChanged.connect(self._on_tick_font_size_changed)
+        self.view.colorbar_font_line_edit.valueChanged.connect(self._on_font_changed)
+        self.view.colorbar_title_font_size_line_edit.valueChanged.connect(self._on_title_font_size_changed)
+        self.view.colorbar_tick_font_size_line_edit.valueChanged.connect(self._on_tick_font_size_changed)
         self.view.colorbar_orientation_combobox.valueChanged.connect(self._on_orientation_changed)
 
         self.view.no_change_radio.toggled.connect(self._on_radio_toggled)
@@ -56,8 +57,9 @@ class HeatmapEditorController:
         self.view.thickness_line_edit.setText(str(heatmap_model.thickness))
         self.view.x_line_edit.setText(str(heatmap_model.x))
         self.view.y_line_edit.setText(str(heatmap_model.y))
-        self.view.colorbar_title_font_size_line_edit.setText(str(heatmap_model.title_font_size))
-        self.view.colorbar_tick_font_size_line_edit.setText(str(heatmap_model.tick_font_size))
+        self.view.colorbar_font_line_edit.setCurrentFont(heatmap_model.font)
+        self.view.colorbar_title_font_size_line_edit.setValue(heatmap_model.title_font_size)
+        self.view.colorbar_tick_font_size_line_edit.setValue(heatmap_model.tick_font_size)
         self.view.colorbar_orientation_combobox.setCurrentText(heatmap_model.bar_orientation)
         self.view.show_advanced_checkbox.setChecked(heatmap_model.advanced_settings_checked)
         self.view.advanced_options_layout_widget.setVisible(heatmap_model.advanced_settings_checked)
@@ -138,11 +140,14 @@ class HeatmapEditorController:
     def _on_y_changed(self):
         self.model.current_tab.heatmap_model.y = self._float(self.view.y_line_edit.text())
 
-    def _on_title_font_size_changed(self):
-        self.model.current_tab.heatmap_model.title_font_size = self._float(self.view.colorbar_title_font_size_line_edit.text())
+    def _on_font_changed(self, value: str):
+        self.model.current_tab.heatmap_model.font = value
 
-    def _on_tick_font_size_changed(self):
-        self.model.current_tab.heatmap_model.tick_font_size = self._float(self.view.colorbar_tick_font_size_line_edit.text())
+    def _on_title_font_size_changed(self, value: int):
+        self.model.current_tab.heatmap_model.title_font_size = value
+
+    def _on_tick_font_size_changed(self, value: int):
+        self.model.current_tab.heatmap_model.tick_font_size = value
 
     def _on_orientation_changed(self):
         self.model.current_tab.heatmap_model.bar_orientation = self.view.colorbar_orientation_combobox.currentText()

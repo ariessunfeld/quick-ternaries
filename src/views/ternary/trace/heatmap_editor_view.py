@@ -16,7 +16,9 @@ from src.views.utils import (
     InfoButton, 
     LeftLabeledCheckbox,
     LeftLabeledRadioButton,
-    LeftLabeledImageComboBox
+    LeftLabeledImageComboBox,
+    LeftLabeledFontComboBox,
+    LeftLabeledSpinBox
 )
 
 from src.services.utils.sequential_color_scales import SEQUENTIAL_COLOR_SCALE_NAMES
@@ -100,14 +102,18 @@ class TernaryHeatmapEditorView(QWidget):
         self.advanced_options_layout.addLayout(self.title_configuration_layout)
 
         # Make a layout for additional fields (orientation and font)
-        self.orientation_and_font_layout = QHBoxLayout()
+        self.orientation_and_font_layout = QGridLayout()
+        self.colorbar_font_line_edit = LeftLabeledFontComboBox("Font:")
         self.colorbar_orientation_combobox = LeftLabeledComboBox("Bar:")
         self.colorbar_orientation_combobox.addItems(['vertical', 'horizontal'])
-        self.colorbar_title_font_size_line_edit = LeftLabeledLineEdit("Title Font Size:")
-        self.colorbar_tick_font_size_line_edit = LeftLabeledLineEdit("Tick Font Size:")
-        self.orientation_and_font_layout.addWidget(self.colorbar_title_font_size_line_edit)
-        self.orientation_and_font_layout.addWidget(self.colorbar_tick_font_size_line_edit)
-        self.orientation_and_font_layout.addWidget(self.colorbar_orientation_combobox)
+        self.colorbar_title_font_size_line_edit = LeftLabeledSpinBox("Title Font Size:")
+        self.colorbar_title_font_size_line_edit.setMinimum(1)
+        self.colorbar_tick_font_size_line_edit = LeftLabeledSpinBox("Tick Font Size:")
+        self.colorbar_tick_font_size_line_edit.setMinimum(1)
+        self.orientation_and_font_layout.addWidget(self.colorbar_font_line_edit, 0, 0)
+        self.orientation_and_font_layout.addWidget(self.colorbar_orientation_combobox, 0, 1)
+        self.orientation_and_font_layout.addWidget(self.colorbar_title_font_size_line_edit, 1, 0)
+        self.orientation_and_font_layout.addWidget(self.colorbar_tick_font_size_line_edit, 1, 1)
 
         # Add to the main advanced config layout
         self.advanced_options_layout.addLayout(self.orientation_and_font_layout)

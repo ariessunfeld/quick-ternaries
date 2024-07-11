@@ -467,14 +467,20 @@ class TernaryTraceMaker:
             title=dict(
                 text=heatmap_model.bar_title,
                 side=heatmap_model.title_position,
-                font=dict(size=float(heatmap_model.title_font_size))
-            ),
+                font=dict(
+                    size=float(heatmap_model.title_font_size),
+                    family=heatmap_model.font
+                    )
+                    ),
             len=float(heatmap_model.length),
             thickness=float(heatmap_model.thickness),
             # TODO add this (thickness) to view and controller
             x=float(heatmap_model.x),
             y=float(heatmap_model.y),
-            tickfont=dict(size=float(heatmap_model.tick_font_size)),
+            tickfont=dict(
+                size=float(heatmap_model.tick_font_size),
+                family=heatmap_model.font
+                ),
             orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
         )
         # TODO add error handling here for when floats fail or stuff is blank
