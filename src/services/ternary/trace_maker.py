@@ -319,9 +319,6 @@ class TernaryTraceMaker:
             f"<br><b>{f'{scale_map[header]}&times;' if header in scale_map and scale_map[header] != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
             for i, header in enumerate(hover_cols)
         )
-
-        # round the custom data to mitigate floating point error
-        # customdata = np.round(trace_data_df[hover_cols].values, 4)
         
         # Construct customdata with rounded values for numeric columns and raw values for others
         customdata = []

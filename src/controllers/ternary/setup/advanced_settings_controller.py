@@ -21,6 +21,8 @@ class AdvancedSettingsController:
         self.view.axis_font_size_spinbox.valueChanged.connect(self._on_axis_font_size_changed)
         self.view.tick_font_combo.valueChanged.connect(self._on_tick_font_changed)
         self.view.tick_font_size_spinbox.valueChanged.connect(self._on_tick_font_size_changed)
+        self.view.show_tick_marks.stateChanged.connect(self._on_show_tick_marks_changed)
+        self.view.show_grid.stateChanged.connect(self._on_show_grid_changed)
 
     def _on_background_color_changed(self, color: str):
         self.model.background_color = color
@@ -61,6 +63,18 @@ class AdvancedSettingsController:
 
     def _on_tick_font_size_changed(self, value: int):
         self.model.tick_font_size = value
+
+    def _on_show_tick_marks_changed(self):
+        is_checked = self.view.show_tick_marks.isChecked()
+        self.model.show_tick_marks = is_checked
+        self.view.tick_font_combo.setEnabled(is_checked)
+        self.view.tick_font_size_spinbox.setEnabled(is_checked)
+
+    def _on_show_grid_changed(self):
+        is_checked = self.view.show_grid.isChecked()
+        self.model.show_grid = is_checked
+        self.view.gridline_color.setEnabled(is_checked)
+        self.view.gridline_step_size.setEnabled(is_checked)
 
     def _set_default_values(self):
         """

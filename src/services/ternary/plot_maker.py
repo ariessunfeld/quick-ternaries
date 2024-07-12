@@ -72,9 +72,10 @@ class LayoutCreator:
             title=dict(font=dict(family=settings.axis_font, size=settings.axis_font_size)),
             tickfont=dict(family=settings.tick_font, size=settings.tick_font_size),
             gridcolor=settings.gridline_color,
+            showgrid=settings.show_grid,
+            showticklabels=settings.show_tick_marks,
+            ticks='outside' if settings.show_tick_marks else '',
             dtick=settings.gridline_step_size,
-            showgrid=True,
-            ticks='outside',
             layer='below traces'
         )
 

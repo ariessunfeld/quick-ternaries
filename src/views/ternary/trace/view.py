@@ -116,6 +116,7 @@ class TernaryTraceEditorView(QWidget):
 
         # Point Size
         self.point_size_spinbox = LeftLabeledSpinBox('Point Size:')
+        self.point_size_spinbox.setMinimum(1)
         self.point_size_spinbox.setValue(6)
         self.content_layout.addWidget(self.point_size_spinbox)
 
