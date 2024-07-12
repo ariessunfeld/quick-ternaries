@@ -23,8 +23,7 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.font_size_spinbox = LeftLabeledSpinBox("Fontsize:")
-        self.font_size_spinbox.setMinimum(6)
-        self.font_size_spinbox.setMaximum(20)
+        self.font_size_spinbox.setRange(6,17)
         self.font_size_spinbox.setValue(self.font().pointSize())
 
         # Button for advanced font settings
