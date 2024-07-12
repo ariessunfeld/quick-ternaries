@@ -13,7 +13,9 @@ class AdvancedSettingsModel:
             axis_font: str = 'Open Sans',
             axis_font_size: int = 14,
             tick_font: str = 'Open Sans',
-            tick_font_size: int = 12
+            tick_font_size: int = 12,
+            show_tick_marks: bool = True,
+            show_grid: bool = True
             ):
         self._background_color = background_color
         self._gridline_step_size = gridline_step_size
@@ -26,6 +28,8 @@ class AdvancedSettingsModel:
         self._axis_font_size = axis_font_size
         self._tick_font = tick_font
         self._tick_font_size = tick_font_size
+        self._show_tick_marks = show_tick_marks
+        self._show_grid = show_grid
 
     @property
     def background_color(self) -> str:
@@ -114,3 +118,19 @@ class AdvancedSettingsModel:
     @tick_font_size.setter
     def tick_font_size(self, value: int):
         self._tick_font_size = value
+
+    @property
+    def show_tick_marks(self) -> bool:
+        return self._show_tick_marks
+    
+    @show_tick_marks.setter
+    def show_tick_marks(self, value: bool):
+        self._show_tick_marks = value
+
+    @property
+    def show_grid(self) -> bool:
+        return self._show_grid
+    
+    @show_grid.setter
+    def show_grid(self, value: bool):
+        self._show_grid = value

@@ -1,81 +1,82 @@
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QComboBox,
-    QLabel,
-    QSlider,
-)
-
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QColor
-
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QGridLayout
+from PySide6.QtCore import Qt
 from src.views.utils import (
-    LeftLabeledSpinBox,
-    LeftLabeledColorPicker,
-    LeftLabeledComboBox,
-    LeftLabeledFontComboBox,
-    LeftLabeledSlider
+    LeftLabeledSpinBox, LeftLabeledColorPicker, LeftLabeledComboBox,
+    LeftLabeledFontComboBox, LeftLabeledCheckbox
 )
 
 class AdvancedSettingsView(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.main_layout = QVBoxLayout()
+        self.main_layout = QVBoxLayout(self)
+        self.setup_ui()
 
-        # create a container widget to hold the main layout
-        self.container_widget = QWidget()
-        self.container_widget.setObjectName("containerWidget") # set an object name
-        self.container_layout = QVBoxLayout()
-        self.container_widget.setLayout(self.container_layout)
+    def setup_ui(self):
+        self.setup_plot_structure()
+        self.setup_colors()
+        self.setup_fonts()
+        self.main_layout.addStretch(1)
 
-        # add a border to the container widget
-        self.container_widget.setStyleSheet("#containerWidget { border: 1px solid #1c1c1c; }")
+    def setup_plot_structure(self):
+        group = QGroupBox("Plot Structure")
+        layout = QGridLayout()
 
-        self.setLayout(self.main_layout)
-
-        # background color (behind the figure)
-        self.background_color = LeftLabeledColorPicker("Background Color:")
-
-        # ternary sum
         self.ternary_sum_combo = LeftLabeledComboBox("Ternary Sum:")
         self.ternary_sum_combo.addItems(["1", "100"])
+        layout.addWidget(self.ternary_sum_combo, 0, 0)
 
-        # gridline step size
+        self.show_grid = LeftLabeledCheckbox("Show Grid")
+        self.show_grid.setChecked(True)
+        layout.addWidget(self.show_grid, 1, 0)
+
         self.gridline_step_size = LeftLabeledSpinBox("Gridline Step Size:")
-        self.gridline_step_size.setMinimum(1)
-        self.gridline_step_size.setMaximum(100)
+        self.gridline_step_size.setRange(1, 100)
+        layout.addWidget(self.gridline_step_size, 1, 1)
 
-        # gridline color
-        self.gridline_color = LeftLabeledColorPicker("Gridline Color:")
+        self.show_tick_marks = LeftLabeledCheckbox("Show Tick Marks")
+        self.show_tick_marks.setChecked(True)
+        layout.addWidget(self.show_tick_marks, 2, 0)
 
-        # paper color (background behind/outside ternary)
+        group.setLayout(layout)
+        self.main_layout.addWidget(group)
+
+    def setup_colors(self):
+        group = QGroupBox("Colors")
+        layout = QGridLayout()
+
+        self.background_color = LeftLabeledColorPicker("Background Color:")
+        layout.addWidget(self.background_color, 0, 0)
+
         self.paper_color = LeftLabeledColorPicker("Paper Color:")
-        self.container_layout.addWidget(self.paper_color)
+        layout.addWidget(self.paper_color, 1, 0)
 
-        # title font and size
+        self.gridline_color = LeftLabeledColorPicker("Gridline Color:")
+        layout.addWidget(self.gridline_color, 2, 0)
+
+        group.setLayout(layout)
+        self.main_layout.addWidget(group)
+
+    def setup_fonts(self):
+        group = QGroupBox("Fonts")
+        layout = QGridLayout()
+
         self.title_font_combo = LeftLabeledFontComboBox("Title Font:")
+        layout.addWidget(self.title_font_combo, 0, 0)
         self.title_font_size_spinbox = LeftLabeledSpinBox("Title Font Size:")
         self.title_font_size_spinbox.setMinimum(1)
+        layout.addWidget(self.title_font_size_spinbox, 0, 1)
 
-        # axis label font and size
         self.axis_font_combo = LeftLabeledFontComboBox("Axis Label Font:")
+        layout.addWidget(self.axis_font_combo, 1, 0)
         self.axis_font_size_spinbox = LeftLabeledSpinBox("Axis Label Font Size:")
         self.axis_font_size_spinbox.setMinimum(1)
+        layout.addWidget(self.axis_font_size_spinbox, 1, 1)
 
-        # tick font and size
         self.tick_font_combo = LeftLabeledFontComboBox("Tick Font:")
+        layout.addWidget(self.tick_font_combo, 2, 0)
         self.tick_font_size_spinbox = LeftLabeledSpinBox("Tick Font Size:")
         self.tick_font_size_spinbox.setMinimum(1)
+        layout.addWidget(self.tick_font_size_spinbox, 2, 1)
 
-        # add widgets to their respective layout
-        self.main_layout.addWidget(self.container_widget)
-        self.container_layout.addWidget(self.background_color)
-        self.container_layout.addWidget(self.ternary_sum_combo)
-        self.container_layout.addWidget(self.gridline_step_size)
-        self.container_layout.addWidget(self.gridline_color)
-        self.container_layout.addWidget(self.title_font_combo)
-        self.container_layout.addWidget(self.title_font_size_spinbox)
-        self.container_layout.addWidget(self.axis_font_combo)
-        self.container_layout.addWidget(self.axis_font_size_spinbox)
-        self.container_layout.addWidget(self.tick_font_combo)
-        self.container_layout.addWidget(self.tick_font_size_spinbox)
+        group.setLayout(layout)
+        self.main_layout.addWidget(group)
