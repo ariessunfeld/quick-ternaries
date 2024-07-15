@@ -4,26 +4,12 @@ which contains the widgets needed for configuring individual traces,
 and is used in the dynamic content area of the MainWindow
 """
 
-from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
-from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
-from src.views.ternary.trace.filter.view import FilterPanelView
-from src.views.ternary.trace.advanced_settings_view import AdvancedSettingsView
-from src.views.ternary.trace.bootstrap.error_entry_view import TernaryBootstrapErrorEntryView
-
-from src.models.utils.pandas_series_model import PandasSeriesModel
-
 import pandas as pd
 
 from PySide6.QtWidgets import (
     QWidget,
-    QLabel,
     QVBoxLayout,
     QHBoxLayout,
-    QComboBox,
-    QSpinBox,
-    QColorDialog,
-    QPushButton,
-    QCheckBox,
     QApplication,
     QScrollArea,
     QGroupBox,
@@ -31,16 +17,24 @@ from PySide6.QtWidgets import (
     QHeaderView
 )
 from PySide6.QtCore import Qt
+
+from src.models.utils.pandas_series_model import PandasSeriesModel
+from src.views.ternary.trace import (
+    TernaryHeatmapEditorView,
+    TernaryTraceMolarConversionView,
+    AdvancedSettingsView,
+)
+from src.views.ternary.trace.filter import FilterPanelView
+from src.views.ternary.trace.bootstrap import TernaryBootstrapErrorEntryView
 from src.views.utils import (
-    LeftLabeledLineEdit, 
-    LeftLabeledCheckbox, 
-    LeftLabeledComboBox, 
+    LeftLabeledLineEdit,
+    LeftLabeledCheckbox,
+    LeftLabeledComboBox,
     LeftLabeledImageComboBox,
-    LeftLabeledSpinBox, 
+    LeftLabeledSpinBox,
     LeftLabeledColorPicker,
     InfoButton
 )
-
 
 class TernaryTraceEditorView(QWidget):
     def __init__(self, parent: QWidget | None = None):

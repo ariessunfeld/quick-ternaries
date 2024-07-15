@@ -1,8 +1,11 @@
-from src.models.ternary.setup.advanced_settings_model import AdvancedSettingsModel
-from src.views.ternary.setup.advanced_settings_view import AdvancedSettingsView
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.views.ternary.setup import AdvancedSettingsView
+    from src.models.ternary.setup import AdvancedSettingsModel
 
 class AdvancedSettingsController:
-    def __init__(self, model: AdvancedSettingsModel, view: AdvancedSettingsView):
+    def __init__(self, model: 'AdvancedSettingsModel', view: 'AdvancedSettingsView'):
         self.model = model
         self.view = view
 

@@ -1,14 +1,18 @@
 """Ternary HTML file maker"""
 
-from src.models.ternary.model import TernaryModel
+from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QMessageBox
+
 from src.services.ternary.plot_maker import TernaryPlotMaker
-from src.services.ternary.trace_maker import (
+from src.services.ternary.exceptions import (
     TraceMolarConversionException,
     TraceFilterFloatConversionException,
     BootstrapTraceContourException
 )
 
-from PySide6.QtWidgets import QMessageBox
+if TYPE_CHECKING:
+    from src.models.ternary import TernaryModel
 
 class BaseHtmlMaker:
 
@@ -20,7 +24,7 @@ class TernaryHtmlMaker(BaseHtmlMaker):
     def __init__(self):
         self.plot_maker = TernaryPlotMaker()
 
-    def make_html(self, model: TernaryModel):
+    def make_html(self, model: 'TernaryModel'):
         try:
             plot = self.plot_maker.make_plot(model)
             html = plot.to_html()

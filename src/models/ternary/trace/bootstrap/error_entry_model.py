@@ -1,6 +1,6 @@
 """Represents state of Bootstrap editor error entry area"""
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple
 
 class TernaryBootstrapErrorEntryModel:
     

@@ -1,19 +1,21 @@
 """Controller for the Quick Ternaries application"""
 
-from src.models.app_state import AppModel
-from src.views.main_window import MainWindow
-from src.services.app_service import AppService
-
-from src.controllers.ternary.controller import TernaryController
-from src.views.settings_window import SettingsDialog
+from typing import TYPE_CHECKING
 
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMessageBox
+
+from src.views.settings_window import SettingsDialog
+from src.controllers.ternary import TernaryController
+
+if TYPE_CHECKING:
+    from src.models.app_state import AppModel
+    from src.views.main_window import MainWindow
+    from src.services.app_service import AppService
 
 class AppController:
     
-    def __init__(self, model: AppModel, view: MainWindow, service: AppService):
+    def __init__(self, model: 'AppModel', view: 'MainWindow', service: 'AppService'):
         self.model = model
         self.view = view
         self.service = service
@@ -22,7 +24,6 @@ class AppController:
 
     def setup_connections(self):
         self.ternary_controller = TernaryController(self.model.ternary_model, self.view)
-        # ...
         self.current_controller = self.ternary_controller
 
         # Connect the window's plotly interface to the web channel
@@ -93,10 +94,3 @@ class AppController:
             # TODO change this behavior for other plot modes
             # eg when in cartesian, want to call blank_cartesian() method
             self.view.switch_to_blank_ternary()
-
-
-
-
-
-
-

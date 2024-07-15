@@ -24,7 +24,6 @@ from PySide6.QtGui import (
     QCursor,
 )
 
-
 class FilterTab(QWidget):
     tab_clicked = Signal(str)
     tab_closed = Signal(str)

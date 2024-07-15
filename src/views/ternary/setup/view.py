@@ -1,20 +1,5 @@
 """Contains the BaseSetupView(QWidget) class, which encompasses the widgets involved in setup, and is used in the dynamic content area of the MainWindow"""
 
-from typing import List
-import time
-
-from src.views.utils import (
-    LeftLabeledCheckbox,
-    LeftLabeledLineEdit,
-    AddRemoveList,
-    InfoButton)
-from src.views.ternary.setup import (
-    CustomApexSelectionView,
-    CustomHoverDataSelectionView,
-    LoadedDataScrollView,
-    TernaryApexScalingView,
-    AdvancedSettingsView)
-
 from PySide6.QtWidgets import (
     QWidget, 
     QHBoxLayout, 
@@ -27,8 +12,20 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QScrollArea
 )
+from PySide6.QtCore import Qt
 
-from PySide6.QtCore import Qt, QTimer
+from src.views.utils import (
+    LeftLabeledCheckbox,
+    LeftLabeledLineEdit,
+    InfoButton
+)
+from src.views.ternary.setup import (
+    CustomApexSelectionView,
+    CustomHoverDataSelectionView,
+    LoadedDataScrollView,
+    TernaryApexScalingView,
+    AdvancedSettingsView
+)
 
 class TernaryStartSetupView(QWidget):
     def __init__(self, parent: QWidget | None = None):

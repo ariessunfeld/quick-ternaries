@@ -1,6 +1,6 @@
 """Represents state of Ternary Apex Scaling panel"""
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple
 
 class TernaryApexScalingModel:
     

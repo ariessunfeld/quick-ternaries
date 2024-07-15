@@ -1,12 +1,13 @@
 """Contains the Controller for the Ternary Trace Editor"""
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QObject, Signal
 
-# Type hints
-from src.views.ternary.trace.view import TernaryTraceEditorView
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.utils.data_models import DataLibrary
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TernaryTraceEditorModel, TraceTabsPanelModel
+    from src.models.utils.data_models import DataLibrary
+    from src.views.ternary.trace import TernaryTraceEditorView
 
 class TernaryTraceEditorController(QObject):
 
@@ -19,8 +20,8 @@ class TernaryTraceEditorController(QObject):
 
     def __init__(
             self, 
-            model: TraceTabsPanelModel, 
-            view: TernaryTraceEditorView):
+            model: 'TraceTabsPanelModel',
+            view: 'TernaryTraceEditorView'):
         
         super().__init__()
         
@@ -31,7 +32,7 @@ class TernaryTraceEditorController(QObject):
 
         self.setup_connections()
 
-    def set_data_library_reference(self, ref: DataLibrary):
+    def set_data_library_reference(self, ref: 'DataLibrary'):
         # Ideally read-only access to data library
         self.data_library_reference = ref
 
@@ -49,7 +50,7 @@ class TernaryTraceEditorController(QObject):
         self.view.line_thickness.valueChanged.connect(self._line_thickness_changed_event)
         self.view.percentile_edit.textChanged.connect(self._on_percentile_edit_text_changed)
 
-    def change_tab(self, trace_model: TernaryTraceEditorModel):
+    def change_tab(self, trace_model: 'TernaryTraceEditorModel'):
         # Take the values from the trace model and populate the view accordingly
         self.view.select_data.clear()
         self.view.select_data.addItems(trace_model.available_data_file_names)

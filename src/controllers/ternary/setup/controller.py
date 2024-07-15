@@ -8,23 +8,28 @@ Model updates View
 User --> View --> Controller --> Model --> View
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import Tuple, TYPE_CHECKING
 from pathlib import Path
 import pandas as pd
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QWidget, QMessageBox
 from PySide6.QtCore import QObject, Signal
 
-from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
-from src.views.ternary.setup.view import TernaryStartSetupView
+from src.models.ternary.setup import TernaryType
 
-from src.controllers.ternary.setup.custom_apex_selection_controller import CustomApexSelectionController
-from src.controllers.ternary.setup.custom_hover_data_selection_controller import CustomHoverDataSelectionController
-from src.controllers.ternary.setup.apex_scaling_controller import TernaryApexScalingController
-from src.controllers.ternary.setup.advanced_settings_controller import AdvancedSettingsController
+from src.controllers.ternary.setup import (
+    AdvancedSettingsController,
+    TernaryApexScalingController,
+    CustomApexSelectionController,
+    CustomHoverDataSelectionController
+)
 
 from src.utils.file_handling_utils import find_header_row_csv, find_header_row_excel
 from src.utils.ternary_types import TERNARY_TYPES
+
+if TYPE_CHECKING:
+    from src.models.ternary.setup import TernaryStartSetupModel
+    from src.views.ternary.setup import TernaryStartSetupView
 
 
 class TernaryStartSetupControllerSignaller(QObject):
@@ -45,8 +50,8 @@ class TernaryStartSetupController(QWidget):
     'Custom apex selection and custom hover data selection will not work.\n\n' +\
     'Remove one or more loaded data files to increase the number of shared column names.'
 
-    def __init__(self, model: TernaryStartSetupModel, view: TernaryStartSetupView):
-        
+    def __init__(self, model: 'TernaryStartSetupModel', view: 'TernaryStartSetupView'):
+
         super().__init__()
 
         # models and views are instantiated outside this class

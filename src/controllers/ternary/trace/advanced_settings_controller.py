@@ -1,9 +1,11 @@
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.ternary.trace.advanced_settings_model import AdvancedSettingsModel
-from src.views.ternary.trace.advanced_settings_view import AdvancedSettingsView
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TraceTabsPanelModel, AdvancedSettingsModel
+    from src.views.ternary.trace import AdvancedSettingsView
 
 class AdvancedSettingsController:
-    def __init__(self, model: TraceTabsPanelModel, view: AdvancedSettingsView):
+    def __init__(self, model: 'TraceTabsPanelModel', view: 'AdvancedSettingsView'):
         self.model = model
         self.view = view
 
@@ -14,7 +16,7 @@ class AdvancedSettingsController:
         self.view.outline_color.colorChanged.connect(self._on_outline_color_changed)
         self.view.outline_thickness.valueChanged.connect(self._on_outline_thickness_changed)
 
-    def change_trace_tab(self, advanced_settings_model: AdvancedSettingsModel):
+    def change_trace_tab(self, advanced_settings_model: 'AdvancedSettingsModel'):
         self.view.opacity.setValue(advanced_settings_model.opacity)
         self.view.outline_color.setColor(advanced_settings_model.outline_color)
         self.view.outline_thickness.setValue(advanced_settings_model.outline_thickness)

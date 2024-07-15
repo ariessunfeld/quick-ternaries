@@ -1,52 +1,28 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
 import time
-from typing import List, Dict, Optional, Tuple
-
+from typing import List, Dict, Tuple, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from scipy.stats import gaussian_kde
 
-from src.models.ternary.model import TernaryModel
-from src.models.ternary.setup.model import TernaryType
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.models.ternary.model import TernaryModel
 from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
-from src.services.utils import (
+from src.services.utils.filter_strategies import (
     EqualsFilterStrategy, OneOfFilterStrategy, LessEqualFilterStrategy,
     LessThanFilterStrategy, GreaterEqualFilterStrategy, GreaterThanFilterStrategy,
     LELTFilterStrategy, LELEFilterStrategy, LTLEFilterStrategy, LTLTFilterStrategy
 )
-from src.services.utils.contour_utils import transform_to_cartesian, compute_kde_contours, convert_contour_to_ternary
+from src.services.utils.contour_utils import (
+    transform_to_cartesian, compute_kde_contours, convert_contour_to_ternary
+)
 
-
-class TraceMolarConversionException(Exception):
-    """Exception raised for errors in molar conversion"""
-    def __init__(self, trace_id: str, column: str, bad_formula: str, message: str):
-        self.trace_id = trace_id
-        self.column = column
-        self.bad_formula = bad_formula
-        self.message = message
-
-
-class TraceFilterFloatConversionException(Exception):
-    """Exception raised for errors converting filter values"""
-    def __init__(self, trace_id: str, filter_id: str, message: str):
-        self.trace_id = trace_id
-        self.filter_id = filter_id
-        self.message = message
-
-
-class BootstrapTraceContourException(Exception):
-    """Exception raised when contour calculation fails"""
-    def __init__(self, trace_id: str, message: str):
-        self.trace_id = trace_id
-        self.message = message
-
+if TYPE_CHECKING:
+    from src.models.ternary import TernaryModel
+    from src.models.ternary.setup import TernaryType
+    from src.models.ternary.trace import TernaryTraceEditorModel
 
 class TernaryTraceMaker:
-    
+
     APEX_PATTERN = '__{apex}_{us}'
     HEATMAP_PATTERN = '__{col}_heatmap_{us}'
     SIMULATED_PATTERN = '__{col}_simulated_{us}'
@@ -72,7 +48,7 @@ class TernaryTraceMaker:
             # can add other strategies here if needed
         }
     
-    def make_trace(self, model: TernaryModel, trace_id: str) -> go.Scatterternary:
+    def make_trace(self, model: 'TernaryModel', trace_id: str) -> go.Scatterternary:
         unique_str = self._generate_unique_str()
         ternary_type = model.start_setup_model.get_ternary_type()
 
@@ -119,7 +95,7 @@ class TernaryTraceMaker:
             marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True, line=line
         )
     
-    def _prepare_standard_data(self, model:TernaryModel, trace_model:TernaryTraceEditorModel,
+    def _prepare_standard_data(self, model:'TernaryModel', trace_model:'TernaryTraceEditorModel',
                                ternary_type,
                                top_columns:List[str], left_columns:List[str], right_columns:List[str],
                                unique_str:str, trace_id:str,
@@ -148,16 +124,16 @@ class TernaryTraceMaker:
         return marker, trace_data_df
     
     def _prepare_bootstrap_data(
-            self, 
-            model: TernaryModel, 
-            trace_model: TernaryTraceEditorModel,
-            ternary_type: TernaryType,
-            top_columns: List[str], 
-            left_columns: List[str], 
+            self,
+            model: 'TernaryModel',
+            trace_model: 'TernaryTraceEditorModel',
+            ternary_type: 'TernaryType',
+            top_columns: List[str],
+            left_columns: List[str],
             right_columns: List[str],
-            unique_str: str, 
+            unique_str: str,
             trace_id: str,
-            marker: dict, 
+            marker: dict,
             scaling_map: dict) -> pd.DataFrame:
         """
         TODO docstring
@@ -207,8 +183,8 @@ class TernaryTraceMaker:
     
     def _molar_calibration(
             self,
-            model:TernaryModel, 
-            ternary_type: TernaryType,
+            model:'TernaryModel', 
+            ternary_type: 'TernaryType',
             trace_data_df: pd.DataFrame,
             top_columns: List[str], 
             left_columns: List[str], 
@@ -271,8 +247,8 @@ class TernaryTraceMaker:
         
     def _get_standard_hover_data_and_template(
             self, 
-            model: TernaryModel, 
-            trace_model: TernaryTraceEditorModel,
+            model: 'TernaryModel', 
+            trace_model: 'TernaryTraceEditorModel',
             trace_data_df: pd.DataFrame,
             top_columns: List[str], 
             left_columns: List[str], 
@@ -338,7 +314,7 @@ class TernaryTraceMaker:
 
         return customdata, hovertemplate
     
-    def _get_bootstrap_hover_data_and_template(self, trace_model:TernaryTraceEditorModel, scale_map) -> Tuple[np.array, str]:
+    def _get_bootstrap_hover_data_and_template(self, trace_model:'TernaryTraceEditorModel', scale_map) -> Tuple[np.array, str]:
         """
         Generates custom data for a bootstrapped contour and an HTML template for its hover data.
 
@@ -365,7 +341,7 @@ class TernaryTraceMaker:
 
         return customdata, hovertemplate
 
-    def get_scaling_map(self, model: TernaryModel):
+    def get_scaling_map(self, model: 'TernaryModel'):
         """Returns a dictionary with scale factors for each column in the `Scale Apices` view"""
         scaling_info = model.start_setup_model.apex_scaling_model.get_sorted_repr()
         scaling_map = {}
@@ -394,7 +370,7 @@ class TernaryTraceMaker:
         """Returns a unique string to be used in dataframe column names"""
         return str(hash(time.time()))
 
-    def _get_basic_marker_dict(self, trace_model: TernaryTraceEditorModel) -> dict:
+    def _get_basic_marker_dict(self, trace_model: 'TernaryTraceEditorModel') -> dict:
         """Returns a dictionary with size, symbol, and color keys populated with values from trace"""
         marker = dict(
             size   = float(trace_model.point_size),
@@ -405,7 +381,7 @@ class TernaryTraceMaker:
     
     def _update_marker_with_trace_advanced_settings(self, 
             marker: dict, 
-            trace_model: TernaryTraceEditorModel) -> dict:
+            trace_model: 'TernaryTraceEditorModel') -> dict:
         
         advanced_settings_model = trace_model.advanced_settings_model
 
@@ -423,7 +399,7 @@ class TernaryTraceMaker:
     def _update_marker_dict_with_heatmap_config(
             self, 
             marker: dict, 
-            trace_model: TernaryTraceEditorModel,
+            trace_model: 'TernaryTraceEditorModel',
             data_df: pd.DataFrame,
             uuid: str) -> Tuple[dict, pd.DataFrame]:
         """Returns makrer and data_df after making necessary changes for heatmap config"""
@@ -487,14 +463,14 @@ class TernaryTraceMaker:
 
         return marker, data_df
 
-    def _get_trace_name(self, trace_model: TernaryTraceEditorModel):
+    def _get_trace_name(self, trace_model: 'TernaryTraceEditorModel'):
         """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
     
     def _apply_filters(
             self,
             data_df: pd.DataFrame,
-            trace_model: TernaryTraceEditorModel,
+            trace_model: 'TernaryTraceEditorModel',
             trace_id: str) -> pd.DataFrame:
         """Applies filters and returns filtered dataframe"""
         filter_order = trace_model.filter_tab_model.order

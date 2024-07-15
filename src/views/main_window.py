@@ -1,32 +1,25 @@
 """Contains the MainWindow(QWidget) view class, which encompasses the navigation panel, dynamic content area, preview/save buttons, and plot view area"""
 
 import os
-from pathlib import Path
 
 from PySide6.QtWidgets import (
-    QMainWindow, 
-    QStackedWidget, 
-    QPushButton, 
-    QVBoxLayout, 
+    QMainWindow,
+    QStackedWidget,
+    QPushButton,
+    QVBoxLayout,
     QWidget,
-    QHBoxLayout, 
-    QLabel, 
-    QScrollArea, 
-    QComboBox, 
-    QToolBar,
-    QMenu, 
-    QSizePolicy, 
-    QFileDialog, 
+    QHBoxLayout,
+    QLabel,
+    QComboBox,
+    QSizePolicy,
+    QFileDialog,
     QInputDialog,
     QApplication
 )
 
-from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer
-from PySide6.QtGui import QMovie, QAction
-
+from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer, Slot
+from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette, QMovie
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import Qt, Slot, QSize, QUrl
-from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView

@@ -78,8 +78,6 @@ class TernaryType:
     def __str__(self):
         return str(self.__dict__)
 
-
-
 class TernaryStartSetupModel:
 
     def __init__(self):

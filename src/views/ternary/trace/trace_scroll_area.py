@@ -4,24 +4,24 @@ from typing import List
 
 from PySide6.QtWidgets import (
     QWidget,
-    QHBoxLayout, 
-    QLabel, 
-    QPushButton, 
-    QVBoxLayout, 
-    QScrollArea, 
-    QStackedWidget, 
-    QMessageBox)
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QScrollArea
+)
 from PySide6.QtCore import (
     Qt, 
     QSize, 
     Signal, 
     QMimeData,
-    QPoint)
+    QPoint
+)
 from PySide6.QtGui import (
     QDrag, 
     QPixmap,
-    QIcon,
-    QPainter)
+    QPainter
+)
 
 class DragTargetIndicator(QLabel):
     def __init__(self, parent=None):

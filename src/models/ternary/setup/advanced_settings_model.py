@@ -1,5 +1,3 @@
-from typing import Optional
-
 class AdvancedSettingsModel:
     def __init__(
             self,

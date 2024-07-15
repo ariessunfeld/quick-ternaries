@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QGridLayout
-from PySide6.QtCore import Qt
+
 from src.views.utils import (
     LeftLabeledSpinBox, LeftLabeledColorPicker, LeftLabeledComboBox,
     LeftLabeledFontComboBox, LeftLabeledCheckbox
