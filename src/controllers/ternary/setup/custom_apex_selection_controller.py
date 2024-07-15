@@ -1,14 +1,17 @@
-from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
-from src.views.ternary.setup import CustomApexSelectionView
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, Signal
+
+if TYPE_CHECKING:
+    from src.models.ternary.setup import CustomApexSelectionModel
+    from src.views.ternary.setup import CustomApexSelectionView
 
 class CustomApexSelectionController(QObject):
 
     column_added_to_apices = Signal(str)
     column_removed_from_apices = Signal(str)
 
-    def __init__(self, model: CustomApexSelectionModel, view: CustomApexSelectionView):
+    def __init__(self, model: 'CustomApexSelectionModel', view: 'CustomApexSelectionView'):
         
         super().__init__()
 

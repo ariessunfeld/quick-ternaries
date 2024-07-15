@@ -1,7 +1,6 @@
 """Class responsible for calculating molar masses"""
 
-from molmass import Formula
-from molmass import FormulaError
+from molmass import Formula, FormulaError
 
 class MolarMassCalculatorException(Exception):
     """Exception raised for errors in the MolarMassCalculator."""

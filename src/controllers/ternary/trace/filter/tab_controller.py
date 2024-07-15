@@ -1,13 +1,15 @@
 """Controller for the FilterTabView sections"""
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QMessageBox
-from src.views.ternary.trace.filter.filter_tab_view import FilterTabView
-from src.models.ternary.trace.filter.model import FilterModel
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.models.utils.data_models import DataLibrary
+
+from src.models.ternary.trace.filter import FilterModel
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TraceTabsPanelModel, TernaryTraceEditorModel
+    from src.models.utils.data_models import DataLibrary
+    from src.views.ternary.trace.filter import FilterTabView
 
 class FilterTabController(QObject):
 
@@ -15,7 +17,7 @@ class FilterTabController(QObject):
     change_to_filter_setup_signal = Signal()
     trace_data_selection_handled = Signal()
 
-    def __init__(self, model: TraceTabsPanelModel, view: FilterTabView):
+    def __init__(self, model: 'TraceTabsPanelModel', view: 'FilterTabView'):
         super().__init__()
         self.model = model
         self.view = view
@@ -24,7 +26,7 @@ class FilterTabController(QObject):
 
         self.setup_connections()
 
-    def set_data_library_reference(self, ref: DataLibrary):
+    def set_data_library_reference(self, ref: 'DataLibrary'):
         self.data_library_reference = ref
 
     def setup_connections(self):
@@ -50,7 +52,7 @@ class FilterTabController(QObject):
             # Always change back to start setup after deleting a filter tab
             self.change_filter_tab('StartSetup')
 
-    def change_trace_tab(self, trace_model: TernaryTraceEditorModel):
+    def change_trace_tab(self, trace_model: 'TernaryTraceEditorModel'):
         self.view.clear()
         filter_tab_model = trace_model.filter_tab_model
         for identifier in filter_tab_model.order:

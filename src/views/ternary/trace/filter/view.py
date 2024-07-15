@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (
     QLabel
 )
 
-from src.views.ternary.trace.filter.filter_tab_view import FilterTabView
-from src.views.ternary.trace.filter.filter_editor_view import FilterEditorView
+from src.views.ternary.trace.filter import FilterTabView, FilterEditorView
 
 class FilterStartSetupView(QWidget):
     def __init__(self, parent: QWidget | None = None):

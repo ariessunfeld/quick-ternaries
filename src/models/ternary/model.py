@@ -1,7 +1,6 @@
-from src.models.ternary.setup.model import TernaryStartSetupModel
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.ternary.plot.model import TernaryRenderPlotModel
-from src.models.ternary.trace.molar_conversion_model import TernaryTraceMolarConversionModel
+from src.models.ternary.setup import TernaryStartSetupModel
+from src.models.ternary.trace import TraceTabsPanelModel, TernaryTraceMolarConversionModel
+from src.models.ternary.plot import TernaryRenderPlotModel
 
 class TernaryModel:
     """Container class for ternary models"""

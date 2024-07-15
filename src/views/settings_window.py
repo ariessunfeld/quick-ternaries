@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QFontDialog
 )
 from PySide6.QtCore import Signal
-from src.views.utils.left_labeled_spinbox import LeftLabeledSpinBox
+from src.views.utils import LeftLabeledSpinBox
 
 class SettingsDialog(QDialog):
     font_changed = Signal(object)

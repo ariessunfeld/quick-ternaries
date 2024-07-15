@@ -1,12 +1,12 @@
 
-from src.views.utils.add_remove_list import AddRemoveList
-
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout, 
-    QVBoxLayout, 
-    QListWidget,
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QListWidget
 )
+
+from src.views.utils import AddRemoveList
 
 class CustomApexSelectionView(QWidget):
     """A megawidget containing the ListWidgets and buttons for custom apex selection"""

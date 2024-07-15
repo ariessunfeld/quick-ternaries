@@ -1,20 +1,20 @@
 """Contains the FilterEditorController class"""
 
-from typing import List
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QCompleter
 import numpy as np
 
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.views.ternary.trace.filter.filter_editor_view import FilterEditorView
-from src.models.ternary.trace.filter.tab_model import FilterTabsPanelModel
-from src.models.ternary.trace.filter.model import FilterModel
-from src.models.utils.data_models import DataLibrary
+from src.models.ternary.trace.filter import FilterModel
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TraceTabsPanelModel
+    from src.models.utils.data_models import DataLibrary
+    from src.views.ternary.trace.filter import FilterEditorView
 
 class FilterEditorController(QObject):
-    def __init__(self, model: TraceTabsPanelModel, view: FilterEditorView):
+    def __init__(self, model: 'TraceTabsPanelModel', view: 'FilterEditorView'):
         super().__init__()
         self.model = model
         self.view = view
@@ -22,7 +22,7 @@ class FilterEditorController(QObject):
 
         self.setup_connections()
 
-    def set_data_library_reference(self, ref: DataLibrary):
+    def set_data_library_reference(self, ref: 'DataLibrary'):
         # Ideally read-only access to data library
         self.data_library_reference = ref
 

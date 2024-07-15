@@ -2,17 +2,19 @@
 This model contains the trace editor models for individual traces
 """
 
-from typing import Dict, List, Optional
-from src.models.ternary.trace.model import TernaryTraceEditorModel
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TernaryTraceEditorModel
 
 class TraceTabsPanelModel:
     def __init__(self):
-        self.traces: Dict[str,TernaryTraceEditorModel] = {}
+        self.traces: Dict[str,'TernaryTraceEditorModel'] = {}
         self.order: List[str] = []
         self.tab_counter: int = 0
-        self.current_tab: Optional[TernaryTraceEditorModel] = None
+        self.current_tab: Optional['TernaryTraceEditorModel'] = None
 
-    def add_trace(self, trace_model: TernaryTraceEditorModel) -> str:
+    def add_trace(self, trace_model: 'TernaryTraceEditorModel') -> str:
         """Increments tab count to add a trace to the dict and the order
         Returns the tab_id for the just-added trace
         """
@@ -29,14 +31,14 @@ class TraceTabsPanelModel:
         if tab_id in self.order:
             self.order.remove(tab_id)
 
-    def get_trace(self, tab_id: str) -> TernaryTraceEditorModel:
+    def get_trace(self, tab_id: str) -> 'TernaryTraceEditorModel':
         """Returns a reference to a specific trace"""
         return self.traces.get(tab_id)
 
     def update_order(self, new_order: list):
         self.order = new_order
 
-    def get_all_traces(self) -> Dict[str, TernaryTraceEditorModel]:
+    def get_all_traces(self) -> Dict[str, 'TernaryTraceEditorModel']:
         """Returns all traces"""
         return {id: self.traces[id] for id in self.order}
 

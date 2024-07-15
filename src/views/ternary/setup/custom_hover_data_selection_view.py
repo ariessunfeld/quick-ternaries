@@ -1,13 +1,13 @@
-from src.views.utils.add_remove_list import AddRemoveList
-
 from typing import List
 
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
-    QListWidget,
+    QListWidget
 )
+
+from src.views.utils import AddRemoveList
 
 class CustomHoverDataSelectionView(QWidget):
     """A megawidget containing the ListWidgets and buttons for custom hover data selection"""

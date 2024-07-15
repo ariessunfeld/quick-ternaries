@@ -4,9 +4,9 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from src.models.app_state import AppModel
-from src.views.main_window import MainWindow
-from src.controllers.app_controller import AppController
+from src.models import AppModel
+from src.views import MainWindow
+from src.controllers import AppController
 from src.services.app_service import AppService
 
 def main():

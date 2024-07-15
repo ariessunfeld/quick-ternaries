@@ -1,28 +1,32 @@
 """Controller for the Ternary models and views"""
 
-from PySide6.QtWidgets import QMessageBox, QPushButton
+from typing import TYPE_CHECKING
 
-# Instantiated
+from PySide6.QtWidgets import QMessageBox
+
 from src.models.ternary.model import TernaryModel
-from src.views.main_window import MainWindow
-from src.controllers.ternary.setup.controller import TernaryStartSetupController
-from src.controllers.ternary.trace.controller import TernaryTraceEditorController
-from src.controllers.ternary.trace.tab_controller import TabController
-from src.controllers.ternary.trace.filter.controller import FilterEditorController
-from src.controllers.ternary.trace.filter.tab_controller import FilterTabController
-from src.controllers.ternary.trace.heatmap_editor_controller import HeatmapEditorController
-from src.controllers.ternary.trace.molar_conversion_controller import TernaryTraceMolarConversionController
-from src.controllers.ternary.trace.bootstrap.error_entry_controller import TernaryBootstrapErrorEntryController
-from src.controllers.ternary.trace.advanced_settings_controller import AdvancedSettingsController
+from src.controllers.ternary.trace import (
+    AdvancedSettingsController,
+    HeatmapEditorController,
+    TabController,
+    TernaryTraceEditorController,
+    TernaryTraceMolarConversionController,
+)
+from src.controllers.ternary.setup import TernaryStartSetupController
+from src.controllers.ternary.trace.filter import (
+    FilterEditorController,
+    FilterTabController
+)
+from src.controllers.ternary.trace.bootstrap import TernaryBootstrapErrorEntryController
 
-
-# For type hints
-from src.models.ternary.trace.filter.model import FilterModel
-from src.models.ternary.trace.model import TernaryTraceEditorModel
+if TYPE_CHECKING:
+    from src.views.main_window import MainWindow
+    from src.models.ternary.trace import TernaryTraceEditorModel
+    from src.models.ternary.trace.filter import FilterModel
 
 class TernaryController:
     
-    def __init__(self, model: TernaryModel, view: MainWindow):
+    def __init__(self, model: 'TernaryModel', view: 'MainWindow'):
         self.model = model
         self.view = view
 
@@ -128,7 +132,7 @@ class TernaryController:
         self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
             self.tab_controller.view.new_tab_button.setEnabled)
 
-    def _change_trace_tab(self, trace_model: TernaryTraceEditorModel):
+    def _change_trace_tab(self, trace_model: 'TernaryTraceEditorModel'):
         
         # Main window dynamic content area switches to trace view
         #self.view.switch_to_trace_view()
@@ -184,7 +188,7 @@ class TernaryController:
         # Filter tab controller clears existing tab widgets, repopulates with those from trace_model.filter_tab_model
         self.filter_tab_controller.change_trace_tab(trace_model)
 
-    def _change_filter_tab(self, filter_model: FilterModel):
+    def _change_filter_tab(self, filter_model: 'FilterModel'):
         # Main window's trace view's dynamic content area switches to filter view
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_editor_view()
 

@@ -11,9 +11,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from src.views.utils import (
-    LeftLabeledLineEdit, 
-    LeftLabeledComboBox, 
-    InfoButton, 
+    LeftLabeledLineEdit,
+    LeftLabeledComboBox,
+    InfoButton,
     LeftLabeledCheckbox,
     LeftLabeledRadioButton,
     LeftLabeledImageComboBox,

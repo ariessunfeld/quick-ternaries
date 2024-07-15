@@ -1,6 +1,6 @@
 """Represents state of Ternary Trace Molar Conversion panel"""
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple
 
 from molmass import Formula, FormulaError
 

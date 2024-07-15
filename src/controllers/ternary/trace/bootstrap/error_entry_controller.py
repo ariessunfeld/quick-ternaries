@@ -1,21 +1,19 @@
 """Connects the TernaryTraceMolarConversionModel with its view"""
 
-import pandas as pd
-from PySide6.QtCore import QObject, Signal
+from typing import TYPE_CHECKING
 
-from src.models.ternary.trace.bootstrap.error_entry_model import TernaryBootstrapErrorEntryModel
-from src.models.ternary.setup.apex_scaling_model import TernaryApexScalingModel
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.views.ternary.setup import TernaryApexScalingView
-from src.views.ternary.trace.bootstrap.error_entry_view import TernaryBootstrapErrorEntryView
+from PySide6.QtCore import QObject
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TraceTabsPanelModel, TernaryTraceEditorModel
+    from src.views.ternary.trace.bootstrap import TernaryBootstrapErrorEntryView
 
 class TernaryBootstrapErrorEntryController(QObject):
     
     def __init__(
             self,
-            model: TraceTabsPanelModel,
-            view: TernaryBootstrapErrorEntryView):
+            model: 'TraceTabsPanelModel',
+            view: 'TernaryBootstrapErrorEntryView'):
         super().__init__()
 
         self.model = model
@@ -43,11 +41,11 @@ class TernaryBootstrapErrorEntryController(QObject):
             bootstrapped_trace.error_entry_model.rem_column(column)
             self.refresh_bootstrapped_trace(bootstrapped_trace)
 
-    def refresh_bootstrapped_trace(self, bootstrapped_trace: TernaryTraceEditorModel):
+    def refresh_bootstrapped_trace(self, bootstrapped_trace: 'TernaryTraceEditorModel'):
         self._set_default_values(bootstrapped_trace)
         self.view.update_view(bootstrapped_trace.error_entry_model.get_sorted_repr())
 
-    def _set_default_values(self, trace_model: TernaryTraceEditorModel):
+    def _set_default_values(self, trace_model: 'TernaryTraceEditorModel'):
         """
         Perform a case-insensitive search for '<col> RMSEP' in the df columns for each plotted column.
         If any of these columns exist, set them as the default uncertainties upon initialization.

@@ -2,17 +2,19 @@
 This model contains the filter editor models for individual filters
 """
 
-from typing import Dict, List, Optional
-from src.models.ternary.trace.filter.model import FilterModel
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace.filter import FilterModel
 
 class FilterTabsPanelModel:
     def __init__(self):
-        self.filters: Dict[str, FilterModel] = {}
+        self.filters: Dict[str, 'FilterModel'] = {}
         self.order: List[str] = []
         self.tab_counter: int = 0
-        self.current_tab: Optional[FilterModel] = None
+        self.current_tab: Optional['FilterModel'] = None
 
-    def add_filter(self, filter_model: FilterModel) -> str:
+    def add_filter(self, filter_model: 'FilterModel') -> str:
         """Increments tab count to add a filter to the dict and the order
         Returns the tab_id for the just-added filter
         """
@@ -29,14 +31,14 @@ class FilterTabsPanelModel:
         if tab_id in self.order:
             self.order.remove(tab_id)
 
-    def get_filter(self, tab_id: str) -> FilterModel:
+    def get_filter(self, tab_id: str) -> 'FilterModel':
         """Returns a reference to a specific filter"""
         return self.filters.get(tab_id)
 
     def update_order(self, new_order: list):
         self.order = new_order
 
-    def get_all_filters(self) -> Dict[str, FilterModel]:
+    def get_all_filters(self) -> Dict[str, 'FilterModel']:
         """Returns all filters"""
         return {id: self.filters[id] for id in self.order}
     

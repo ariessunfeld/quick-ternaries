@@ -1,14 +1,15 @@
 """Plotly Plot Maker for Ternary diagrams"""
 
-from typing import Dict, List, Optional
-
-from src.models.ternary.model import TernaryModel
-from src.models.ternary.setup.model import TernaryStartSetupModel, TernaryType
-from src.services.ternary.trace_maker import TernaryTraceMaker
+from typing import Dict, List, TYPE_CHECKING
 
 import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
+
+from src.services.ternary.trace_maker import TernaryTraceMaker
+
+if TYPE_CHECKING:
+    from src.models.ternary import TernaryModel
 
 class AxisFormatter:
     @staticmethod
@@ -85,12 +86,12 @@ class TernaryPlotMaker:
         self.axis_formatter = AxisFormatter()
         self.layout_creator = LayoutCreator()
 
-    def make_plot(self, model: TernaryModel) -> Figure:
+    def make_plot(self, model: 'TernaryModel') -> Figure:
         layout = self._create_layout(model)
         traces = self._create_traces(model)
         return Figure(data=traces, layout=layout)
 
-    def _create_layout(self, model: TernaryModel) -> Layout:
+    def _create_layout(self, model: 'TernaryModel') -> Layout:
         base_layout = self.layout_creator.create_base_layout()
         layout = go.Layout(base_layout)
 
@@ -103,7 +104,7 @@ class TernaryPlotMaker:
 
         return layout
 
-    def _add_axis_labels(self, layout: Layout, model: TernaryModel):
+    def _add_axis_labels(self, layout: Layout, model: 'TernaryModel'):
         setup = model.start_setup_model
         ternary_type = setup.get_ternary_type()
 
@@ -117,18 +118,18 @@ class TernaryPlotMaker:
         layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
         layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
 
-    def _add_title(self, layout: Layout, model: TernaryModel):
+    def _add_title(self, layout: Layout, model: 'TernaryModel'):
         title = model.start_setup_model.get_title()
         ternary_type = model.start_setup_model.get_ternary_type()
         formatted_title = title.strip() or f"{ternary_type.get_short_formatted_name()} Ternary Diagram"
         layout.update(title=dict(text=formatted_title, x=0.5, y=0.95, xanchor='center', yanchor='top'))
 
-    def _create_traces(self, model: TernaryModel) -> List[go.Scatter]:
+    def _create_traces(self, model: 'TernaryModel') -> List[go.Scatter]:
         return [self.trace_maker.make_trace(model, trace_id)
                 for trace_id in model.tab_model.order
                 if trace_id != 'StartSetup']
 
-    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: TernaryModel) -> str:
+    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: 'TernaryModel') -> str:
         if custom_name.strip():
             return custom_name
         if not apex_columns:

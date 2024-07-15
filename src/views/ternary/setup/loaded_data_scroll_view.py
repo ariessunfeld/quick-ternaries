@@ -1,13 +1,12 @@
-from src.views.utils.removable_list_item import ListItemWidget
-
 from PySide6.QtWidgets import (
-    QWidget, 
-    QVBoxLayout, 
+    QWidget,
+    QVBoxLayout,
     QListWidget,
     QListWidgetItem
 )
 from PySide6.QtCore import Signal
 
+from src.views.utils import ListItemWidget
 
 class LoadedDataScrollView(QWidget):
 

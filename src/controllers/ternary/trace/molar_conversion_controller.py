@@ -1,16 +1,19 @@
 """Connects the TernaryTraceMolarConversionModel with its view"""
 
-from PySide6.QtCore import QObject, Signal
+from typing import TYPE_CHECKING
 
-from src.models.ternary.trace.molar_conversion_model import TernaryTraceMolarConversionModel
-from src.views.ternary.trace.molar_conversion_view import TernaryTraceMolarConversionView
+from PySide6.QtCore import QObject
+
+if TYPE_CHECKING:
+    from src.models.ternary.trace import TernaryTraceMolarConversionModel
+    from src.views.ternary.trace import TernaryTraceMolarConversionView
 
 class TernaryTraceMolarConversionController(QObject):
     
     def __init__(
             self,
-            model: TernaryTraceMolarConversionModel,
-            view: TernaryTraceMolarConversionView):
+            model: 'TernaryTraceMolarConversionModel',
+            view: 'TernaryTraceMolarConversionView'):
         super().__init__()
 
         self.model = model

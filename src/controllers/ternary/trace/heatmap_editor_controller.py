@@ -1,12 +1,14 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from src.models.ternary.trace.heatmap_model import HeatmapModel
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.views.ternary.trace.heatmap_editor_view import TernaryHeatmapEditorView
-from src.models.utils.data_models import DataLibrary
+if TYPE_CHECKING:
+    from src.models.ternary.trace import HeatmapModel, TraceTabsPanelModel
+    from src.models.utils.data_models import DataLibrary
+    from src.views.ternary.trace import TernaryHeatmapEditorView
 
 class HeatmapEditorController:
-    def __init__(self, model: TraceTabsPanelModel, view: TernaryHeatmapEditorView):
+    def __init__(self, model: 'TraceTabsPanelModel', view: 'TernaryHeatmapEditorView'):
         self.model = model
         self.view = view
 
@@ -39,10 +41,10 @@ class HeatmapEditorController:
         self.view.high_on_top_radio.toggled.connect(self._on_radio_toggled)
         self.view.low_on_top_radio.toggled.connect(self._on_radio_toggled)
 
-    def set_data_library_reference(self, ref: DataLibrary):
+    def set_data_library_reference(self, ref: 'DataLibrary'):
         self.data_library_reference = ref
 
-    def change_trace_tab(self, heatmap_model: HeatmapModel):
+    def change_trace_tab(self, heatmap_model: 'HeatmapModel'):
         self.view.heatmap_column_combobox.clear()
         self.view.heatmap_column_combobox.addItems(heatmap_model.available_columns)
         self.view.heatmap_column_combobox.setCurrentText(heatmap_model.selected_column)

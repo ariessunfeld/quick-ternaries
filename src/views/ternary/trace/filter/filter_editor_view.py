@@ -11,9 +11,10 @@ from PySide6.QtWidgets import (
     QLabel
 )
 from src.views.utils import (
-    LeftLabeledLineEdit, 
-    LeftLabeledComboBox, 
-    AddRemoveList)
+    LeftLabeledLineEdit,
+    LeftLabeledComboBox,
+    AddRemoveList
+)
 
 class FilterEditorView(QWidget):
     def __init__(self, parent: QWidget | None = None):

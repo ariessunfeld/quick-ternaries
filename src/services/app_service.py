@@ -1,12 +1,15 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 
 from PySide6.QtCore import QUrl
 
-from src.services.ternary.html_maker import TernaryHtmlMaker, BaseHtmlMaker
+from src.services.ternary import TernaryHtmlMaker
 # from src.services.cartesian.html_maker import CartesianHtmlMaker
 # from src.services.depth_profiles.html_maker import DepthProfilesHtmlMaker
 # from src.services.zmaps.html_maker import ZMapsHtmlMaker
+
+if TYPE_CHECKING:
+    from src.services.ternary import BaseHtmlMaker
 
 class AppService:
     def __init__(self):

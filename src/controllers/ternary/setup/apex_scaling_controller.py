@@ -1,16 +1,19 @@
 """Connects the TernaryTraceMolarConversionModel with its view"""
 
-from PySide6.QtCore import QObject, Signal
+from typing import TYPE_CHECKING
 
-from src.models.ternary.setup.apex_scaling_model import TernaryApexScalingModel
-from src.views.ternary.setup import TernaryApexScalingView
+from PySide6.QtCore import QObject
+
+if TYPE_CHECKING:
+    from src.models.ternary.setup import TernaryApexScalingModel
+    from src.views.ternary.setup import TernaryApexScalingView
 
 class TernaryApexScalingController(QObject):
     
     def __init__(
             self,
-            model: TernaryApexScalingModel,
-            view: TernaryApexScalingView):
+            model: 'TernaryApexScalingModel',
+            view: 'TernaryApexScalingView'):
         super().__init__()
 
         self.model = model

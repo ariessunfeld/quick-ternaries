@@ -8,17 +8,20 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QScrollArea)
+    QScrollArea
+)
 from PySide6.QtCore import (
     Qt,
     QSize,
     Signal,
     QMimeData,
-    QPoint)
+    QPoint
+)
 from PySide6.QtGui import (
     QDrag,
     QPixmap,
-    QPainter)
+    QPainter
+)
 
 class DragTargetIndicator(QLabel):
     def __init__(self, parent=None):

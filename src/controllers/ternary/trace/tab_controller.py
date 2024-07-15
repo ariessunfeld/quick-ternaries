@@ -2,15 +2,11 @@
 
 from typing import Optional, List, Dict
 
-from src.models.ternary.trace.tab_model import TraceTabsPanelModel
-from src.models.ternary.setup.model import TernaryType
-from src.views.ternary.trace.trace_scroll_area import TabView
-from src.views.ternary.trace.trace_scroll_area import DraggableTab
-
-from src.models.ternary.trace.model import TernaryTraceEditorModel
-
-from PySide6.QtWidgets import QMessageBox
 from PySide6.QtCore import Signal, QObject
+from PySide6.QtWidgets import QMessageBox
+
+from src.models.ternary.trace import TernaryTraceEditorModel, TraceTabsPanelModel
+from src.views.ternary.trace import DraggableTab, TabView
 
 class TabController(QObject):
 

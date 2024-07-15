@@ -1,7 +1,7 @@
 from typing import List
 
 from PySide6.QtCore import (
-    Slot, QObject, 
+    Slot, QObject
 )
 
 class PlotlyInterface(QObject):
