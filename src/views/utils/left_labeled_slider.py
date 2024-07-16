@@ -48,5 +48,8 @@ class LeftLabeledSlider(QWidget):
     def setMaximum(self, value: int):
         self.slider.setMaximum(value)
 
+    def setRange(self, min_val: int, max_val: int):
+        self.slider.setRange(min_val, max_val)
+
     def emit_value_changed(self, value):
         self.valueChanged.emit(value)
