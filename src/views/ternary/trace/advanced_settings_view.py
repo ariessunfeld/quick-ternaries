@@ -30,8 +30,8 @@ class AdvancedSettingsView(QWidget):
 
         # point opacity
         self.opacity = LeftLabeledSlider('Opacity:')
-        self.opacity.setMaximum(100)
-        self.opacity.setValue(100)
+        self.opacity.setMaximum(255)
+        self.opacity.setValue(255)
         self.container_layout.addWidget(self.opacity)
 
         # point outline color
