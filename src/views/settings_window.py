@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QFontDialog
 )
 from PySide6.QtCore import Signal
-from src.views.utils import LeftLabeledSpinBox
+from src.views.utils import LeftLabeledSlider
 
 class SettingsDialog(QDialog):
     font_changed = Signal(object)
@@ -22,7 +22,7 @@ class SettingsDialog(QDialog):
         # The main layout for the dialog
         layout = QVBoxLayout(self)
 
-        self.font_size_spinbox = LeftLabeledSpinBox("Fontsize:")
+        self.font_size_spinbox = LeftLabeledSlider("Fontsize:")
         self.font_size_spinbox.setRange(6,17)
         self.font_size_spinbox.setValue(self.font().pointSize())
 
