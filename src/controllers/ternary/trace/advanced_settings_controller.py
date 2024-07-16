@@ -17,12 +17,12 @@ class AdvancedSettingsController:
         self.view.outline_thickness.valueChanged.connect(self._on_outline_thickness_changed)
 
     def change_trace_tab(self, advanced_settings_model: 'AdvancedSettingsModel'):
-        self.view.opacity.setValue(advanced_settings_model.opacity)
+        self.view.opacity.setValue(advanced_settings_model.opacity * 255)
         self.view.outline_color.setColor(advanced_settings_model.outline_color)
         self.view.outline_thickness.setValue(advanced_settings_model.outline_thickness)
 
     def _on_opacity_changed(self, value: int):
-        self.model.current_tab.advanced_settings_model.opacity = value
+        self.model.current_tab.advanced_settings_model.opacity = value / 255
 
     def _on_outline_color_changed(self, value: str):
         self.model.current_tab.advanced_settings_model.outline_color = value

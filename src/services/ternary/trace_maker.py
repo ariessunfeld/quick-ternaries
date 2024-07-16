@@ -387,7 +387,7 @@ class TernaryTraceMaker:
 
         marker.update(
             dict(
-                opacity = advanced_settings_model.opacity / 255,
+                opacity = advanced_settings_model.opacity,
                 line = dict(
                     color = advanced_settings_model.outline_color,
                     width = advanced_settings_model.outline_thickness / 10

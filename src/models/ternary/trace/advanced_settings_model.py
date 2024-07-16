@@ -3,7 +3,7 @@ from typing import Optional
 class AdvancedSettingsModel:
     def __init__(
             self,
-            opacity: int = 255,
+            opacity: float = 1.0,
             outline_color: Optional[str] = None,
             outline_thickness: int = 0,
             ):
@@ -12,11 +12,11 @@ class AdvancedSettingsModel:
         self._outline_thickness = outline_thickness
 
     @property
-    def opacity(self) -> int:
+    def opacity(self) -> float:
         return self._opacity
     
     @opacity.setter
-    def opacity(self, value: int):
+    def opacity(self, value: float):
         self._opacity = value
 
     @property
