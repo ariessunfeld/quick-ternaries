@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.services.ternary.exceptions import BootstrapTraceContourException
 from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
 from src.services.utils.filter_strategies import (
     EqualsFilterStrategy, OneOfFilterStrategy, LessEqualFilterStrategy,
