@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QGroupBox,
     QTableView,
-    QHeaderView
+    QHeaderView,
+    QSlider
 )
 from PySide6.QtCore import Qt
 
@@ -33,6 +34,7 @@ from src.views.utils import (
     LeftLabeledImageComboBox,
     LeftLabeledSpinBox,
     LeftLabeledColorPicker,
+    LeftLabeledSlider,
     InfoButton
 )
 
@@ -128,7 +130,10 @@ class TernaryTraceEditorView(QWidget):
         self.sigma_dropdown.addItems(["1 sigma", "2 sigma", "custom"])
 
         # LeftLabeledLineEdit for custom percentile
-        self.percentile_edit = LeftLabeledLineEdit("Percentile:", 1)
+        self.percentile_edit = LeftLabeledSlider("Percentile:")
+        self.percentile_edit.setRange(0, 100)
+        self.percentile_edit.setTickPosition(QSlider.TicksBelow)
+        self.percentile_edit.setTickInterval(10)
         self.percentile_edit.setEnabled(False)
 
         self.line_thickness.setVisible(False)
