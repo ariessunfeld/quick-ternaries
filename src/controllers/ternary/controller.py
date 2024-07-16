@@ -188,6 +188,8 @@ class TernaryController:
         # Filter tab controller clears existing tab widgets, repopulates with those from trace_model.filter_tab_model
         self.filter_tab_controller.change_trace_tab(trace_model)
 
+        self.advanced_settings_controller.change_trace_tab(trace_model.advanced_settings_model)
+
     def _change_filter_tab(self, filter_model: 'FilterModel'):
         # Main window's trace view's dynamic content area switches to filter view
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_editor_view()

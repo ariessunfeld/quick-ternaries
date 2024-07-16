@@ -3,7 +3,7 @@ from typing import Optional
 class AdvancedSettingsModel:
     def __init__(
             self,
-            opacity: int = 100,
+            opacity: int = 255,
             outline_color: Optional[str] = None,
             outline_thickness: int = 0,
             ):
