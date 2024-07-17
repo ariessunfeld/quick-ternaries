@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
     QCheckBox
 )
 
+from PySide6.QtCore import Qt
+
 class AddRemoveList(QWidget):
     """A megawidget for add/remove buttons to the left of a ListWidget"""
     def __init__(self, parent:QWidget|None=None, label: str|None=None):
@@ -22,7 +24,9 @@ class AddRemoveList(QWidget):
         self.inner_layout = QVBoxLayout()
         self.inner_layout_widget = QWidget()
         self.button_add = QPushButton('Add >>')
+        self.button_add.setCursor(Qt.PointingHandCursor)
         self.button_remove = QPushButton('Remove <<')
+        self.button_remove.setCursor(Qt.PointingHandCursor)
         if label:
             self.label = QLabel(label)
             self.inner_layout.addWidget(self.label)

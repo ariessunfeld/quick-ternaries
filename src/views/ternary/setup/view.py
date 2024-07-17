@@ -50,6 +50,7 @@ class TernaryStartSetupView(QWidget):
 
         # Combobox to select ternary type
         self.combobox_ternary_type: QComboBox = QComboBox()
+        self.combobox_ternary_type.setCursor(Qt.PointingHandCursor)
 
         # Menu with columns for each apex, only displayed if 
         # combobox choice is "Custom"

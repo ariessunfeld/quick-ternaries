@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QComboBox, QSizePolicy
 )
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 
 class LeftLabeledComboBox(QWidget):
     """A labeled ComboBox megawidget, for combo boxes with QLabels to their left"""
@@ -15,6 +15,7 @@ class LeftLabeledComboBox(QWidget):
         
         self.label = QLabel(label)
         self.combobox = QComboBox()
+        self.combobox.setCursor(Qt.PointingHandCursor)
         
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.combobox)

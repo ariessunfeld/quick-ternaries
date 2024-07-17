@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QCheckBox
 )
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 
 class LeftLabeledCheckbox(QWidget):
     """A labeled CheckBox megawidget, for check boxes with QLabels to their left"""
@@ -18,6 +18,7 @@ class LeftLabeledCheckbox(QWidget):
         self.layout = QHBoxLayout()
         self.label = QLabel(label)
         self.checkbox = QCheckBox()
+        self.checkbox.setCursor(Qt.PointingHandCursor)
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.checkbox)
         self.layout.addStretch(1)
