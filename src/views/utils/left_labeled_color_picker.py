@@ -1,13 +1,5 @@
 import re
-<<<<<<< HEAD
-
-from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QPushButton, QColorDialog, QSizePolicy
-)
-
-=======
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QColorDialog
->>>>>>> 7a481cf (fixed initialization of trace editor advanced settings and color config widgets)
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QColor
 
@@ -18,25 +10,14 @@ class LeftLabeledColorPicker(QWidget):
 
     def __init__(self, label: str = '', initial_color: str | QColor = None, parent: QWidget | None = None):
         super().__init__(parent)
-<<<<<<< HEAD
-        self.layout = QHBoxLayout()
-        
-=======
         self.layout = QHBoxLayout(self)
 
->>>>>>> 7a481cf (fixed initialization of trace editor advanced settings and color config widgets)
         self.label = QLabel(label)
         self.color_button = QPushButton('Select Color')
         self.color_button.setCursor(Qt.PointingHandCursor)
 
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.color_button)
-<<<<<<< HEAD
-        self.setLayout(self.layout)
-        
-=======
-
->>>>>>> 7a481cf (fixed initialization of trace editor advanced settings and color config widgets)
         self.color_button.clicked.connect(self.open_color_dialog)
         self._color = self._parse_color(initial_color) if initial_color else None
         self.updateButtonStyle()

@@ -64,8 +64,8 @@ class TernaryStartSetupController(QWidget):
         self.setup_connections()
 
     def setup_connections(self):
-        # Connect view.button_add_data to model.data_library.add_data
-        self.view.button_add_data.clicked.connect(self.load_data)
+        # Connect add data button to model.data_library.add_data
+        self.view.loaded_data_scroll_view.add_data_button.clicked.connect(self.load_data)
 
         # Connect view's lineEdits' updates to model updates
         self.view.labeled_line_edit_ternary_title.line_edit.textChanged.connect(self.title_changed)
@@ -130,7 +130,7 @@ class TernaryStartSetupController(QWidget):
     def load_data(self):
         """Adds user-selected data file to model's data library
 
-        Connected to self.view.button_add_data.clicked
+        Connected to self.loaded_data_scroll_view.add_data_button.clicked
         """
         filepath, ok = QFileDialog.getOpenFileName(None, "Open data file", "", "Data Files (*.csv *.xlsx)")
         if filepath:

@@ -1,13 +1,19 @@
+import os
+
 from PySide6.QtWidgets import (
-    QWidget, 
-    QHBoxLayout,  
-    QLabel, 
-    QPushButton,
-    QToolTip
+    QWidget,
+    QHBoxLayout,
+    QLabel,
+    QPushButton
 )
+
 from PySide6.QtCore import (
-    Qt
+    Qt, QSize
 )
+
+from PySide6.QtGui import QIcon
+
+from .icon_button import IconButton
 
 class ListItemWidget(QWidget):
     def __init__(self, title, full_path, *args, **kwargs):
@@ -30,7 +36,10 @@ class ListItemWidget(QWidget):
         self.layout.addWidget(label)
 
     def create_close_button(self):
-        self.close_button = QPushButton("✕")
-        self.close_button.setCursor(Qt.PointingHandCursor)
-        self.close_button.setMaximumWidth(20)
+        trash_can_icon_path = os.path.join(
+            'src', 
+            'assets', 
+            'icons',
+            'trash_can.png')
+        self.close_button = IconButton(trash_can_icon_path)
         self.layout.addWidget(self.close_button)
