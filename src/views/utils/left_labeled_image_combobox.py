@@ -25,6 +25,7 @@ class LeftLabeledImageComboBox(QWidget):
 
         self.label = QLabel(label)
         self.combobox = QComboBox()
+        self.combobox.setCursor(Qt.PointingHandCursor)
 
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.combobox)

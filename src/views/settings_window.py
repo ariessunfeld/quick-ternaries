@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QFontDialog
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from src.views.utils import LeftLabeledSlider
 
 class SettingsDialog(QDialog):
@@ -28,6 +28,7 @@ class SettingsDialog(QDialog):
 
         # Button for advanced font settings
         self.font_advanced_button = QPushButton("Advanced Font Settings")
+        self.font_advanced_button.setCursor(Qt.PointingHandCursor)
 
         layout.addWidget(self.font_size_spinbox)
         layout.addWidget(self.font_advanced_button)
