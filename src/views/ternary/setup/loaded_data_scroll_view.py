@@ -64,7 +64,7 @@ class LoadedDataScrollView(QWidget):
                 background-color: transparent;
             }
             QListWidget::item {
-                padding: 5px;
+                padding: 8px;
             }
             QListWidget::item:selected {
                 background: transparent;
