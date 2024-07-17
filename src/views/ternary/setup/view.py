@@ -13,7 +13,8 @@ from PySide6.QtCore import Qt
 from src.views.utils import (
     LeftLabeledCheckbox,
     LeftLabeledLineEdit,
-    InfoButton
+    InfoButton,
+    LabeledButton
 )
 from src.views.ternary.setup import (
     CustomApexSelectionView,
@@ -43,9 +44,6 @@ class TernaryStartSetupView(QWidget):
 
         # Scroll area to display filenames for loaded data
         self.loaded_data_scroll_view = LoadedDataScrollView()
-
-        # Button to click to load data from computer
-        self.button_add_data = QPushButton('Add Data')
 
         # Combobox to select ternary type
         self.combobox_ternary_type: QComboBox = QComboBox()
@@ -96,7 +94,6 @@ class TernaryStartSetupView(QWidget):
 
         # Add widgets to the content layout
         self.content_layout.addWidget(self.loaded_data_scroll_view)
-        self.content_layout.addWidget(self.button_add_data)
         self.content_layout.addWidget(self.combobox_ternary_type)
         self.content_layout.addWidget(self.custom_apex_selection_view)
         self.content_layout.addWidget(self.labeled_line_edit_ternary_title)

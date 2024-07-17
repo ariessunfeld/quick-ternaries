@@ -58,7 +58,7 @@ class AppController:
 
     def _on_settings_clicked(self):
         dialog = SettingsDialog(self.view)
-        dialog.font_changed.connect(self.view.tab_view.update_font)
+        dialog.font_changed.connect(self.view.update_font)
         dialog.exec()
 
     def _on_bootstrap_clicked(self):

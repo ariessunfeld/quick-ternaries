@@ -335,3 +335,8 @@ class MainWindow(QMainWindow):
             'settings_icon.png')
         icon = QIcon(settings_gear_icon)
         button.setIcon(icon)
+
+    def update_font(self, font):
+        self.setFont(font)
+        for widget in self.findChildren(QWidget):
+            widget.setFont(font)
