@@ -41,5 +41,5 @@ class ListItemWidget(QWidget):
             'assets', 
             'icons',
             'trash_can.png')
-        self.close_button = IconButton(trash_can_icon_path)
+        self.close_button = IconButton(trash_can_icon_path, size=16)
         self.layout.addWidget(self.close_button)
