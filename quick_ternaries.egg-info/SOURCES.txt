@@ -12,6 +12,7 @@ quick_ternaries.egg-info/top_level.txt
 src/__init__.py
 src/main.py
 src/main2.py
+src/assets/fonts/Motter_Tektura_Normal.ttf
 src/assets/icons/add_files.png
 src/assets/icons/settings_icon.png
 src/assets/icons/trash_can.png
