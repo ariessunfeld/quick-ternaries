@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -10,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QIcon
+
 from src.views.utils import ListItemWidget
 
 class LoadedDataScrollView(QWidget):
@@ -44,7 +47,15 @@ class LoadedDataScrollView(QWidget):
         # stretch to center the content
         button_layout.addStretch()
         
-        icon = QIcon("src/assets/icons/add_files.png")
+        add_files_icon_path = os.path.join(
+            os.path.dirname(__file__),
+            '..',
+            '..',
+            '..',
+            'assets',
+            'icons',
+            'add_files.png')
+        icon = QIcon(add_files_icon_path)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(20, 20))
         button_layout.addWidget(icon_label)

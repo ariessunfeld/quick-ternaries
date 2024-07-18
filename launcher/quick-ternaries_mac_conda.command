@@ -34,6 +34,7 @@ conda activate "$ENV_NAME"
 PYTHON_BIN="$(conda info --base)/envs/$ENV_NAME/bin"
 
 # Run the Python script using the Python executable within the Conda environment
+echo "Checking for updates..."
 "$PYTHON_BIN/python3" "${DIR}/updater.py"
 
 # Launch quick-ternaries tool
