@@ -15,7 +15,7 @@ ENV_YML_PATH="${DIR}/environment.yml"
 
 # Check if the Conda environment exists
 if ! conda info --envs | grep $ENV_NAME > /dev/null; then
-    echo "Conda environment '$ENV_NAME' does not exist. Creating now..."
+    echo "Conda environment '$ENV_NAME' does not exist. Creating now... (this may take a couple minutes)"
     # conda deactivate
     conda env create -f "$ENV_YML_PATH"
 else
