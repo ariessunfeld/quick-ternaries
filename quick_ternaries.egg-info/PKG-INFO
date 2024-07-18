@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: quick-ternaries
-Version: 0.2.1
+Version: 0.3.0
 Summary: A tool for making ternary diagrams.
 Author: Ari Essunfeld, Reid Morris
 Author-email: ariessunfeld@gmail.com, reidmorris0419@gmail.com
@@ -57,11 +57,23 @@ For basic instructions on how to use the Terminal/Command Prompt, see the [New t
 
 ### Automatic
 
+Two options exist for automatic setup on Windows: with and without Anaconda.
+
+#### With Anaconda
+
+- Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-conda-launcher/quick-ternaries-windows-conda-launcher.zip)
+- Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
+- Right-click the `quick-ternaries_windows_conda.bat` file, click `Run`, and then click `Run Anyway`
+  - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows_conda.bat` to launch the app.)
+- Follow the prompts in the Anaconda Prompt and agree to update if asked
+
+#### Without Anaconda
+
 - Download the Windows launcher zipfile from the [Windows Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-launcher/quick-ternaries-windows-launcher.zip)
-- Open the File Browser, click the zipfile, and unzip it by clicking Extract All
+- Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
 - Right-click the `quick-ternaries_windows.bat` file, click `Run`, and then click `Run Anyway`
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows.bat` to launch the app.)
-- Follow the prompts in the command prompt and agree to update if asked
+- Follow the prompts in the cmd prompt and agree to update if asked
 
 ### Manual
 

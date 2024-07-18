@@ -12,7 +12,9 @@ quick_ternaries.egg-info/top_level.txt
 src/__init__.py
 src/main.py
 src/main2.py
+src/assets/icons/add_files.png
 src/assets/icons/settings_icon.png
+src/assets/icons/trash_can.png
 src/controllers/__init__.py
 src/controllers/app_controller.py
 src/controllers/cartesian/__init__.py
@@ -89,6 +91,7 @@ src/services/app_service.py
 src/services/cartesian/__init__.py
 src/services/depth_profiles/__init__.py
 src/services/ternary/__init__.py
+src/services/ternary/exceptions.py
 src/services/ternary/html_maker.py
 src/services/ternary/plot_maker.py
 src/services/ternary/trace_maker.py
@@ -142,6 +145,8 @@ src/views/ternary/trace/filter/filter_tab_view.py
 src/views/ternary/trace/filter/view.py
 src/views/utils/__init__.py
 src/views/utils/add_remove_list.py
+src/views/utils/centered_labeled_button.py
+src/views/utils/icon_button.py
 src/views/utils/info_button.py
 src/views/utils/left_labeled_checkbox.py
 src/views/utils/left_labeled_color_picker.py
