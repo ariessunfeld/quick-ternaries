@@ -10,6 +10,7 @@ from src.services.ternary.trace_maker import TernaryTraceMaker
 
 if TYPE_CHECKING:
     from src.models.ternary import TernaryModel
+    from src.models.ternary.setup import TernaryType
 
 class AxisFormatter:
     @staticmethod
@@ -167,7 +168,7 @@ class TernaryPlotMaker:
                     modified_size = trace.marker.size
                     trace.marker.size = 1.8 * modified_size
     
-    def _format_title(self, title: str, ternary_type: TernaryType):
+    def _format_title(self, title: str, ternary_type: 'TernaryType'):
         """Handles blank title case, returning title as-is otherwise"""
         if title.strip() == '':
             return ternary_type.get_short_formatted_name() + ' Ternary Diagram'
