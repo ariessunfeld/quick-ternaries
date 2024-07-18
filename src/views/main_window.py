@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
             '..',
             'assets',
             'fonts',
-            'Motter Tektura Normal.ttf')
+            'Motter_Tektura_Normal.ttf')
         font_id = QFontDatabase.addApplicationFont(font_path)
         self.title_label = QLabel()
         if font_id != -1:
