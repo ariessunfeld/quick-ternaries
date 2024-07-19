@@ -6,15 +6,34 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.services.ternary.exceptions import BootstrapTraceContourException
-from src.services.utils.molar_calculator import MolarMassCalculator, MolarMassCalculatorException
+from src.services.ternary.exceptions import (
+    BootstrapTraceContourException,
+    TraceFilterFloatConversionException,
+    TraceMolarConversionException,
+    TraceMissingColumnException
+)
+from src.services.utils.molar_calculator import (
+    MolarMassCalculator, 
+    MolarMassCalculatorException
+)
 from src.services.utils.filter_strategies import (
-    EqualsFilterStrategy, OneOfFilterStrategy, LessEqualFilterStrategy,
-    LessThanFilterStrategy, GreaterEqualFilterStrategy, GreaterThanFilterStrategy,
-    LELTFilterStrategy, LELEFilterStrategy, LTLEFilterStrategy, LTLTFilterStrategy
+    EqualsFilterStrategy, 
+    OneOfFilterStrategy, 
+    ExcludeOneFilterStrategy, 
+    ExcludeMultipleFilterStrategy,
+    LessEqualFilterStrategy, 
+    LessThanFilterStrategy, 
+    GreaterEqualFilterStrategy, 
+    GreaterThanFilterStrategy,
+    LELTFilterStrategy, 
+    LELEFilterStrategy, 
+    LTLEFilterStrategy, 
+    LTLTFilterStrategy
 )
 from src.services.utils.contour_utils import (
-    transform_to_cartesian, compute_kde_contours, convert_contour_to_ternary
+    transform_to_cartesian, 
+    compute_kde_contours, 
+    convert_contour_to_ternary
 )
 
 if TYPE_CHECKING:
@@ -38,6 +57,8 @@ class TernaryTraceMaker:
         self.operation_strategies = {
             'Equals': EqualsFilterStrategy(),
             'One of': OneOfFilterStrategy(),
+            'Exclude one': ExcludeOneFilterStrategy(),
+            'Exclude multiple': ExcludeMultipleFilterStrategy(),
             '<': LessThanFilterStrategy(),
             '>': GreaterThanFilterStrategy(),
             '≤': LessEqualFilterStrategy(),
@@ -488,14 +509,14 @@ class TernaryTraceMaker:
             value_b = filter_model.filter_value_b
 
             # float conversion and error raising
-            if operation == 'Equals' or operation in ['<', '>', '≤', '≥']:
+            if operation in ['Equals', 'Exclude one'] or operation in ['<', '>', '≤', '≥']:
                 if np.issubdtype(column_dtype, np.number):
                     try:
                         single_value = float(single_value) if single_value else None
                     except ValueError:
                         msg = "Error converting value to number."
                         raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
-            elif operation == 'One of':
+            elif operation in ['One of', 'Exclude multiple']:
                 if np.issubdtype(column_dtype, np.number):
                     try:
                         selected_values = [float(x) for x in selected_values] if selected_values else []
@@ -510,6 +531,8 @@ class TernaryTraceMaker:
                     except ValueError:
                         msg = "Error converting Value A or Value B to a number."
                         raise TraceFilterFloatConversionException(trace_id, filter_id, msg)
+            else:
+                raise ValueError(f'Usupported filter operation: {operation}')
 
             filter_params = {
                 'column': column,
@@ -600,9 +623,12 @@ class MolarConverter:
         # sum to get the apex columns
         for apex_name, apex_cols_list in zip(['top', 'left', 'right'], 
                                              [self.top_columns, self.left_columns, self.right_columns]):
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-                self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
-
+            try:
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                    self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
+            except KeyError as err:
+                msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
+                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
         return self.trace_data_df
 
     def nonmolar_conversion(self) -> pd.DataFrame:
@@ -610,8 +636,12 @@ class MolarConverter:
                                              [self.top_columns, self.left_columns, self.right_columns]):
             if self.bootstrap:
                 apex_cols_list = [self.SIMULATED_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-                self.trace_data_df[apex_cols_list].sum(axis=1)
+            try:
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                    self.trace_data_df[apex_cols_list].sum(axis=1)
+            except KeyError as err:
+                msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
+                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
         return self.trace_data_df
 
     def _add_molar_proportion_column(self, col: str, molar_mapping: Dict[str, str]) -> None:

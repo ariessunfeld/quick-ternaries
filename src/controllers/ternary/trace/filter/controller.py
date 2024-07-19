@@ -75,7 +75,7 @@ class FilterEditorController(QObject):
         self.view.filter_value_a_line_edit.setVisible(is_range_operation)
         self.view.filter_value_b_line_edit.setVisible(is_range_operation)
 
-        is_one_of_operation = self.view.filter_operation_combobox.currentText() == 'One of'
+        is_one_of_operation = self.view.filter_operation_combobox.currentText() in ['One of', 'Exclude multiple']
         self.view.add_remove_layout_widget.setVisible(is_one_of_operation)
         self.view.filter_value_line_edit.setVisible(not is_one_of_operation and not is_range_operation)
 
