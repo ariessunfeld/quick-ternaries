@@ -2,6 +2,12 @@
 
 Quick Ternaries is a python application designed to make ternary plotting a breeze. 
 
+# Table of Contents
+
+- [Setup](#setup)
+  - [macOS](#macos)
+    - [With Anaconda](#with-anaconda-(macos))
+    - [Without Anaconda](without-anaconda-(macos))
 # Setup
 
 Below are installation instructions for macOS and Windows. Regardless of your operating system, we recommend following the Automatic setup instructions, and launching the tool with the provided launcher. This way, each time you boot up the tool, it will check for updates and offer to install them if any are found.
@@ -12,11 +18,11 @@ For basic instructions on how to use the Terminal/Command Prompt, see the [New t
 
 ## macOS
 
-### Automatic
+### Automatic (macOS)
 
 Two options exist for automatic setup on macOS: with and without Anaconda
 
-#### With Anaconda
+#### With Anaconda (macOS)
 
 - Download the macOS Anaconda launcher zipfile from the [macOS Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/mac-conda-launcher/quick-ternaries-mac-conda-launcher.zip)
 - Open the Finder and unzip the launcher by double-clicking the zipfile
@@ -25,7 +31,7 @@ Two options exist for automatic setup on macOS: with and without Anaconda
 - Follow the prompts in the Terminal and agree to update if asked
 - **Note:** This method assumes that `conda` is a recognized command in the macOS Terminal
 
-#### Without Anaconda
+#### Without Anaconda (macOS)
 
 - Download the macOS launcher zipfile from the [macOS Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/mac-launcher/quick-ternaries-mac-launcher.zip)
 - Open the Finder and unzip the launcher by double-clicking the zipfile
@@ -34,7 +40,7 @@ Two options exist for automatic setup on macOS: with and without Anaconda
 - Follow the prompts in the Terminal and agree to update if asked
 - **Note:** This method assumes that `python3.11` is a recognized command in the macOS Terminal
 
-### Manual
+### Manual (macOS)
 
 - Open the Terminal and navigate to the location where you want to install the tool
 - Create a new virtual environment called `ternaries-env` (or whatever you like) by running the command `python3.11 -m venv ternaries-env`
@@ -46,11 +52,11 @@ Two options exist for automatic setup on macOS: with and without Anaconda
 
 ## Windows
 
-### Automatic
+### Automatic (Windows)
 
 Two options exist for automatic setup on Windows: with and without Anaconda.
 
-#### With Anaconda
+#### With Anaconda (Windows)
 
 - Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-conda-launcher/quick-ternaries-windows-conda-launcher.zip)
 - Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
@@ -58,7 +64,7 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows_conda.bat` to launch the app.)
 - Follow the prompts in the Anaconda Prompt and agree to update if asked
 
-#### Without Anaconda
+#### Without Anaconda (Windows)
 
 - Download the Windows launcher zipfile from the [Windows Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-launcher/quick-ternaries-windows-launcher.zip)
 - Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
@@ -66,7 +72,7 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows.bat` to launch the app.)
 - Follow the prompts in the cmd prompt and agree to update if asked
 
-### Manual
+### Manual (Windows)
 
 - Open the Command Prompt and navigate to the location where you want to install the tool
 - Create a new virtual environment called `ternaries-env` (or whatever you like) by running the command `python3.11 -m venv ternaries-env`
