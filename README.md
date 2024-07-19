@@ -168,7 +168,7 @@ Heatmaps, or continuous color scales, provide an additional dimension to the dat
 - Lower `Range Max` values help convey the gradient in the data  
 
 <p align="center">
-  <img src="./img/using-a-heatmap.png" alt="Add Trace Button" width="400">
+  <img src="./img/using-a-heatmap.png" alt="Add Trace Button" width="450">
 </p>
 
 By checking off `Show Advanced Settings`, you get complete control over the heatmap
@@ -189,7 +189,7 @@ Filters provide the most control over how data gets represented in Traces. By ch
 - Each filter applies to a single column, and filters are applies successively  
 
 <p align="center">
-  <img src="./img/using-filters.png" alt="Add Trace Button" width="400">
+  <img src="./img/using-filters.png" alt="Add Trace Button" width="450">
 </p>
 
 On categorical columns, four filter operations are available: 
@@ -227,7 +227,7 @@ Quick Ternaries is built on the `Plotly.js` library, which features several inte
 Clicking the `Bootstrap` button (bottom left of the window) gives you the ability to add confidence regions, or contours, to points on your ternary diagram. To use it, you must have at least one Trace already displayed on the plot.
 
 <p align="center">
-  <img src="./img/bootstrap-tutorial.gif" alt="Add Trace Button" width="400">
+  <img src="./img/bootstrap-tutorial.gif" alt="Add Trace Button" width="450">
 </p>
 
 - Select the `Custom` Plot Type in the Setup Menu and configure the plot apices accordingly
