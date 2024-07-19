@@ -8,7 +8,8 @@ from src.services.ternary.plot_maker import TernaryPlotMaker
 from src.services.ternary.exceptions import (
     TraceMolarConversionException,
     TraceFilterFloatConversionException,
-    BootstrapTraceContourException
+    BootstrapTraceContourException,
+    TraceMissingColumnException
 )
 
 if TYPE_CHECKING:
@@ -63,4 +64,10 @@ class TernaryHtmlMaker(BaseHtmlMaker):
             msg = f"An error occured while trying to calculate the confidence region in Trace {err.trace_id}.\n\n"
             msg += f"The confidence region could not be computed with sufficient smoothness.\n\n"
             msg += f"Sometimes this is due to large uncertainties or large percentiles."
+            QMessageBox.critical(None, err.message, msg)
+        except TraceMissingColumnException as err:
+            msg = f"An error occured while trying to parse data for Trace {err.trace_id}.\n\n"
+            msg += f"The Plot Type chosen in the Start Setup menu expects the datafile\n" 
+            msg += f"for Trace {err.trace_id} to include the following columns: {err.column}.\n\n"
+            msg += f"Please select the 'Custom' Plot Type or choose a different datafile."
             QMessageBox.critical(None, err.message, msg)

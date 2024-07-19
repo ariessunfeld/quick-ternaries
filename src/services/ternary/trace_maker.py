@@ -9,7 +9,8 @@ import plotly.graph_objects as go
 from src.services.ternary.exceptions import (
     BootstrapTraceContourException,
     TraceFilterFloatConversionException,
-    TraceMolarConversionException
+    TraceMolarConversionException,
+    TraceMissingColumnException
 )
 from src.services.utils.molar_calculator import (
     MolarMassCalculator, 
@@ -622,9 +623,12 @@ class MolarConverter:
         # sum to get the apex columns
         for apex_name, apex_cols_list in zip(['top', 'left', 'right'], 
                                              [self.top_columns, self.left_columns, self.right_columns]):
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-                self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
-
+            try:
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                    self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
+            except KeyError as err:
+                msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
+                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
         return self.trace_data_df
 
     def nonmolar_conversion(self) -> pd.DataFrame:
@@ -632,8 +636,12 @@ class MolarConverter:
                                              [self.top_columns, self.left_columns, self.right_columns]):
             if self.bootstrap:
                 apex_cols_list = [self.SIMULATED_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]
-            self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
-                self.trace_data_df[apex_cols_list].sum(axis=1)
+            try:
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                    self.trace_data_df[apex_cols_list].sum(axis=1)
+            except KeyError as err:
+                msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
+                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
         return self.trace_data_df
 
     def _add_molar_proportion_column(self, col: str, molar_mapping: Dict[str, str]) -> None:
