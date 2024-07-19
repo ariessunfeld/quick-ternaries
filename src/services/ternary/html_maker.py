@@ -57,7 +57,7 @@ class TernaryHtmlMaker(BaseHtmlMaker):
         except TraceFilterFloatConversionException as err:
             msg = f"An error occured while trying to apply a filter in Trace {err.trace_id}.\n\n"
             msg += f"The filter that caused the error is Filter {err.filter_id}\n\n"
-            msg += f"The error message is: {err.message}."
+            msg += f"The error message is: {err.message}"
             QMessageBox.critical(None, 'Error applying filter', msg)
         except BootstrapTraceContourException as err:
             msg = f"An error occured while trying to calculate the confidence region in Trace {err.trace_id}.\n\n"
