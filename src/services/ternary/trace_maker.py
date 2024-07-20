@@ -280,6 +280,7 @@ class TernaryTraceMaker:
         size_normalized = ((trace_data_df[sizemap_column] - trace_data_df[sizemap_column].min()) / 
                         (trace_data_df[sizemap_column].max() - trace_data_df[sizemap_column].min())) * size_range + min_size
         trace_data_df[sizemap_sorted_col] = size_normalized
+        trace_data_df[sizemap_sorted_col].fillna(0.0, inplace=True)
 
         if sizemap_model.log_transform_checked:
             trace_data_df[sizemap_sorted_col] = trace_data_df[sizemap_sorted_col].apply(lambda x: np.log(x) if x > 0 else 0)
@@ -591,6 +592,7 @@ class TernaryTraceMaker:
 
         sizemap_model = trace_model.sizemap_model
         size_column = sizemap_model.selected_column
+        size_column_sorted = self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)
         
         # Extract min and max sizes from range entries
         # TODO error handling for bad values
@@ -603,27 +605,28 @@ class TernaryTraceMaker:
         size_range = max_size - min_size
         size_normalized = ((data_df[size_column] - data_df[size_column].min()) / (data_df[size_column].max() - data_df[size_column].min())) * size_range + min_size
         sizeref = 2. * max(size_normalized) / (max_size**2)
-        data_df[self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)] = size_normalized
+        data_df[size_column_sorted] = size_normalized
+        data_df[size_column_sorted].fillna(0.0, inplace=True)
 
         if sizemap_model.log_transform_checked:
-            data_df[self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)] =\
-                data_df[self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)].apply(lambda x: np.log(x) if x > 0 else 0)
+            data_df[size_column_sorted] =\
+                data_df[size_column_sorted].apply(lambda x: np.log(x) if x > 0 else 0)
             
         # Handle sizemap sort mode
         if sizemap_model.sorting_mode == 'no change':
             pass
         elif sizemap_model.sorting_mode == 'high on top':
             data_df = data_df.sort_values(
-                by=self.SIZEMAP_PATTERN.format(col=size_column, us=uuid), 
+                by=size_column_sorted, 
                 ascending=True)
         elif sizemap_model.sorting_mode == 'low on top':
             data_df = data_df.sort_values(
-                by=self.SIZEMAP_PATTERN.format(col=size_column, us=uuid), 
+                by=size_column_sorted, 
                 ascending=False)
         elif sizemap_model.sorting_mode == 'shuffled':
             data_df = data_df.sample(frac=1)
 
-        marker['size'] = data_df[self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)]
+        marker['size'] = data_df[size_column_sorted]
         marker['sizemin'] = min_size
         marker['sizeref'] = sizeref
 
