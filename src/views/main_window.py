@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
-        self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
+        #self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
         
         # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
@@ -161,10 +161,10 @@ class MainWindow(QMainWindow):
         self.switch_to_trace_view()
         self.ternary_trace_editor_view.switch_to_bootstrap_view()
 
-    def switch_plot_type(self, index):
-        plot_type = self.plot_type_combo.itemText(index)
-        # Logic to switch plot type goes here
-        print(f"Switched to plot type: {plot_type}")
+    # def switch_plot_type(self, index):
+    #     plot_type = self.plot_type_combo.itemText(index)
+    #     # Logic to switch plot type goes here
+    #     print(f"Switched to plot type: {plot_type}")
 
     def show_save_menu(self):
         options = QFileDialog.Options()

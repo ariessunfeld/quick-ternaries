@@ -145,3 +145,9 @@ class TernaryStartSetupView(QWidget):
 
     def show_scrollbar_temporarily(self):
         pass
+
+    def swtich_to_cartesian_view(self):
+        self.custom_apex_selection_view.switch_to_cartesian_view()
+
+    def switch_to_ternary_view(self):
+        self.custom_apex_selection_view.switch_to_ternary_view()

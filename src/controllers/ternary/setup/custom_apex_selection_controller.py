@@ -117,3 +117,6 @@ class CustomApexSelectionController(QObject):
                 self.model.remove_right_apex_column(col)
         # Flush the view with the model state (handled by model)
         self.view.refresh(self.model)
+
+    def refresh_view(self):
+        self.view.refresh(self.model)

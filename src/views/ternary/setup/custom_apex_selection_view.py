@@ -8,6 +8,11 @@ from PySide6.QtWidgets import (
 
 from src.views.utils import AddRemoveList
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
+
 class CustomApexSelectionView(QWidget):
     """A megawidget containing the ListWidgets and buttons for custom apex selection"""
 
@@ -30,7 +35,17 @@ class CustomApexSelectionView(QWidget):
         self.right_layout.addWidget(self.add_remove_list_right_apex_columns)
         self.layout.addWidget(self.right_layout_widget)
 
-    def refresh(self, model):
+    def switch_to_cartesian_view(self):
+        self.add_remove_list_right_apex_columns.setVisible(False)
+        self.add_remove_list_top_apex_columns.setText('X Axis')
+        self.add_remove_list_left_apex_columns.setText('Y Axis')
+
+    def switch_to_ternary_view(self):
+        self.add_remove_list_right_apex_columns.setVisible(True)
+        self.add_remove_list_top_apex_columns.setText('Top Apex')
+        self.add_remove_list_left_apex_columns.setText('Left Apex')
+
+    def refresh(self, model: 'CustomApexSelectionModel'):
         self.list_widget_available_columns.clear()
         self.add_remove_list_top_apex_columns.clear()
         self.add_remove_list_right_apex_columns.clear()
