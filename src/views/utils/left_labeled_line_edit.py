@@ -61,3 +61,6 @@ class LeftLabeledLineEdit(QWidget):
 
     def clear(self):
         self.line_edit.clear()
+
+    def setLabel(self, value: str):
+        self.label.setText(value)

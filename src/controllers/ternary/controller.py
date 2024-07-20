@@ -8,6 +8,7 @@ from src.models.ternary.model import TernaryModel
 from src.controllers.ternary.trace import (
     AdvancedSettingsController,
     HeatmapEditorController,
+    SizemapEditorController,
     TabController,
     TernaryTraceEditorController,
     TernaryTraceMolarConversionController,
@@ -58,10 +59,13 @@ class TernaryController:
             self.model.tab_model, 
             self.view.ternary_trace_editor_view.heatmap_view)
         
+        self.sizemap_editor_controller = SizemapEditorController(
+            self.model.tab_model,
+            self.view.ternary_trace_editor_view.sizemap_view)
+        
         self.advanced_settings_controller = AdvancedSettingsController(
             self.model.tab_model,
-            self.view.ternary_trace_editor_view.trace_editor_advanced_settings_view
-        )
+            self.view.ternary_trace_editor_view.trace_editor_advanced_settings_view)
         
         self.molar_conversion_controller = TernaryTraceMolarConversionController(
             self.model.molar_conversion_model,
@@ -79,6 +83,9 @@ class TernaryController:
             self.model.start_setup_model.data_library)
         
         self.heatmap_editor_controller.set_data_library_reference(
+            self.model.start_setup_model.data_library)
+        
+        self.sizemap_editor_controller.set_data_library_reference(
             self.model.start_setup_model.data_library)
         
         self.filter_tab_controller.set_data_library_reference(
@@ -104,6 +111,10 @@ class TernaryController:
         # Make sure the heatmap updates accordingly when new data is selected for the trace
         self.trace_controller.selected_data_event.connect(
             self.heatmap_editor_controller.handle_trace_selected_data_event)
+        
+        # Similarly, make sure sizemap updates accordingly when new data is selected for trace
+        self.trace_controller.selected_data_event.connect(
+            self.sizemap_editor_controller.handle_trace_selected_data_event)
 
         # Make sure the filter editor updates accordingly when new data is selected for the trace
         self.trace_controller.selected_data_event.connect(
@@ -176,11 +187,14 @@ class TernaryController:
         if prev_available_data_file_names and not loaded_file_names:
             self.trace_controller.selected_data_event.emit(None)
         
-        # Call the change trace tab method of the filter editor controller
+        # Call the change_trace_tab() method of the filter editor controller
         self.filter_editor_controller.change_trace_tab(trace_model.filter_tab_model.current_tab)
 
-        # Call the change trace tab method of the heatmap editor controller
+        # Call the change_trace_tab() method of the heatmap editor controller
         self.heatmap_editor_controller.change_trace_tab(trace_model.heatmap_model)
+
+        # Call the change_trace_tab() method of the sizemap editor controller
+        self.sizemap_editor_controller.change_trace_tab(trace_model.sizemap_model)
         
         # Main window's trace view's dynamic content area switches to filter setup view (away from specific filter configuration)
         self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()

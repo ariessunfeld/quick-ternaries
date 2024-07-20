@@ -22,6 +22,7 @@ from PySide6.QtCore import Qt
 from src.models.utils.pandas_series_model import PandasSeriesModel
 from src.views.ternary.trace import (
     TernaryHeatmapEditorView,
+    TernarySizemapEditorView,
     TernaryTraceMolarConversionView,
     AdvancedSettingsView,
 )
@@ -152,6 +153,15 @@ class TernaryTraceEditorView(QWidget):
         self.content_layout.addWidget(self.heatmap_view)
         self.heatmap_view.setVisible(False)
 
+        # Use Sizemap
+        self.use_sizemap_checkbox = LeftLabeledCheckbox('Use Sizemap')
+        self.content_layout.addWidget(self.use_sizemap_checkbox)
+
+        # Sizemap view (hide at first)
+        self.sizemap_view = TernarySizemapEditorView()
+        self.content_layout.addWidget(self.sizemap_view)
+        self.sizemap_view.setVisible(False)
+
         # Use Filter(s)
         self.use_filter_checkbox = LeftLabeledCheckbox('Use Filter(s)')
         self.content_layout.addWidget(self.use_filter_checkbox)
@@ -182,6 +192,7 @@ class TernaryTraceEditorView(QWidget):
         self.point_size_spinbox.setVisible(False)
         self.select_point_shape.setVisible(False)
         self.use_heatmap_checkbox.setVisible(False)
+        self.use_sizemap_checkbox.setVisible(False)
         self.use_filter_checkbox.setVisible(False)
         self.advanced_settings_checkbox.setVisible(False)
 
@@ -201,6 +212,7 @@ class TernaryTraceEditorView(QWidget):
         self.point_size_spinbox.setVisible(True)
         self.select_point_shape.setVisible(True)
         self.use_heatmap_checkbox.setVisible(True)
+        self.use_sizemap_checkbox.setVisible(True)
         self.use_filter_checkbox.setVisible(True)
         self.advanced_settings_checkbox.setVisible(True)
 

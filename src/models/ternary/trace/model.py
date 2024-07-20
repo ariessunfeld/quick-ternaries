@@ -4,7 +4,11 @@ from typing import List, Optional, TYPE_CHECKING
 
 import pandas as pd
 
-from src.models.ternary.trace import HeatmapModel, AdvancedSettingsModel
+from src.models.ternary.trace import (
+    HeatmapModel, 
+    AdvancedSettingsModel
+)
+from src.models.ternary.trace.sizemap_model import SizemapModel
 from src.models.ternary.trace.filter import FilterTabsPanelModel
 from src.models.ternary.trace.bootstrap import TernaryBootstrapErrorEntryModel
 
@@ -28,9 +32,11 @@ class TernaryTraceEditorModel:
             selected_point_shape: str = 'circle',
             color: Optional[str] = None,
             add_heatmap_checked: bool = False,
+            add_sizemap_checked: bool = False,
             filter_data_checked: bool = False,
             advanced_settings_checked: bool = False,
             heatmap_model: Optional[HeatmapModel] = None,
+            sizemap_model: Optional[SizemapModel] = None,
             filter_tab_model: Optional[FilterTabsPanelModel] = None,
             series: Optional[pd.Series] = None,
             line_thickness: Optional[float] = 2.0,
@@ -43,25 +49,35 @@ class TernaryTraceEditorModel:
         # Direct access
         self.kind = kind
         
-        if heatmap_model is None:
-            self.heatmap_model = HeatmapModel()
-        else:
-            self.heatmap_model = heatmap_model
-        
-        if filter_tab_model is None:
-            self.filter_tab_model = FilterTabsPanelModel()
-        else:
-            self.filter_tab_model = filter_tab_model
-        
-        if error_entry_model is None:
-            self.error_entry_model = TernaryBootstrapErrorEntryModel()
-        else:
-            self.error_entry_model = error_entry_model
+        # if heatmap_model is None:
+        #     self.heatmap_model = HeatmapModel()
+        # else:
+        #     self.heatmap_model = heatmap_model
+        self.heatmap_model = heatmap_model or HeatmapModel()
 
-        if advanced_settings_model is None:
-            self.advanced_settings_model = AdvancedSettingsModel()
-        else:
-            self.advanced_settings_model = advanced_settings_model
+        # if sizemap_model is None:
+        #     self.sizemap_model = SizemapModel()
+        # else:
+        #     self.sizemap_model = sizemap_model
+        self.sizemap_model = sizemap_model or SizemapModel()
+        
+        # if filter_tab_model is None:
+        #     self.filter_tab_model = FilterTabsPanelModel()
+        # else:
+        #     self.filter_tab_model = filter_tab_model
+        self.filter_tab_model = filter_tab_model or FilterTabsPanelModel()
+        
+        # if error_entry_model is None:
+        #     self.error_entry_model = TernaryBootstrapErrorEntryModel()
+        # else:
+        #     self.error_entry_model = error_entry_model
+        self.error_entry_model = error_entry_model or TernaryBootstrapErrorEntryModel()
+
+        # if advanced_settings_model is None:
+        #     self.advanced_settings_model = AdvancedSettingsModel()
+        # else:
+        #     self.advanced_settings_model = advanced_settings_model
+        self.advanced_settings_model = advanced_settings_model or AdvancedSettingsModel()
 
         # Controlled access
         self._available_data_file_names = available_data_file_names
@@ -76,6 +92,7 @@ class TernaryTraceEditorModel:
         self._selected_point_shape = selected_point_shape
         self._color = color
         self._add_heatmap_checked = add_heatmap_checked
+        self._add_sizemap_checked = add_sizemap_checked
         self._filter_data_checked = filter_data_checked
         self._advanced_settings_checked = advanced_settings_checked
         self._series = series
@@ -187,6 +204,14 @@ class TernaryTraceEditorModel:
     @add_heatmap_checked.setter
     def add_heatmap_checked(self, value: bool):
         self._add_heatmap_checked = value
+
+    @property
+    def add_sizemap_checked(self) -> bool:
+        return self._add_sizemap_checked
+
+    @add_sizemap_checked.setter
+    def add_sizemap_checked(self, value: bool):
+        self._add_sizemap_checked = value
 
     @property
     def filter_data_checked(self) -> bool:

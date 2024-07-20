@@ -148,6 +148,18 @@ class TernaryStartSetupView(QWidget):
 
     def swtich_to_cartesian_view(self):
         self.custom_apex_selection_view.switch_to_cartesian_view()
+        self.labeled_line_edit_left_apex_display_name.clear()
+        self.labeled_line_edit_top_apex_display_name.clear()
+        self.labeled_line_edit_right_apex_display_name.clear()
+        self.labeled_line_edit_top_apex_display_name.setLabel('X axis (display name)')
+        self.labeled_line_edit_left_apex_display_name.setLabel('Y axis (display name)')
+        self.labeled_line_edit_right_apex_display_name.setVisible(False)
 
     def switch_to_ternary_view(self):
         self.custom_apex_selection_view.switch_to_ternary_view()
+        self.labeled_line_edit_left_apex_display_name.clear()
+        self.labeled_line_edit_top_apex_display_name.clear()
+        self.labeled_line_edit_right_apex_display_name.clear()
+        self.labeled_line_edit_top_apex_display_name.setLabel('Top Apex (display name)')
+        self.labeled_line_edit_left_apex_display_name.setLabel('Left Apex (display name)')
+        self.labeled_line_edit_right_apex_display_name.setVisible(True)
