@@ -9,7 +9,8 @@ from src.services.ternary.exceptions import (
     TraceMolarConversionException,
     TraceFilterFloatConversionException,
     BootstrapTraceContourException,
-    TraceMissingColumnException
+    TraceMissingColumnException,
+    FloatConversionError
 )
 
 if TYPE_CHECKING:
@@ -71,3 +72,8 @@ class TernaryHtmlMaker(BaseHtmlMaker):
             msg += f"for Trace {err.trace_id} to include the following columns: {err.column}.\n\n"
             msg += f"Please select the 'Custom' Plot Type or choose a different datafile."
             QMessageBox.critical(None, err.message, msg)
+        except FloatConversionError as err:
+            msg = f"An error occured while trying to configure Trace {err.trace_id}.\n\n"
+            msg += f"The error was: could not convert {err.item} to a number.\n\n"
+            msg += f"Please correct the {err.item} in Trace {err.trace_id}."
+            QMessageBox.critical(None, 'Error converting to number', msg)

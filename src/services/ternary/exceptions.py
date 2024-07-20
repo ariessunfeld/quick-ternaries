@@ -30,3 +30,10 @@ class BootstrapTraceContourException(Exception):
     def __init__(self, trace_id: str, message: str):
         self.trace_id = trace_id
         self.message = message
+
+
+class FloatConversionError(Exception):
+    """Exception raised when float conversion encounters a ValueError"""
+    def __init__(self, item: str, trace_id: str):
+        self.item = item
+        self.trace_id = trace_id

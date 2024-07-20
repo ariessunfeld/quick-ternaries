@@ -10,7 +10,8 @@ from src.services.ternary.exceptions import (
     BootstrapTraceContourException,
     TraceFilterFloatConversionException,
     TraceMolarConversionException,
-    TraceMissingColumnException
+    TraceMissingColumnException,
+    FloatConversionError
 )
 from src.services.utils.molar_calculator import (
     MolarMassCalculator, 
@@ -177,15 +178,15 @@ class TernaryTraceMaker:
 
         if heatmap_column and sizemap_column:
             # Sort considering both heatmap and sizemap columns
-            marker, trace_data_df = self._integrated_sort(marker, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str)
+            marker, trace_data_df = self._integrated_sort(marker, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str, trace_id)
         else:
             if heatmap_column:
                 marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
-                    marker, trace_model, trace_data_df, unique_str)
+                    marker, trace_model, trace_data_df, unique_str, trace_id)
                 
             if sizemap_column:
                 marker, trace_data_df = self._update_marker_dict_with_sizemap_config(
-                    marker, trace_model, trace_data_df, unique_str)
+                    marker, trace_model, trace_data_df, unique_str, trace_id)
 
         if trace_model.advanced_settings_checked:
             marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
@@ -250,7 +251,15 @@ class TernaryTraceMaker:
 
         return marker, trace_data_df
 
-    def _integrated_sort(self, marker: dict, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str):
+    def _integrated_sort(
+            self,
+            marker: dict, 
+            trace_data_df: pd.DataFrame, 
+            trace_model: 'TernaryTraceEditorModel', 
+            heatmap_column: str, 
+            sizemap_column: str, 
+            unique_str: str,
+            trace_id: str):
         """Sort the dataframe considering both heatmap and sizemap columns and update marker
         
         TODO: right now there is a lot of duplicated code in thise method wrt update_marker_with_heatmap() and 
@@ -265,8 +274,8 @@ class TernaryTraceMaker:
             trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column]
 
         sizemap_model = trace_model.sizemap_model
-        min_size = float(sizemap_model.range_min)
-        max_size = float(sizemap_model.range_max)
+        min_size = self._float(sizemap_model.range_min, 'sizemap minimum size', trace_id) 
+        max_size = self._float(sizemap_model.range_max, 'sizemap maximum size', trace_id)
         size_range = max_size - min_size
         size_normalized = ((trace_data_df[sizemap_column] - trace_data_df[sizemap_column].min()) / 
                         (trace_data_df[sizemap_column].max() - trace_data_df[sizemap_column].min())) * size_range + min_size
@@ -329,22 +338,30 @@ class TernaryTraceMaker:
                 text=trace_model.heatmap_model.bar_title,
                 side=trace_model.heatmap_model.title_position,
                 font=dict(
-                    size=float(trace_model.heatmap_model.title_font_size),
+                    #size=float(trace_model.heatmap_model.title_font_size),
+                    size=self._float(trace_model.heatmap_model.title_font_size, 'heatmap title font size', trace_id),
                     family=trace_model.heatmap_model.font
                 )
             ),
-            len=float(trace_model.heatmap_model.length),
-            thickness=float(trace_model.heatmap_model.thickness),
-            x=float(trace_model.heatmap_model.x),
-            y=float(trace_model.heatmap_model.y),
+            #len=float(trace_model.heatmap_model.length),
+            len=self._float(trace_model.heatmap_model.length, 'heatmap length', trace_id),
+            #thickness=float(trace_model.heatmap_model.thickness),
+            thickness=self._float(trace_model.heatmap_model.thickness, 'heatmap thickness', trace_id),
+            #x=float(trace_model.heatmap_model.x),
+            x=self._float(trace_model.heatmap_model.x, 'heatmap x position', trace_id),
+            #y=float(trace_model.heatmap_model.y),
+            y=self._float(trace_model.heatmap_model.y, 'heatmap y position', trace_id),
             tickfont=dict(
-                size=float(trace_model.heatmap_model.tick_font_size),
+                #size=float(trace_model.heatmap_model.tick_font_size),
+                size=self._float(trace_model.heatmap_model.tick_font_size, 'heatmap tick font size', trace_id),
                 family=trace_model.heatmap_model.font
             ),
             orientation='h' if trace_model.heatmap_model.bar_orientation == 'horizontal' else 'v'
         )
-        marker['cmin'] = float(trace_model.heatmap_model.range_min)
-        marker['cmax'] = float(trace_model.heatmap_model.range_max)
+        #marker['cmin'] = float(trace_model.heatmap_model.range_min)
+        marker['cmin'] = self._float(trace_model.heatmap_model.range_min, 'heatmap range minimum', trace_id)
+        #marker['cmax'] = float(trace_model.heatmap_model.range_max)
+        marker['cmax'] = self._float(trace_model.heatmap_model.range_max, 'heatmap range maximum', trace_id)
 
         return marker, trace_data_df
     
@@ -568,7 +585,8 @@ class TernaryTraceMaker:
             marker: dict,
             trace_model: 'TernaryTraceEditorModel',
             data_df: pd.DataFrame,
-            uuid: str) -> Tuple[dict, pd.DataFrame]:
+            uuid: str, 
+            trace_id: str) -> Tuple[dict, pd.DataFrame]:
         """Returns marker and data_df after making necessary changes for sizemap config"""
 
         sizemap_model = trace_model.sizemap_model
@@ -576,8 +594,10 @@ class TernaryTraceMaker:
         
         # Extract min and max sizes from range entries
         # TODO error handling for bad values
-        min_size = float(sizemap_model.range_min)
-        max_size = float(sizemap_model.range_max)
+        #min_size = float(sizemap_model.range_min)
+        min_size = self._float(sizemap_model.range_min, 'sizemap range minimum', trace_id)
+        #max_size = float(sizemap_model.range_max)
+        max_size = self._float(sizemap_model.range_max, 'sizemap range maximum', trace_id)
 
         # Normalize the size_column to the range [min_size, max_size]
         size_range = max_size - min_size
@@ -614,7 +634,8 @@ class TernaryTraceMaker:
             marker: dict, 
             trace_model: 'TernaryTraceEditorModel',
             data_df: pd.DataFrame,
-            uuid: str) -> Tuple[dict, pd.DataFrame]:
+            uuid: str, 
+            trace_id: str) -> Tuple[dict, pd.DataFrame]:
         """Returns makrer and data_df after making necessary changes for heatmap config"""
         # If `heatmap`` is checked, pull the heatmap parameters as well and configure the trace accordingly
         #   If advanced heatmap is checked, pull that info too
@@ -654,25 +675,33 @@ class TernaryTraceMaker:
                 text=heatmap_model.bar_title,
                 side=heatmap_model.title_position,
                 font=dict(
-                    size=float(heatmap_model.title_font_size),
+                    #size=float(heatmap_model.title_font_size),
+                    size=self._float(heatmap_model.title_font_size, 'heatmap title font size', trace_id),
                     family=heatmap_model.font
                     )
                     ),
-            len=float(heatmap_model.length),
-            thickness=float(heatmap_model.thickness),
+            #len=float(heatmap_model.length),
+            len=self._float(heatmap_model.length, 'heatmap length', trace_id),
+            #thickness=float(heatmap_model.thickness),
+            thickness=self._float(heatmap_model.thickness, 'heatmap thickness', trace_id),
             # TODO add this (thickness) to view and controller
-            x=float(heatmap_model.x),
-            y=float(heatmap_model.y),
+            #x=float(heatmap_model.x),
+            x=self._float(heatmap_model.x, 'heatmap x position', trace_id),
+            #y=float(heatmap_model.y),
+            y=self._float(heatmap_model.y, 'heatmap y position', trace_id),
             tickfont=dict(
-                size=float(heatmap_model.tick_font_size),
+                #size=float(heatmap_model.tick_font_size),
+                size=self._float(heatmap_model.tick_font_size, 'heatmap tick font size', trace_id),
                 family=heatmap_model.font
                 ),
             orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
         )
         # TODO add error handling here for when floats fail or stuff is blank
         # TODO warn user if min >= max
-        marker['cmin'] = float(heatmap_model.range_min)
-        marker['cmax'] = float(heatmap_model.range_max)
+        #marker['cmin'] = float(heatmap_model.range_min)
+        marker['cmin'] = self._float(heatmap_model.range_min, 'heatmap range minimum', trace_id)
+        #marker['cmax'] = float(heatmap_model.range_max)
+        marker['cmax'] = self._float(heatmap_model.range_max, 'heatmap range maximum', trace_id)
 
         return marker, data_df
 
@@ -776,6 +805,13 @@ class TernaryTraceMaker:
         except ValueError as err:
             # TODO figure out how to handle gracefull
             raise ValueError from err
+        
+    def _float(self, value: str, item: str=None, trace_id: str=None):
+        try:
+            return float(value)
+        except ValueError as err:
+            raise FloatConversionError(item, trace_id) from err
+
     
 class MolarConverter:
     """
