@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QFileDialog,
     QInputDialog,
-    QApplication
+    QApplication,
+    QMessageBox
 )
 
 from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer, Slot
@@ -283,3 +284,14 @@ class MainWindow(QMainWindow):
         self.setFont(font)
         for widget in self.findChildren(QWidget):
             widget.setFont(font)
+
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Quit Confirmation',
+                                     "Are you sure you want to quit?",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
