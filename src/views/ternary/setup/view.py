@@ -146,7 +146,7 @@ class TernaryStartSetupView(QWidget):
     def show_scrollbar_temporarily(self):
         pass
 
-    def swtich_to_cartesian_view(self):
+    def switch_to_cartesian_view(self):
         self.custom_apex_selection_view.switch_to_cartesian_view()
         self.labeled_line_edit_left_apex_display_name.clear()
         self.labeled_line_edit_top_apex_display_name.clear()
@@ -154,6 +154,9 @@ class TernaryStartSetupView(QWidget):
         self.labeled_line_edit_top_apex_display_name.setLabel('X axis (display name)')
         self.labeled_line_edit_left_apex_display_name.setLabel('Y axis (display name)')
         self.labeled_line_edit_right_apex_display_name.setVisible(False)
+        self.combobox_ternary_type.setCurrentText('Custom')
+        self.combobox_ternary_type.setVisible(False)
+        self.advanced_settings_checkbox.setEnabled(False)
 
     def switch_to_ternary_view(self):
         self.custom_apex_selection_view.switch_to_ternary_view()
@@ -163,3 +166,5 @@ class TernaryStartSetupView(QWidget):
         self.labeled_line_edit_top_apex_display_name.setLabel('Top Apex (display name)')
         self.labeled_line_edit_left_apex_display_name.setLabel('Left Apex (display name)')
         self.labeled_line_edit_right_apex_display_name.setVisible(True)
+        self.combobox_ternary_type.setVisible(True)
+        self.advanced_settings_checkbox.setEnabled(True)

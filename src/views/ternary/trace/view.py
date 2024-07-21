@@ -223,6 +223,14 @@ class TernaryTraceEditorView(QWidget):
         self.percentile_edit.setVisible(False)
         self.error_entry_view.setVisible(False)
 
+    def switch_to_cartesian_view(self):
+        # Disable the molar box
+        self.convert_wtp_molar_checkbox.setEnabled(False)
+
+    def switch_to_ternary_view(self):
+        # Enable the molar box
+        self.convert_wtp_molar_checkbox.setEnabled(True)
+
     def refresh_table_from_series(self, series: pd.Series):
         self.table_view.setModel(PandasSeriesModel(series))
         self.table_view.setMaximumHeight(100)

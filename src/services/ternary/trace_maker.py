@@ -130,6 +130,116 @@ class TernaryTraceMaker:
             a=a, b=b, c=c, name=name, mode=mode,
             marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True, line=line
         )
+
+    def make_cartesian_trace(self, model: 'TernaryModel', trace_id: str) -> go.Scatter:
+        unique_str = self._generate_unique_str()
+        ternary_type = model.start_setup_model.get_ternary_type()
+
+        # Pull the columns lists from the ternary type
+        x_columns = ternary_type.get_top()
+        y_columns = ternary_type.get_left()
+
+        # Get the trace model from the model using the trace id
+        trace_model = model.tab_model.get_trace(trace_id)
+        name = trace_model.legend_name
+        marker = self._get_basic_marker_dict(trace_model)
+        scale_apices = model.start_setup_model.scale_apices_is_checked
+        scaling_map = self.get_scaling_map(model) if scale_apices else {}
+
+        if trace_model.kind == 'bootstrap':
+            raise NotImplementedError
+            marker, trace_data_df = self._prepare_bootstrap_data_cartesian(
+                model, 
+                trace_model, 
+                ternary_type,
+                x_columns, 
+                y_columns, 
+                unique_str, 
+                trace_id,
+                marker,
+                scaling_map)
+            mode = 'lines'
+            customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
+            a, b, c = self._generate_contours(trace_id, trace_data_df, unique_str, trace_model.contour_level)
+            line = dict(width=trace_model.line_thickness)
+        else:
+            marker, trace_data_df = self._prepare_standard_data_cartesian(
+                model, 
+                trace_model, 
+                ternary_type,
+                x_columns, 
+                y_columns, 
+                unique_str, 
+                trace_id,
+                marker,
+                scaling_map)
+            mode = 'markers'
+            customdata, hovertemplate = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, x_columns, y_columns, [], scaling_map)
+            x = trace_data_df[self.APEX_PATTERN.format(apex='top',   us=unique_str)]
+            y = trace_data_df[self.APEX_PATTERN.format(apex='left',  us=unique_str)]
+            line = None
+
+            indices = trace_data_df.index.to_numpy().reshape(-1, 1)
+            try:
+                customdata = np.hstack((customdata, indices))
+            except ValueError as err:
+                # TODO handle with error message, likely came from blank apex/axis
+                raise ValueError from err
+            
+
+        return go.Scatter(
+            x=x, y=y, name=name, mode=mode,
+            marker=marker, customdata=customdata, hovertemplate=hovertemplate, showlegend=True, line=line
+        )
+
+    def _prepare_standard_data_cartesian(
+            self, 
+            model:'TernaryModel', 
+            trace_model:'TernaryTraceEditorModel',
+            ternary_type,
+            x_columns:List[str], 
+            y_columns:List[str], 
+            unique_str:str, 
+            trace_id:str,
+            marker:dict, 
+            scaling_map:dict) -> pd.DataFrame:
+        """
+        TODO docstring
+        """
+
+        trace_data_df = trace_model.selected_data_file.get_data().copy()
+
+        if trace_model.filter_data_checked:
+            trace_data_df = self._apply_filters(trace_data_df, trace_model, trace_id)
+
+        if scaling_map:
+            trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
+
+        # TODO support molar conversion without normalization
+
+        # return marker, trace_data_df
+        heatmap_column = trace_model.heatmap_model.selected_column if trace_model.add_heatmap_checked else None
+        sizemap_column = trace_model.sizemap_model.selected_column if trace_model.add_sizemap_checked else None
+
+        if heatmap_column and sizemap_column:
+            # Sort considering both heatmap and sizemap columns
+            marker, trace_data_df = self._integrated_sort(marker, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str, trace_id)
+        else:
+            if heatmap_column:
+                marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
+                    marker, trace_model, trace_data_df, unique_str, trace_id)
+                
+            if sizemap_column:
+                marker, trace_data_df = self._update_marker_dict_with_sizemap_config(
+                    marker, trace_model, trace_data_df, unique_str, trace_id)
+
+        if trace_model.advanced_settings_checked:
+            marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
+
+        trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)] = trace_data_df[x_columns].sum(axis=1)
+        trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)] = trace_data_df[y_columns].sum(axis=1)
+
+        return marker, trace_data_df
     
     def _prepare_standard_data(
             self, 
@@ -160,17 +270,6 @@ class TernaryTraceMaker:
                                                 top_columns, left_columns, right_columns,
                                                 unique_str, trace_id,
                                                 convert_to_molar)
-
-        # if trace_model.add_heatmap_checked:
-        #     marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
-        #         marker, trace_model, trace_data_df, unique_str)
-            
-        # if trace_model.add_sizemap_checked:
-        #     marker, trace_data_df = self._update_marker_dict_with_sizemap_config(
-        #         marker, trace_model, trace_data_df, unique_str)
-
-        # if trace_model.advanced_settings_checked:
-        #     marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
 
         # return marker, trace_data_df
         heatmap_column = trace_model.heatmap_model.selected_column if trace_model.add_heatmap_checked else None
