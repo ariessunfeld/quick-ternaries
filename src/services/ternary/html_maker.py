@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import QMessageBox
 
 from src.services.ternary.plot_maker import TernaryPlotMaker
+
 from src.services.ternary.exceptions import (
     TraceMolarConversionException,
     TraceFilterFloatConversionException,

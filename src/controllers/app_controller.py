@@ -51,9 +51,10 @@ class AppController:
             self.view.plot_view.setUrl(url)
 
     def _on_save_clicked(self):
+        curr_plot_type = self.view.plot_type_combo.currentText()
+        curr_plot_type = curr_plot_type.lower().replace(' ', '_')
         curr_model = self.model.current_model
-        curr_model_name = self.model.current_model_name
-        plot_maker = self.service.html_makers.get(curr_model_name).plot_maker
+        plot_maker = self.service.html_makers.get(curr_plot_type).plot_maker
         fig = plot_maker.make_plot(curr_model)
         filepath, dpi = self.view.show_save_menu()
         plot_maker.save_plot(fig, filepath, dpi)
@@ -83,13 +84,33 @@ class AppController:
     def _on_plot_type_changed(self):
         selected_plot_type = self.view.plot_type_combo.currentText()
         if selected_plot_type.lower() == 'cartesian':
-            self.model.ternary_model.start_setup_model.switch_to_cartesian()
-            self.view.ternary_start_setup_view.swtich_to_cartesian_view() 
-            self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
+            # Show popup warning user that Cartesian is a Beta feature
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setWindowTitle("Beta Feature Warning")
+            msg_box.setText("The Cartesian plot type is currently in Beta and may be buggy. Do you wish to proceed?")
+            msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            msg_box.setDefaultButton(QMessageBox.No)
+            
+            response = msg_box.exec()
+
+            if response == QMessageBox.Yes:
+                self.model.ternary_model.start_setup_model.switch_to_cartesian()
+                self.view.ternary_start_setup_view.switch_to_cartesian_view()
+                self.view.ternary_trace_editor_view.switch_to_cartesian_view()
+                self.view.bootstrap_button.setVisible(False)
+                self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
+            else:
+                # Block signals, set plot type combo back to Ternary, and unblock signals
+                self.view.plot_type_combo.blockSignals(True)
+                self.view.plot_type_combo.setCurrentIndex(0)
+                self.view.plot_type_combo.blockSignals(False)
         elif selected_plot_type.lower() == 'ternary':
             self.model.ternary_model.start_setup_model.switch_to_ternary()
             self.view.ternary_start_setup_view.switch_to_ternary_view()
+            self.view.ternary_trace_editor_view.switch_to_ternary_view()
             self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
+            self.view.bootstrap_button.setVisible(True)
         #self.model.switch_current_model(selected_plot_type)
         # TODO Update the view to reflect the new model
         # This entails changing the current stacked widget in the start setup panel

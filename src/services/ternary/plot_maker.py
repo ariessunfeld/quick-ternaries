@@ -11,6 +11,7 @@ from src.services.ternary.trace_maker import TernaryTraceMaker
 if TYPE_CHECKING:
     from src.models.ternary import TernaryModel
 
+
 class AxisFormatter:
     @staticmethod
     def format_subscripts(oxide: str) -> str:
@@ -32,6 +33,7 @@ class AxisFormatter:
             else:
                 parts.extend(map(AxisFormatter.format_subscripts, cols))
         return '+'.join(parts)
+
 
 class LayoutCreator:
     @staticmethod
@@ -79,6 +81,7 @@ class LayoutCreator:
             dtick=settings.gridline_step_size,
             layer='below traces'
         )
+
 
 class TernaryPlotMaker:
     def __init__(self):

@@ -15,12 +15,16 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QInputDialog,
     QApplication,
-    QMessageBox
+    QMessageBox,
+    QScrollArea,
+    QSplitter,
+    QSplitterHandle
 )
 
 from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer, Slot
 from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette, QMovie
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtGui import QPainter, QPen
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -31,6 +35,34 @@ from src.services.utils.plotly_interface import PlotlyInterface
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
 
+
+class CustomSplitterHandle(QSplitterHandle):
+    def __init__(self, orientation, parent):
+        super().__init__(orientation, parent)
+        self.setCursor(Qt.SplitHCursor)  # Set the cursor to a horizontal split cursor
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Set the color and pen for drawing
+        pen = QPen(QColor('#999999'))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        # Draw vertical lines or arrows for horizontal splitters
+        mid_x = self.width() // 2 - 2
+        painter.drawLine(mid_x, 0, mid_x, self.height())
+        # painter.drawLine(mid_x - 3, 5, mid_x, 0)
+        # painter.drawLine(mid_x + 3, 5, mid_x, 0)
+
+class CustomSplitter(QSplitter):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+
+    def createHandle(self):
+        return CustomSplitterHandle(self.orientation(), self)
+    
 
 class GifPopup(QWidget):
     def __init__(self, gif_path, width, height, text, parent=None):
@@ -53,6 +85,18 @@ class GifPopup(QWidget):
 
 
 class MainWindow(QMainWindow):
+
+    BLANK_TERNARY_PATH = os.path.join(
+        os.path.dirname(__file__), 
+        '..', 
+        'resources', 
+        'blank_ternary_plot.html')
+    BLANK_CARTESIAN_PATH = os.path.join(
+        os.path.dirname(__file__), 
+        '..', 
+        'resources', 
+        'blank_cartesian_plot.html')
+    
     def __init__(self):
         super().__init__()
 
@@ -115,18 +159,29 @@ class MainWindow(QMainWindow):
 
         # Right Area for Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
-        self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Encapsulate QWebEngineView within a QScrollArea
+        self.plot_scroll_area = QScrollArea()
+        self.plot_scroll_area.setWidget(self.plot_view)
+        self.plot_scroll_area.setWidgetResizable(True)
+        self.plot_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # Load local HTML file
         self.switch_to_blank_ternary()
+
+        self.main_splitter = CustomSplitter(Qt.Horizontal)
+        self.main_splitter.addWidget(self.dynamic_content_area)
+        self.main_splitter.addWidget(self.plot_scroll_area)
 
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         self.main_layout.addWidget(self.tab_view, 1)
-        self.main_layout.addWidget(self.dynamic_content_area, 3)
-        self.main_layout.addWidget(self.plot_view, 3)
+        # self.main_layout.addWidget(self.dynamic_content_area, 3)
+        # self.main_layout.addWidget(self.plot_scroll_area, 3)
+        self.main_layout.addWidget(self.main_splitter, 6)
 
         # Combine Top Bar and Main Layout
         self.central_layout = QVBoxLayout()
@@ -191,15 +246,12 @@ class MainWindow(QMainWindow):
         return filepath, dpi
 
     def switch_to_blank_ternary(self):
-        blank_ternary = os.path.join(
-            os.path.dirname(__file__), 
-            '..', 
-            'resources', 
-            'blank_ternary_plot.html')
-
-        url = QUrl.fromLocalFile(blank_ternary)
+        url = QUrl.fromLocalFile(self.BLANK_TERNARY_PATH)
         self.plot_view.setUrl(url)
 
+    def switch_to_blank_cartesian(self):
+        url = QUrl.fromLocalFile(self.BLANK_CARTESIAN_PATH)
+        self.plot_view.setUrl(url)
 
     def show_bootstrap_tutorial_gif(self):
         tutorial_gif = os.path.join(
