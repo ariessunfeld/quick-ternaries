@@ -99,15 +99,29 @@ class CartesianPlotMaker:
 
         return layout
 
-    def _add_axis_labels(self, layout: dict, model: 'TernaryModel'):
-        setup = model.start_setup_model
+    # def _add_axis_labels(self, layout: dict, model: 'TernaryModel'):
+    #     setup = model.start_setup_model
 
-        x_axis_name = setup.get_top_apex_display_name().strip() or 'X Axis'
-        y_axis_name = setup.get_left_apex_display_name().strip() or 'Y Axis'
+    #     x_axis_name = setup.get_top_apex_display_name().strip() or 'X Axis'
+    #     y_axis_name = setup.get_left_apex_display_name().strip() or 'Y Axis'
+
+    #     layout.update(
+    #         xaxis=dict(title=x_axis_name),
+    #         yaxis=dict(title=y_axis_name)
+    #     )
+
+    def _add_axis_labels(self, layout: Layout, model: 'TernaryModel'):
+        setup = model.start_setup_model
+        ternary_type = setup.get_ternary_type()
+
+        axis_names = dict(
+            x=self._format_axis_name(setup.get_top_apex_display_name(), ternary_type.get_top(), model),
+            y=self._format_axis_name(setup.get_left_apex_display_name(), ternary_type.get_left(), model),
+        )
 
         layout.update(
-            xaxis=dict(title=x_axis_name),
-            yaxis=dict(title=y_axis_name)
+            xaxis=dict(title=axis_names['x']),
+            yaxis=dict(title=axis_names['y'])
         )
 
     def _add_title(self, layout: dict, model: 'TernaryModel'):
@@ -119,6 +133,24 @@ class CartesianPlotMaker:
         return [self.trace_maker.make_cartesian_trace(model, trace_id)
                 for trace_id in model.tab_model.order
                 if trace_id != 'StartSetup']
+    
+    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: 'TernaryModel', side: str = None) -> str:
+        if custom_name.strip():
+            return custom_name
+        if not apex_columns:
+            return 'Untitled Apex'
+        if model.start_setup_model.scale_apices_is_checked:
+            scale_map = self.trace_maker.get_scaling_map(model)
+            ret = self.axis_formatter.format_scaled_name(apex_columns, scale_map)
+        else:
+            ret = '+'.join(map(self.axis_formatter.format_subscripts, apex_columns))
+        
+        if not side:
+            return ret
+        elif side == 'left':
+            return '&nbsp;'*int(0.6*len(ret)) + ret
+        elif side == 'right':
+            return ret + '&nbsp;'*int(0.6*len(ret))
 
     def save_plot(self, fig: go.Figure, filepath: str, dpi: float = None):
         # Get the extension from the selected filter if the file_name has no extension
