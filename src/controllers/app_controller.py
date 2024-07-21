@@ -94,11 +94,13 @@ class AppController:
             
             response = msg_box.exec()
 
+            # Case where user is switching to Cartesian, confirmed
             if response == QMessageBox.Yes:
                 self.model.ternary_model.start_setup_model.switch_to_cartesian()
                 self.view.ternary_start_setup_view.switch_to_cartesian_view()
                 self.view.ternary_trace_editor_view.switch_to_cartesian_view()
                 self.view.bootstrap_button.setVisible(False)
+                self.view.switch_to_blank_cartesian()
                 self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
             else:
                 # Block signals, set plot type combo back to Ternary, and unblock signals
@@ -109,8 +111,10 @@ class AppController:
             self.model.ternary_model.start_setup_model.switch_to_ternary()
             self.view.ternary_start_setup_view.switch_to_ternary_view()
             self.view.ternary_trace_editor_view.switch_to_ternary_view()
-            self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
             self.view.bootstrap_button.setVisible(True)
+            self.view.switch_to_blank_ternary()
+            self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
+            
         #self.model.switch_current_model(selected_plot_type)
         # TODO Update the view to reflect the new model
         # This entails changing the current stacked widget in the start setup panel
