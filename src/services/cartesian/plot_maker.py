@@ -99,17 +99,6 @@ class CartesianPlotMaker:
 
         return layout
 
-    # def _add_axis_labels(self, layout: dict, model: 'TernaryModel'):
-    #     setup = model.start_setup_model
-
-    #     x_axis_name = setup.get_top_apex_display_name().strip() or 'X Axis'
-    #     y_axis_name = setup.get_left_apex_display_name().strip() or 'Y Axis'
-
-    #     layout.update(
-    #         xaxis=dict(title=x_axis_name),
-    #         yaxis=dict(title=y_axis_name)
-    #     )
-
     def _add_axis_labels(self, layout: Layout, model: 'TernaryModel'):
         setup = model.start_setup_model
         ternary_type = setup.get_ternary_type()
@@ -127,6 +116,14 @@ class CartesianPlotMaker:
     def _add_title(self, layout: dict, model: 'TernaryModel'):
         title = model.start_setup_model.get_title()
         formatted_title = title.strip() or "Untitled Plot"
+        layout.update(title=dict(text=formatted_title, x=0.5, y=0.95, xanchor='center', yanchor='top'))
+
+    def _add_title(self, layout: Layout, model: 'TernaryModel'):
+        title = model.start_setup_model.get_title()
+        ternary_type = model.start_setup_model.get_ternary_type()
+        shortname = ternary_type.get_short_formatted_name()
+        parts = shortname.split(' ')
+        formatted_title = title.strip() or f"{parts[0]} vs {parts[1]} Cartesian Diagram"
         layout.update(title=dict(text=formatted_title, x=0.5, y=0.95, xanchor='center', yanchor='top'))
 
     def _create_traces(self, model: 'TernaryModel') -> List[go.Scatter]:
