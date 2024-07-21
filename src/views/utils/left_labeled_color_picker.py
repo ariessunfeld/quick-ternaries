@@ -18,7 +18,6 @@ class LeftLabeledColorPicker(QWidget):
 
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.color_button)
-
         self.color_button.clicked.connect(self.open_color_dialog)
         self._color = self._parse_color(initial_color) if initial_color else None
         self.updateButtonStyle()

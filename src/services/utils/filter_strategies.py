@@ -1,3 +1,5 @@
+"""This module contains the strategy classes for implementing each Filter operation"""
+
 from typing import Dict
 from abc import ABC, abstractmethod
 
@@ -8,6 +10,7 @@ class FilterStrategy(ABC):
     @abstractmethod
     def filter(self, data: pd.DataFrame, params: Dict):
         pass
+
 
 class EqualsFilterStrategy(FilterStrategy):
     """X == value"""
@@ -21,6 +24,21 @@ class OneOfFilterStrategy(FilterStrategy):
 
     def filter(self, data: pd.DataFrame, params: Dict):
         return data[data[params['column']].isin(params['selected values'])].copy()
+
+
+class ExcludeOneFilterStrategy(FilterStrategy):
+    """X != value"""
+    
+    def filter(self, data: pd.DataFrame, params: Dict):
+        return data[data[params['column']] != params['value 1']].copy()
+
+
+class ExcludeMultipleFilterStrategy(FilterStrategy):
+    """X is not in [*values]"""
+    
+    def filter(self, data: pd.DataFrame, params: Dict):
+        return data[~data[params['column']].isin(params['selected values'])].copy()
+
 
 class GreaterThanFilterStrategy(FilterStrategy):
     """X > value"""
@@ -67,6 +85,7 @@ class LELEFilterStrategy(FilterStrategy):
             (data[params['column']] >= params['value a']) &\
             (data[params['column']] <= params['value b'])].copy()
 
+
 class LELTFilterStrategy(FilterStrategy):
     """value1 <= X < value2"""
 
@@ -74,6 +93,7 @@ class LELTFilterStrategy(FilterStrategy):
         return data[
             (data[params['column']] >= params['value a']) &\
             (data[params['column']] <  params['value b'])].copy()
+
 
 class LTLEFilterStrategy(FilterStrategy):
     """value1 < X <= value2"""

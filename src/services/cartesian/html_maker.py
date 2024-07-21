@@ -1,10 +1,10 @@
-"""Ternary HTML file maker"""
+"""Cartesian HTML maker"""
 
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QMessageBox
 
-from src.services.ternary.plot_maker import TernaryPlotMaker
+from src.services.cartesian.plot_maker import CartesianPlotMaker
 
 from src.services.ternary.exceptions import (
     TraceMolarConversionException,
@@ -22,10 +22,10 @@ class BaseHtmlMaker:
     def __init__(self):
         self.plot_maker = None
 
-class TernaryHtmlMaker(BaseHtmlMaker):
+class CartesianHtmlMaker(BaseHtmlMaker):
     
     def __init__(self):
-        self.plot_maker = TernaryPlotMaker()
+        self.plot_maker = CartesianPlotMaker()
 
     def make_html(self, model: 'TernaryModel'):
         try:

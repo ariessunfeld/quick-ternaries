@@ -1,8 +1,8 @@
 from typing import Optional, List, Union
 
 class FilterModel:
-
-    CATEGORICAL_OPERATIONS = ['Equals', 'One of']
+    
+    CATEGORICAL_OPERATIONS = ['Equals', 'One of', 'Exclude one', 'Exclude multiple']
     NUMERICAL_COMPARISON = ['<', '≤', '>', '≥']
     NUMERICAL_RANGE = ['a < x < b', 'a ≤ x ≤ b', 'a < x ≤ b', 'a ≤ x < b']
     NUMERICAL_OPERATIONS = CATEGORICAL_OPERATIONS + NUMERICAL_COMPARISON + NUMERICAL_RANGE

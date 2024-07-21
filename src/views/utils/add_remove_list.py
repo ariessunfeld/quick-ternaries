@@ -23,6 +23,7 @@ class AddRemoveList(QWidget):
         self.button_add.setCursor(Qt.PointingHandCursor)
         self.button_remove = QPushButton('Remove <<')
         self.button_remove.setCursor(Qt.PointingHandCursor)
+        self.label = None
         if label:
             self.label = QLabel(label)
             self.inner_layout.addWidget(self.label)
@@ -51,3 +52,7 @@ class AddRemoveList(QWidget):
         for row in range(len(self.list.count())):
             ret.append(self.list.itemAt(row).text())
         return ret
+    
+    def setText(self, text: str):
+        if self.label and text:
+            self.label.setText(text)

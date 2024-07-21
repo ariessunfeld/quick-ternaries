@@ -13,6 +13,11 @@ from PySide6.QtCore import (
     QSize,
     Signal,
 )
+from PySide6.QtGui import (
+    QPixmap,
+    QPainter,
+    QCursor,
+)
 
 class FilterTab(QWidget):
     tab_clicked = Signal(str)

@@ -44,6 +44,7 @@ class TernaryTraceEditorController(QObject):
         self.view.select_point_shape.valueChanged.connect(self._shape_changed_event)
         self.view.color_picker.colorChanged.connect(self._color_changed_event)
         self.view.use_heatmap_checkbox.stateChanged.connect(self._heatmap_checkbox_statechanged_event)
+        self.view.use_sizemap_checkbox.stateChanged.connect(self._sizemap_checkbox_statechanged_event)
         self.view.use_filter_checkbox.stateChanged.connect(self._filter_checkbox_statechanged_event)
         self.view.advanced_settings_checkbox.stateChanged.connect(self._advanced_settings_checkbox_statechanged_event)
         self.view.sigma_dropdown.valueChanged.connect(self._selected_contour_event)
@@ -61,6 +62,7 @@ class TernaryTraceEditorController(QObject):
         self.view.select_point_shape.setCurrentText(trace_model.selected_point_shape)
         self.view.color_picker.setColor(trace_model.color)
         self.view.use_heatmap_checkbox.setChecked(trace_model.add_heatmap_checked)
+        self.view.use_sizemap_checkbox.setChecked(trace_model.add_sizemap_checked)
         self.view.use_filter_checkbox.setChecked(trace_model.filter_data_checked)
         self.view.advanced_settings_checkbox.setChecked(trace_model.advanced_settings_checked)
 
@@ -111,6 +113,12 @@ class TernaryTraceEditorController(QObject):
         self.model.current_tab.add_heatmap_checked = is_checked
         self.view.heatmap_view.setVisible(is_checked)
         self.view.color_picker.setEnabled(not is_checked)
+
+    def _sizemap_checkbox_statechanged_event(self, event):
+        is_checked = self.view.use_sizemap_checkbox.isChecked()
+        self.model.current_tab.add_sizemap_checked = is_checked
+        self.view.sizemap_view.setVisible(is_checked)
+        self.view.point_size_spinbox.setEnabled(not is_checked)
 
     def _filter_checkbox_statechanged_event(self, event):
         is_checked = self.view.use_filter_checkbox.isChecked()

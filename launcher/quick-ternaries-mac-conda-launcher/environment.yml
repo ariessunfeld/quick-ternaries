@@ -1,0 +1,9 @@
+name: quick_ternaries
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - requests==2.31.0
+

@@ -14,12 +14,17 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QFileDialog,
     QInputDialog,
-    QApplication
+    QApplication,
+    QMessageBox,
+    QScrollArea,
+    QSplitter,
+    QSplitterHandle
 )
 
 from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer, Slot
 from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette, QMovie
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtGui import QPainter, QPen
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
@@ -30,6 +35,34 @@ from src.services.utils.plotly_interface import PlotlyInterface
 # Disable the qt.pointer.dispatch debug messages
 os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
 
+
+class CustomSplitterHandle(QSplitterHandle):
+    def __init__(self, orientation, parent):
+        super().__init__(orientation, parent)
+        self.setCursor(Qt.SplitHCursor)  # Set the cursor to a horizontal split cursor
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Set the color and pen for drawing
+        pen = QPen(QColor('#999999'))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        # Draw vertical lines or arrows for horizontal splitters
+        mid_x = self.width() // 2 - 2
+        painter.drawLine(mid_x, 0, mid_x, self.height())
+        # painter.drawLine(mid_x - 3, 5, mid_x, 0)
+        # painter.drawLine(mid_x + 3, 5, mid_x, 0)
+
+class CustomSplitter(QSplitter):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+
+    def createHandle(self):
+        return CustomSplitterHandle(self.orientation(), self)
+    
 
 class GifPopup(QWidget):
     def __init__(self, gif_path, width, height, text, parent=None):
@@ -52,6 +85,18 @@ class GifPopup(QWidget):
 
 
 class MainWindow(QMainWindow):
+
+    BLANK_TERNARY_PATH = os.path.join(
+        os.path.dirname(__file__), 
+        '..', 
+        'resources', 
+        'blank_ternary_plot.html')
+    BLANK_CARTESIAN_PATH = os.path.join(
+        os.path.dirname(__file__), 
+        '..', 
+        'resources', 
+        'blank_cartesian_plot.html')
+    
     def __init__(self):
         super().__init__()
 
@@ -83,8 +128,8 @@ class MainWindow(QMainWindow):
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
-        self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
-
+        #self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
+        
         # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
         self.top_bar.addStretch(1)
@@ -114,19 +159,29 @@ class MainWindow(QMainWindow):
 
         # Right Area for Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
-        self.plot_view.page().setBackgroundColor(QColor(0, 0, 0, 1))
-        self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # Encapsulate QWebEngineView within a QScrollArea
+        self.plot_scroll_area = QScrollArea()
+        self.plot_scroll_area.setWidget(self.plot_view)
+        self.plot_scroll_area.setWidgetResizable(True)
+        self.plot_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         # Load local HTML file
         self.switch_to_blank_ternary()
+
+        self.main_splitter = CustomSplitter(Qt.Horizontal)
+        self.main_splitter.addWidget(self.dynamic_content_area)
+        self.main_splitter.addWidget(self.plot_scroll_area)
 
         # Main Layout
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         self.main_layout.addWidget(self.tab_view, 1)
-        self.main_layout.addWidget(self.dynamic_content_area, 3)
-        self.main_layout.addWidget(self.plot_view, 3)
+        # self.main_layout.addWidget(self.dynamic_content_area, 3)
+        # self.main_layout.addWidget(self.plot_scroll_area, 3)
+        self.main_layout.addWidget(self.main_splitter, 6)
 
         # Combine Top Bar and Main Layout
         self.central_layout = QVBoxLayout()
@@ -162,10 +217,10 @@ class MainWindow(QMainWindow):
         self.switch_to_trace_view()
         self.ternary_trace_editor_view.switch_to_bootstrap_view()
 
-    def switch_plot_type(self, index):
-        plot_type = self.plot_type_combo.itemText(index)
-        # Logic to switch plot type goes here
-        print(f"Switched to plot type: {plot_type}")
+    # def switch_plot_type(self, index):
+    #     plot_type = self.plot_type_combo.itemText(index)
+    #     # Logic to switch plot type goes here
+    #     print(f"Switched to plot type: {plot_type}")
 
     def show_save_menu(self):
         options = QFileDialog.Options()
@@ -191,76 +246,12 @@ class MainWindow(QMainWindow):
         return filepath, dpi
 
     def switch_to_blank_ternary(self):
-        blank_ternary = os.path.join(
-            os.path.dirname(__file__), 
-            '..', 
-            'resources', 
-            'blank_ternary_plot.html')
-
-        url = QUrl.fromLocalFile(blank_ternary)
+        url = QUrl.fromLocalFile(self.BLANK_TERNARY_PATH)
         self.plot_view.setUrl(url)
 
-    def setup_title(self, title:str):
-        """
-        Load the 'Motter Tektura' font and use it to set up the application's title label.
-        The title label is configured to display the 'quick ternaries' logo which includes a
-        hyperlink to the project repository.
-        """
-        font_path = os.path.join(
-            os.path.dirname(__file__),
-            '..', 
-            'assets', 
-            'fonts',
-            'Motter Tektura Normal.ttf')
-        font_id = QFontDatabase.addApplicationFont(font_path)
-        title_label = QLabel()
-        if font_id != -1:
-            font_families = QFontDatabase.applicationFontFamilies(font_id)
-            if font_families:
-                custom_font = QFont(font_families[0], pointSize=20)
-                title_label.setFont(custom_font)
-        title_label = self.update_title_view(title_label, title)
-        title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
-        title_label.setOpenExternalLinks(True) # Allow the label to open links
-        return title_label
-
-    def update_title_view(self, title_label: QLabel, title:str):
-        """
-        Update the title label hyperlink color based on the current theme.
-        """
-        # Check the palette to determine if it's dark mode
-        palette = self.palette()
-        is_dark_mode = palette.color(QPalette.Base).lightness() < palette.color(QPalette.Text).lightness()
-        color = 'white' if is_dark_mode else 'black'  # Choose color based on the theme
-        title_label.setText(
-            '<a href=https://github.com/ariessunfeld/quick-ternaries ' +
-            f'style="color: {color}; text-decoration:none;">' +
-            f'{title}' +
-            '</a>'
-        )
-        return title_label
-
-    def create_settings_button(self):
-        button = QPushButton(self)
-        button.setStyleSheet('border: none;')
-        button.setIconSize(QSize(20, 20))
-        button.setFixedSize(20, 20)
-        button.setCursor(Qt.PointingHandCursor)
-        self.updateSettingsIcon(button)
-        return button
-
-    def updateSettingsIcon(self, button):
-        """
-        Update the settings icon based on the current theme.
-        """
-        settings_gear_icon = os.path.join(
-            os.path.dirname(__file__),
-            '..', 
-            'assets', 
-            'icons',
-            'settings_icon.png')
-        icon = QIcon(settings_gear_icon)
-        button.setIcon(icon)
+    def switch_to_blank_cartesian(self):
+        url = QUrl.fromLocalFile(self.BLANK_CARTESIAN_PATH)
+        self.plot_view.setUrl(url)
 
     def show_bootstrap_tutorial_gif(self):
         tutorial_gif = os.path.join(
@@ -286,7 +277,7 @@ class MainWindow(QMainWindow):
             '..',
             'assets',
             'fonts',
-            'Motter Tektura Normal.ttf')
+            'Motter_Tektura_Normal.ttf')
         font_id = QFontDatabase.addApplicationFont(font_path)
         self.title_label = QLabel()
         if font_id != -1:
@@ -345,3 +336,14 @@ class MainWindow(QMainWindow):
         self.setFont(font)
         for widget in self.findChildren(QWidget):
             widget.setFont(font)
+
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Quit Confirmation',
+                                     "Are you sure you want to quit?",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()

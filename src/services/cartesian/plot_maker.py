@@ -1,4 +1,4 @@
-"""Plotly Plot Maker for Ternary diagrams"""
+"""Cartesian plot maker"""
 
 from typing import Dict, List, TYPE_CHECKING
 
@@ -40,26 +40,18 @@ class LayoutCreator:
     def create_base_layout() -> dict:
         linestyle = dict(ticks='outside', linecolor='grey', linewidth=1)
         return dict(
-            ternary=dict(
-                sum=100,
-                aaxis=linestyle,
-                baxis=linestyle,
-                caxis=linestyle
-            ),
-            paper_bgcolor="#ececec"
+            xaxis=linestyle,
+            yaxis=linestyle,
+            paper_bgcolor="#ffffff",
         )
 
     @staticmethod
     def create_advanced_layout(settings) -> dict:
         axis_settings = LayoutCreator.create_axis_settings(settings)
         return dict(
-            ternary=dict(
-                aaxis=axis_settings,
-                baxis=axis_settings,
-                caxis=axis_settings,
-                bgcolor=settings.background_color,
-                sum=int(settings.ternary_sum)
-            ),
+            xaxis=axis_settings,
+            yaxis=axis_settings,
+            bgcolor=settings.background_color,
             title=dict(
                 font=dict(
                     family=settings.title_font,
@@ -83,18 +75,18 @@ class LayoutCreator:
         )
 
 
-class TernaryPlotMaker:
+class CartesianPlotMaker:
     def __init__(self):
-        self.trace_maker = TernaryTraceMaker()
+        self.trace_maker = TernaryTraceMaker()  # Reference remains the same
         self.axis_formatter = AxisFormatter()
         self.layout_creator = LayoutCreator()
 
-    def make_plot(self, model: 'TernaryModel') -> Figure:
+    def make_plot(self, model: 'TernaryModel') -> go.Figure:
         layout = self._create_layout(model)
         traces = self._create_traces(model)
-        return Figure(data=traces, layout=layout)
+        return go.Figure(data=traces, layout=layout)
 
-    def _create_layout(self, model: 'TernaryModel') -> Layout:
+    def _create_layout(self, model: 'TernaryModel') -> dict:
         base_layout = self.layout_creator.create_base_layout()
         layout = go.Layout(base_layout)
 
@@ -107,42 +99,28 @@ class TernaryPlotMaker:
 
         return layout
 
-    def _add_axis_labels(self, layout: Layout, model: 'TernaryModel'):
+    def _add_axis_labels(self, layout: dict, model: 'TernaryModel'):
         setup = model.start_setup_model
-        ternary_type = setup.get_ternary_type()
 
-        axis_names = dict(
-            top  =self._format_axis_name(setup.get_top_apex_display_name(),   ternary_type.get_top(),   model),
-            left =self._format_axis_name(setup.get_left_apex_display_name(),  ternary_type.get_left(),  model),
-            right=self._format_axis_name(setup.get_right_apex_display_name(), ternary_type.get_right(), model)
+        x_axis_name = setup.get_top_apex_display_name().strip() or 'X Axis'
+        y_axis_name = setup.get_left_apex_display_name().strip() or 'Y Axis'
+
+        layout.update(
+            xaxis=dict(title=x_axis_name),
+            yaxis=dict(title=y_axis_name)
         )
 
-        layout.ternary.aaxis.title.update(text = axis_names['top'])
-        layout.ternary.baxis.title.update(text = f"<br>{axis_names['left']}")
-        layout.ternary.caxis.title.update(text = f"<br>{axis_names['right']}")
-
-    def _add_title(self, layout: Layout, model: 'TernaryModel'):
+    def _add_title(self, layout: dict, model: 'TernaryModel'):
         title = model.start_setup_model.get_title()
-        ternary_type = model.start_setup_model.get_ternary_type()
-        formatted_title = title.strip() or f"{ternary_type.get_short_formatted_name()} Ternary Diagram"
+        formatted_title = title.strip() or "Untitled Plot"
         layout.update(title=dict(text=formatted_title, x=0.5, y=0.95, xanchor='center', yanchor='top'))
 
     def _create_traces(self, model: 'TernaryModel') -> List[go.Scatter]:
-        return [self.trace_maker.make_trace(model, trace_id)
+        return [self.trace_maker.make_cartesian_trace(model, trace_id)
                 for trace_id in model.tab_model.order
                 if trace_id != 'StartSetup']
 
-    def _format_axis_name(self, custom_name: str, apex_columns: List[str], model: 'TernaryModel', side: str = None) -> str:
-        if custom_name.strip():
-            return custom_name
-        if not apex_columns:
-            return 'Untitled Apex'
-        if model.start_setup_model.scale_apices_is_checked:
-            scale_map = self.trace_maker.get_scaling_map(model)
-            return self.axis_formatter.format_scaled_name(apex_columns, scale_map)
-        return '+'.join(map(self.axis_formatter.format_subscripts, apex_columns))
-    
-    def save_plot(self, fig: Figure, filepath: str, dpi: float|None=None):
+    def save_plot(self, fig: go.Figure, filepath: str, dpi: float = None):
         # Get the extension from the selected filter if the file_name has no extension
         if filepath.endswith('.html'):
             # Save interactive plot as HTML
@@ -181,48 +159,3 @@ class TernaryPlotMaker:
             else:
                 ret.extend(map(self._format_subscripts, cols_with_this_val))
         return '+'.join(ret)
-
-    def _add_axis_labels_to_layout(
-            self, 
-            layout: dict, 
-            top_axis_name: str, 
-            left_axis_name: str, 
-            right_axis_name: str):
-        """Updates `layout` in-place with axis labels and sum"""
-
-        # Set the color, width, and tick position
-        line_style = dict(linecolor='grey', linewidth=1, ticks='outside')
-
-        # Update the layout
-        layout.update(
-            ternary={
-                'sum': 100,
-                'aaxis': dict(
-                    title=top_axis_name,
-                    **line_style
-                ),
-                'baxis': dict(
-                    title=left_axis_name,
-                    **line_style
-                ) | dict(tickangle=60),
-                'caxis': dict(
-                    title=right_axis_name,
-                    **line_style
-                ) | dict(tickangle=-60)
-            }
-        )
-
-    def _add_title_to_layout(
-            self,
-            layout: dict,
-            title: str):
-        """Updates `layout` in-place by adding title dict configuration"""
-        layout.update(
-            title=dict(
-                text=title,
-                x=0.5,
-                y=0.95,
-                xanchor='center',
-                yanchor='top'
-            )
-        )

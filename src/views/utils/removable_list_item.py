@@ -36,7 +36,9 @@ class ListItemWidget(QWidget):
 
     def create_close_button(self):
         trash_can_icon_path = os.path.join(
-            'src', 
+            os.path.dirname(__file__), 
+            '..',
+            '..',
             'assets', 
             'icons',
             'trash_can.png')

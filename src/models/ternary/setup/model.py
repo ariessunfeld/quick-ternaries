@@ -148,3 +148,23 @@ class TernaryStartSetupModel:
     
     def get_left_apex_display_name(self) -> str:
         return self.left_apex_display_name
+
+    def switch_to_cartesian(self):
+        self._clear_selections()
+
+    def switch_to_ternary(self):
+        self._clear_selections()
+
+    def _clear_selections(self):
+        right_apex_cols = self.custom_apex_selection_model.get_right_apex_selected_columns()
+        left_apex_cols = self.custom_apex_selection_model.get_left_apex_selected_columns()
+        top_apex_cols = self.custom_apex_selection_model.get_top_apex_selected_columns()
+        for col in right_apex_cols:
+            self.custom_apex_selection_model.remove_right_apex_column(col)
+            self.custom_apex_selection_model.add_available_column(col)
+        for col in left_apex_cols:
+            self.custom_apex_selection_model.remove_left_apex_column(col)
+            self.custom_apex_selection_model.add_available_column(col)
+        for col in top_apex_cols:
+            self.custom_apex_selection_model.remove_top_apex_column(col)
+            self.custom_apex_selection_model.add_available_column(col)

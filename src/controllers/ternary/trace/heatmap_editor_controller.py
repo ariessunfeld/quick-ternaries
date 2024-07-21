@@ -1,3 +1,5 @@
+"""Controller for the Heatmap Editor"""
+
 from typing import TYPE_CHECKING
 
 import numpy as np
