@@ -48,19 +48,15 @@ class TernarySizemapEditorView(QWidget):
         # Range Min and Max LineEdits with an InfoButton
         self.range_layout = QHBoxLayout()
         
-        self.range_min_line_edit = LeftLabeledLineEdit('Range min:')
+        self.range_min_line_edit = LeftLabeledLineEdit('Min size:')
         self.range_layout.addWidget(self.range_min_line_edit)
         
-        self.range_max_line_edit = LeftLabeledLineEdit('Range max:')
+        self.range_max_line_edit = LeftLabeledLineEdit('Max size:')
         self.range_layout.addWidget(self.range_max_line_edit)
 
         # Tooltip InfoButton
         tooltip_text = (
-            "Tip: Set a low 'range max' to bring out the gradient in your data.\n"
-            "Points with higher values than 'range max' will still be plotted; \n"
-            "they will just have the same size as the highest value on the scale.\n"
-            "The default 'range max' value is twice the median of the selected column."
-        )
+            "Tip: Set a higher 'max size' to bring out the gradient in your data.")
         self.info_button = InfoButton(self, tooltip_text)
         self.range_layout.addWidget(self.info_button, alignment=Qt.AlignRight)
         
