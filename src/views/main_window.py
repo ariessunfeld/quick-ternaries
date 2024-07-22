@@ -100,6 +100,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.setupFonts()
+
         self.setWindowTitle("Quick Ternaries")
 
         self.plotly_interface = PlotlyInterface()
@@ -195,6 +197,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         QApplication.instance().paletteChanged.connect(self.on_palette_changed)
+
+    def setupFonts(self):
+        font_path = os.path.join(
+            os.path.dirname(__file__),
+            '..',
+            'assets',
+            'fonts',
+            'OpenSans-Regular.ttf')
+        QFontDatabase.addApplicationFont(font_path)
 
     @Slot()
     def on_palette_changed(self):
