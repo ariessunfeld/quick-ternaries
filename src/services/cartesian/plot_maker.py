@@ -89,6 +89,8 @@ class CartesianPlotMaker:
     def _create_layout(self, model: 'TernaryModel') -> dict:
         base_layout = self.layout_creator.create_base_layout()
         layout = go.Layout(base_layout)
+        layout.xaxis.rangemode = "tozero"
+        layout.yaxis.rangemode = "tozero"
 
         if model.start_setup_model.advanced_settings_is_checked:
             advanced_layout = self.layout_creator.create_advanced_layout(model.start_setup_model.advanced_settings_model)
