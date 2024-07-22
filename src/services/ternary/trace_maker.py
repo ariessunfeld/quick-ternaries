@@ -367,47 +367,38 @@ class TernaryTraceMaker:
         heatmap_sorted_col = self.HEATMAP_PATTERN.format(col=heatmap_column, us=unique_str)
         sizemap_sorted_col = self.SIZEMAP_PATTERN.format(col=sizemap_column, us=unique_str)
 
-        if trace_model.heatmap_model.log_transform_checked:
-            trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column].apply(lambda x: np.log(x) if x > 0 else 0)
-        else:
-            trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column]
-
+        heatmap_model = trace_model.heatmap_model
         sizemap_model = trace_model.sizemap_model
+
+        trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column].copy()
+        if heatmap_model.log_transform_checked:
+            trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column].apply(lambda x: np.log(x) if x > 0 else 0)
+
+        trace_data_df[sizemap_sorted_col] = trace_data_df[sizemap_column].copy()
+        if sizemap_model.log_transform_checked:
+            trace_data_df[sizemap_sorted_col] =\
+                trace_data_df[sizemap_sorted_col].apply(lambda x: np.log(x) if x > 0 else 0)
+
         min_size = self._float(sizemap_model.range_min, 'sizemap minimum size', trace_id) 
         max_size = self._float(sizemap_model.range_max, 'sizemap maximum size', trace_id)
         size_range = max_size - min_size
-        size_normalized = ((trace_data_df[sizemap_column] - trace_data_df[sizemap_column].min()) / 
-                        (trace_data_df[sizemap_column].max() - trace_data_df[sizemap_column].min())) * size_range + min_size
+        size_normalized = ((trace_data_df[sizemap_sorted_col] - trace_data_df[sizemap_sorted_col].min()) /
+                           (trace_data_df[sizemap_sorted_col].max() - trace_data_df[sizemap_sorted_col].min())) * size_range + min_size
         trace_data_df[sizemap_sorted_col] = size_normalized
         trace_data_df[sizemap_sorted_col].fillna(0.0, inplace=True)
 
-        if sizemap_model.log_transform_checked:
-            trace_data_df[sizemap_sorted_col] = trace_data_df[sizemap_sorted_col].apply(lambda x: np.log(x) if x > 0 else 0)
-
-        # sort_by = []
-        # if trace_model.heatmap_model.sorting_mode != 'no change':
-        #     if trace_model.heatmap_model.sorting_mode in ['high on top', 'low on top']:
-        #         ascending = trace_model.heatmap_model.sorting_mode == 'high on top'
-        #         sort_by.append((heatmap_sorted_col, ascending))
-        # if sizemap_model.sorting_mode != 'no change':
-        #     sort_by.append((sizemap_sorted_col, sizemap_model.sorting_mode == 'low on top'))
-
-        # if sort_by:
-        #     sort_by_columns, ascending = zip(*sort_by)
-        #     trace_data_df = trace_data_df.sort_values(by=list(sort_by_columns), ascending=list(ascending))
-
         # Handle heatmap sort mode
-        if trace_model.heatmap_model.sorting_mode == 'no change':
+        if heatmap_model.sorting_mode == 'no change':
             pass
-        elif trace_model.heatmap_model.sorting_mode == 'high on top':
+        elif heatmap_model.sorting_mode == 'high on top':
             trace_data_df = trace_data_df.sort_values(
                 by=heatmap_sorted_col, 
                 ascending=True)
-        elif trace_model.heatmap_model.sorting_mode == 'low on top':
+        elif heatmap_model.sorting_mode == 'low on top':
             trace_data_df = trace_data_df.sort_values(
                 by=heatmap_sorted_col, 
                 ascending=False)
-        elif trace_model.heatmap_model.sorting_mode == 'shuffled':
+        elif heatmap_model.sorting_mode == 'shuffled':
             trace_data_df = trace_data_df.sample(frac=1)
 
         # Handle sizemap sort mode
@@ -700,16 +691,18 @@ class TernaryTraceMaker:
         #max_size = float(sizemap_model.range_max)
         max_size = self._float(sizemap_model.range_max, 'sizemap range maximum', trace_id)
 
-        # Normalize the size_column to the range [min_size, max_size]
-        size_range = max_size - min_size
-        size_normalized = ((data_df[size_column] - data_df[size_column].min()) / (data_df[size_column].max() - data_df[size_column].min())) * size_range + min_size
-        sizeref = 2. * max(size_normalized) / (max_size**2)
-        data_df[size_column_sorted] = size_normalized
-        data_df[size_column_sorted].fillna(0.0, inplace=True)
-
+        data_df[size_column_sorted] = data_df[size_column].copy()
         if sizemap_model.log_transform_checked:
             data_df[size_column_sorted] =\
                 data_df[size_column_sorted].apply(lambda x: np.log(x) if x > 0 else 0)
+
+        # Normalize the size_column to the range [min_size, max_size]
+        size_range = max_size - min_size
+        size_normalized = ((data_df[size_column_sorted] - data_df[size_column_sorted].min()) /
+                           (data_df[size_column_sorted].max() - data_df[size_column_sorted].min())) * size_range + min_size
+        sizeref = 2. * max(size_normalized) / (max_size**2)
+        data_df[size_column_sorted] = size_normalized
+        data_df[size_column_sorted].fillna(0.0, inplace=True)
             
         # Handle sizemap sort mode
         if sizemap_model.sorting_mode == 'no change':
@@ -913,7 +906,6 @@ class TernaryTraceMaker:
         except ValueError as err:
             raise FloatConversionError(item, trace_id) from err
 
-    
 class MolarConverter:
     """
     If molar conversion is checked, use the specified formulae therein to perform molar conversion.

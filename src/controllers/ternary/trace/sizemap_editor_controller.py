@@ -76,29 +76,6 @@ class SizemapEditorController:
         is_checked = self.view.log_transform_checkbox.isChecked()
         self.model.current_tab.sizemap_model.log_transform_checked = is_checked
 
-        # Case where it was not checked and now is
-        if is_checked:
-            curr_range_min = self.model.current_tab.sizemap_model.range_min
-            curr_range_max = self.model.current_tab.sizemap_model.range_max
-            try:
-                curr_range_min = self._float(curr_range_min)
-                curr_range_max = self._float(curr_range_max)
-                new_range_min = round(np.log(curr_range_min),2) if curr_range_min > 0 else curr_range_min
-                new_range_max = round(np.log(curr_range_max),2) if curr_range_max > 0 else 0
-                self.view.range_min_line_edit.setText(str(new_range_min)) # this will update model too
-                self.view.range_max_line_edit.setText(str(new_range_max)) # this will update model too
-            except ValueError:
-                pass
-        # Case where it was checked and now isn't
-        # want to reset to min and 2xMedian
-        else:
-            min_val = self.model.current_tab.selected_data_file.get_min(self.model.current_tab.sizemap_model.selected_column)
-            median_val = self.model.current_tab.selected_data_file.get_median(self.model.current_tab.sizemap_model.selected_column)
-            # self.view.range_min_line_edit.setText(str(min_val)) # this will update model too
-            # self.view.range_max_line_edit.setText(str(2*median_val)) # this will update model too
-            self.view.range_min_line_edit.setText(str(1.0))
-            self.view.range_max_line_edit.setText(str(6.0))
-
     def _on_advanced_checkbox_state_changed(self):
         is_checked = self.view.show_advanced_checkbox.isChecked()
         self.view.advanced_options_layout_widget.setVisible(is_checked)
