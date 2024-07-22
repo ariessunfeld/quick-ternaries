@@ -9,13 +9,13 @@ from src.views import MainWindow
 from src.controllers import AppController
 from src.services.app_service import AppService
 
+from src.utils import exception_handler
+
 def main():
+    sys.excepthook = exception_handler
     app = QApplication(sys.argv)
     
     # -----------------------------------
-
-    # TODO replace model instantiation with loading from pickle file
-    # (once everything is set up to reflect pickle-loaded state)
 
     app_model = AppModel()           # Model
     main_window = MainWindow()       # View

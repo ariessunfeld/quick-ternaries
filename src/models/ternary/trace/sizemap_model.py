@@ -8,8 +8,8 @@ class SizemapModel:
             self,
             available_columns: Optional[List[str]] = None,
             selected_column: Optional[str] = None,
-            range_min: Optional[float] = None,
-            range_max: Optional[float] = None,
+            range_min: Optional[float] = 1.0,
+            range_max: Optional[float] = 6.0,
             advanced_settings_checked: bool = False,
             log_transform_checked: bool = False,
             sorting_mode: str = 'no change'):
