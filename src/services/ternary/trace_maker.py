@@ -770,33 +770,25 @@ class TernaryTraceMaker:
                 text=heatmap_model.bar_title,
                 side=heatmap_model.title_position,
                 font=dict(
-                    #size=float(heatmap_model.title_font_size),
                     size=self._float(heatmap_model.title_font_size, 'heatmap title font size', trace_id),
-                    family=heatmap_model.font
-                    )
-                    ),
-            #len=float(heatmap_model.length),
+                    family=heatmap_model.font if heatmap_model.font != 'Open Sans' else 'Open Sans, verdana'
+                )
+            ),
             len=self._float(heatmap_model.length, 'heatmap length', trace_id),
-            #thickness=float(heatmap_model.thickness),
             thickness=self._float(heatmap_model.thickness, 'heatmap thickness', trace_id),
-            # TODO add this (thickness) to view and controller
-            #x=float(heatmap_model.x),
             x=self._float(heatmap_model.x, 'heatmap x position', trace_id),
-            #y=float(heatmap_model.y),
             y=self._float(heatmap_model.y, 'heatmap y position', trace_id),
             tickfont=dict(
-                #size=float(heatmap_model.tick_font_size),
                 size=self._float(heatmap_model.tick_font_size, 'heatmap tick font size', trace_id),
-                family=heatmap_model.font
-                ),
+                family=heatmap_model.font if heatmap_model.font != 'Open Sans' else 'Open Sans, verdana'
+            ),
             orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
         )
-        # TODO add error handling here for when floats fail or stuff is blank
-        # TODO warn user if min >= max
-        #marker['cmin'] = float(heatmap_model.range_min)
         marker['cmin'] = self._float(heatmap_model.range_min, 'heatmap range minimum', trace_id)
-        #marker['cmax'] = float(heatmap_model.range_max)
         marker['cmax'] = self._float(heatmap_model.range_max, 'heatmap range maximum', trace_id)
+
+        if heatmap_model.font != 'Open Sans':
+            marker['colorbar']['title']['font']['family'] = heatmap_model.font
 
         return marker, data_df
 
