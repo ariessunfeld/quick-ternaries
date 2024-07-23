@@ -431,7 +431,7 @@ class TernaryTraceMaker:
                 font=dict(
                     #size=float(trace_model.heatmap_model.title_font_size),
                     size=self._float(trace_model.heatmap_model.title_font_size, 'heatmap title font size', trace_id),
-                    family=trace_model.heatmap_model.font
+                    family=heatmap_model.font if heatmap_model.font != 'Open Sans' else 'Open Sans, verdana'
                 )
             ),
             #len=float(trace_model.heatmap_model.length),
@@ -786,9 +786,6 @@ class TernaryTraceMaker:
         )
         marker['cmin'] = self._float(heatmap_model.range_min, 'heatmap range minimum', trace_id)
         marker['cmax'] = self._float(heatmap_model.range_max, 'heatmap range maximum', trace_id)
-
-        if heatmap_model.font != 'Open Sans':
-            marker['colorbar']['title']['font']['family'] = heatmap_model.font
 
         return marker, data_df
 
