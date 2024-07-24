@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import TraceTabsPanelModel, AdvancedSettingsModel
+    from src.models.ternary.trace import AdvancedSettingsModel
+    from src.models.utils import TraceTabsPanelModel
     from src.views.ternary.trace import AdvancedSettingsView
 
 class AdvancedSettingsController:

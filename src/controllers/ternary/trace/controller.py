@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import TernaryTraceEditorModel, TraceTabsPanelModel
+    from src.models.ternary.trace import TernaryTraceEditorModel
+    from src.models.utils import TraceTabsPanelModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace import TernaryTraceEditor
 

@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import HeatmapModel, TraceTabsPanelModel
+    from src.models.ternary.trace import HeatmapModel
+    from src.models.utils import TraceTabsPanelModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace import TernaryHeatmapEditorView
 

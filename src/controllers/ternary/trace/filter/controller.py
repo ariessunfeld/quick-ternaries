@@ -9,7 +9,7 @@ import numpy as np
 from src.models.ternary.trace.filter import FilterModel
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import TraceTabsPanelModel
+    from src.models.utils import TraceTabsPanelModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace.filter import FilterEditorView
 

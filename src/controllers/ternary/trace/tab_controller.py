@@ -5,7 +5,8 @@ from typing import List, Dict, Optional
 from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QMessageBox
 
-from src.models.ternary.trace import TernaryTraceEditorModel, TraceTabsPanelModel
+from src.models.ternary.trace import TernaryTraceEditorModel
+from src.models.utils import TraceTabsPanelModel
 from src.views.ternary.trace import DraggableTab, TabView
 
 class TabController(QObject):

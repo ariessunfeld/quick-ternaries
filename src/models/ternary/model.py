@@ -1,5 +1,6 @@
 from src.models.ternary.setup import TernaryStartSetupModel
-from src.models.ternary.trace import TraceTabsPanelModel, MolarConversionModel
+from src.models.ternary.trace import MolarConversionModel
+from src.models.utils import TraceTabsPanelModel
 from src.models.ternary.plot import TernaryRenderPlotModel
 
 from src.models.utils import DataLibrary

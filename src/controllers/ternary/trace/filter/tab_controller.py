@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QMessageBox
 from src.models.ternary.trace.filter import FilterModel
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import TraceTabsPanelModel, TernaryTraceEditorModel
+    from src.models.utils import TraceTabsPanelModel
+    from src.models.ternary.trace import TernaryTraceEditorModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace.filter import FilterTabView
 
