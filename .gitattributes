@@ -1,0 +1,6 @@
+# Exclude HTML files from language stats
+src/resources/*.html linguist-vendored
+
+# Ensure Python files are correctly detected
+*.py linguist-language=Python
+
