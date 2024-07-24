@@ -6,7 +6,12 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMessageBox
 
 from src.views import SettingsDialog
+
 from src.controllers.ternary import TernaryController
+# from src.controllers.cartesian import CartesianController
+# ...
+
+from src.controllers.components import TabController
 
 if TYPE_CHECKING:
     from src.models.app_state import AppModel
@@ -23,7 +28,20 @@ class AppController:
         self.setup_connections()
 
     def setup_connections(self):
+
+        # Set up child controllers --------------------
+
+        # Set up component controllers
+        self.tab_panel_controller = TabController(self.model.tab_model, self.view.tab_view)
+
+        # Set up plot type controllers
         self.ternary_controller = TernaryController(self.model.ternary_model, self.view)
+        # self.cartesian_controller = CartesianController(self.model.cartesian_model, self.view)
+        # ...
+
+        # ---------------------------------------------
+
+        # Set the current controller
         self.current_controller = self.ternary_controller
 
         # Connect the window's plotly interface to the web channel
@@ -35,7 +53,7 @@ class AppController:
         self.view.preview_button.clicked.connect(self._on_preview_clicked)
         self.view.save_button.clicked.connect(self._on_save_clicked)
 
-        # So is bootstrap
+        # Bootstrap is outside the scope of specific plot controllers
         self.view.bootstrap_button.clicked.connect(self._on_bootstrap_clicked)
 
         # Settings and Plot Type are also outside the scopy of specific plot controllers
@@ -43,6 +61,8 @@ class AppController:
         self.view.plot_type_combo.currentIndexChanged.connect(self._on_plot_type_changed)
         
         self.view.tab_view.has_trace.connect(self._on_tab_view_has_trace)
+
+        self.view.loaded_data_scroll_view.has_data.connect(self._on_loaded_data_exists)
 
     def _on_preview_clicked(self):
         curr_model = self.model.current_model
@@ -122,6 +142,7 @@ class AppController:
         # TODO change the app controllers current controler
 
     def _on_tab_view_has_trace(self, has_trace: bool):
+        """Event handler for when tabs are added/removed"""
         self.view.preview_button.setEnabled(has_trace)
         self.view.save_button.setEnabled(has_trace)
         self.view.bootstrap_button.setEnabled(has_trace)
@@ -129,3 +150,7 @@ class AppController:
             # TODO change this behavior for other plot modes
             # eg when in cartesian, want to call blank_cartesian() method
             self.view.display_blank_ternary_plot()
+
+    def _on_loaded_data_exists(self, exists: bool):
+        """Event handler for when data is loaded/removed"""
+        self.view.tab_view.new_tab_button.setEnabled(exists)
