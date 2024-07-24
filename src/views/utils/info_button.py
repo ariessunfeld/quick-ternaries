@@ -8,13 +8,17 @@ class InfoButton(QWidget):
     def __init__(self, main_window, msg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.main_window = main_window
+        self.msg = msg
 
         layout = QVBoxLayout(self)
         self.info_button = QToolButton()
         self.info_button.setCursor(Qt.PointingHandCursor)
         self.info_button.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
-        self.info_button.clicked.connect(lambda _ : self.show_info(msg))
+        self.info_button.clicked.connect(lambda _ : self.show_info(self.msg))
         layout.addWidget(self.info_button)
 
     def show_info(self, msg):
         QToolTip.showText(QCursor.pos(), msg)
+
+    def set_msg(self, value: str):
+        self.msg = value
