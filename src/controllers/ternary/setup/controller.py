@@ -65,7 +65,7 @@ class TernaryStartSetupController(QWidget):
 
     def setup_connections(self):
         # Connect add data button to model.data_library.add_data
-        self.view.loaded_data_scroll_view.add_data_button.clicked.connect(self.load_data)
+        #self.view.loaded_data_scroll_view.add_data_button.clicked.connect(self.load_data)
 
         # Connect view's lineEdits' updates to model updates
         self.view.labeled_line_edit_ternary_title.line_edit.textChanged.connect(self.title_changed)
@@ -140,10 +140,11 @@ class TernaryStartSetupController(QWidget):
             if not ok: return
             self.model.data_library.add_data(filepath, sheet, header)  # add data to library
             loaded_data = self.model.data_library.get_all_filenames()  # get all loaded data
-            self.view.loaded_data_scroll_view.clear()  # clear the loaded data view
+            #self.view.loaded_data_scroll_view.clear()  # clear the loaded data view
             for _shortname, _sheet, _path in loaded_data:  # repopulate with disambiguated names
-                list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-                close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+                #list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
+                #close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+                pass
             shared_columns = self.model.data_library.get_shared_columns()
             self.custom_apex_selection_controller.update_columns(shared_columns)
             self.custom_hover_data_selection_controller.update_columns(shared_columns)
@@ -169,11 +170,12 @@ class TernaryStartSetupController(QWidget):
     def on_remove_data_confirmed(self, filepath: str, sheet: str):
         # Gets triggered by ternary controller
         self.model.data_library.remove_data(filepath, sheet)  # remove data from library
-        self.view.loaded_data_scroll_view.clear()  # clear loaded data view
+        #self.view.loaded_data_scroll_view.clear()  # clear loaded data view
         loaded_data = self.model.data_library.get_all_filenames()  # repopulate from library
         for _shortname, _sheet, _path in loaded_data:
-            list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
-            close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            #list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
+            #close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            pass
         shared_columns = self.model.data_library.get_shared_columns()  # update custom apex selection and hoverdata
         self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
         self.custom_hover_data_selection_controller.update_columns(shared_columns)

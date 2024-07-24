@@ -18,6 +18,14 @@ from src.views.utils import ListItemWidget
 class LoadedDataScrollView(QWidget):
     has_data = Signal(bool)
 
+    ADD_FILES_ICON = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        '..',
+        'assets',
+        'icons',
+        'add_files.png')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setMinimumHeight(150)
@@ -47,14 +55,7 @@ class LoadedDataScrollView(QWidget):
         # stretch to center the content
         button_layout.addStretch()
         
-        add_files_icon_path = os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            '..',
-            '..',
-            'assets',
-            'icons',
-            'add_files.png')
+        add_files_icon_path = self.ADD_FILES_ICON
         icon = QIcon(add_files_icon_path)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(20, 20))

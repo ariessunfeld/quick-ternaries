@@ -16,6 +16,15 @@ from PySide6.QtGui import QIcon
 from .icon_button import IconButton
 
 class ListItemWidget(QWidget):
+
+    TRASH_CAN_ICON = os.path.join(
+        os.path.dirname(__file__), 
+        '..',
+        '..',
+        'assets', 
+        'icons',
+        'trash_can.png')
+    
     def __init__(self, title, full_path, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -36,12 +45,6 @@ class ListItemWidget(QWidget):
         self.layout.addWidget(label)
 
     def create_close_button(self):
-        trash_can_icon_path = os.path.join(
-            os.path.dirname(__file__), 
-            '..',
-            '..',
-            'assets', 
-            'icons',
-            'trash_can.png')
+        trash_can_icon_path = self.TRASH_CAN_ICON
         self.close_button = IconButton(trash_can_icon_path, size=16)
         self.layout.addWidget(self.close_button)
