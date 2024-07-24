@@ -1,10 +1,15 @@
 """Contains Model representing global application state"""
 
+from src.models.utils import DataLibrary
+
 from src.models.ternary.model import TernaryModel
 # import more plot mode models here
 
 class AppModel:
     def __init__(self):
+
+        self.data_library = DataLibrary()
+
         self.ternary_model = TernaryModel()
         self.cartesian_model = None  # TODO
         self.depth_profile_model = None  # TODO
