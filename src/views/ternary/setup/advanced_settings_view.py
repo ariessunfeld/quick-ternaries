@@ -23,7 +23,7 @@ class AdvancedSettingsView(QWidget):
 
         self.ternary_sum_combo = LeftLabeledComboBox("Ternary Sum:")
         self.ternary_sum_combo.addItems(["1", "100"])
-        layout.addWidget(self.ternary_sum_combo, 0, 0)
+        layout.addWidget(self.ternary_sum_combo, 0, 0, 1, 2)
 
         self.show_grid = LeftLabeledCheckbox("Show Grid")
         self.show_grid.setChecked(True)
