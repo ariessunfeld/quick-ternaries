@@ -9,10 +9,12 @@ from src.controllers.ternary.trace import (
     AdvancedSettingsController,
     HeatmapEditorController,
     SizemapEditorController,
-    TabController,
     TernaryTraceEditorController,
     TernaryTraceMolarConversionController,
 )
+
+from src.controllers.components.tab_panel_controller import TabController
+
 from src.controllers.ternary.setup import TernaryStartSetupController
 from src.controllers.ternary.trace.filter import (
     FilterEditorController,
