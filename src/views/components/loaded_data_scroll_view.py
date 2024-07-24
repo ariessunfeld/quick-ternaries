@@ -15,7 +15,7 @@ from PySide6.QtGui import QIcon
 
 from src.views.utils import ListItemWidget
 
-class LoadedDataScrollView(QWidget):
+class DataLibraryView(QWidget):
     has_data = Signal(bool)
 
     ADD_FILES_ICON = os.path.join(
