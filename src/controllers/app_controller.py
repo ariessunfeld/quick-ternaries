@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMessageBox
 
-from src.views.settings_window import SettingsDialog
+from src.views import SettingsDialog
 from src.controllers.ternary import TernaryController
 
 if TYPE_CHECKING:
