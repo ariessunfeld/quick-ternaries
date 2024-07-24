@@ -88,7 +88,25 @@ class MainWindow(QMainWindow):
         'fonts',
         'OpenSans-Regular.ttf')
     
-    PLOT_TYPES = ["Ternary", "Cartesian", "ZMap", "Depth Profile"]
+    # Dict of plot types 
+    # keys used to populate plot type combobox
+    # values used to get plot-specific views
+    PLOT_TYPES = {
+        
+        # ---- General ----
+
+        "Ternary": 'ternary', 
+        "Cartesian": 'cartesian', 
+        # "Correlation Plot": 'corrplot',
+        # "Area Chart": 'area_chart',
+        # "Rose Plot": 'roseplot,
+
+        # ---- Special ----
+
+        # "ZMap": 'zmap', 
+        # "Depth Profile: 'depth_profile"
+
+    }
     
     def __init__(self):
         super().__init__()
@@ -117,7 +135,7 @@ class MainWindow(QMainWindow):
         
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
-        self.plot_type_combo.addItems(self.PLOT_TYPES)
+        self.plot_type_combo.addItems(self.PLOT_TYPES.keys())
         
         # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
