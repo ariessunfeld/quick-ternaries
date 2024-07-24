@@ -12,6 +12,8 @@ from .left_labeled_font_combobox import LeftLabeledFontComboBox
 from .left_labeled_image_combobox import LeftLabeledImageComboBox
 from .centered_labeled_button import LabeledButton
 from .custom_splitter import CustomSplitter
+from .gif_popup import GifPopup
+from .custom_pushbutton import PushButton
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -27,5 +29,7 @@ __all__ = [
     "LeftLabeledFontComboBox",
     "LeftLabeledImageComboBox",
     "LabeledButton",
-    "CustomSplitter"
+    "CustomSplitter",
+    "GifPopup",
+    "PushButton"
 ]

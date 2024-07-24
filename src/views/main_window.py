@@ -42,29 +42,13 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
-from src.views.utils import CustomSplitter
+from src.views.utils import (
+    CustomSplitter,
+    GifPopup,
+    PushButton
+)
 
 from src.services.utils.plotly_interface import PlotlyInterface
-    
-
-class GifPopup(QWidget):
-    def __init__(self, gif_path, width, height, text, parent=None):
-        super(GifPopup, self).__init__(parent)
-        self.setWindowFlag(Qt.Popup)
-
-        self.text_label = QLabel(text, self)
-        self.gif_label = QLabel(self)
-        self.movie = QMovie(gif_path)
-        self.movie.setScaledSize(QSize(width, height))
-        self.gif_label.setMovie(self.movie)
-        self.gif_label.setFixedSize(width, height)
-
-        layout = QHBoxLayout()
-        layout.addWidget(self.text_label)
-        layout.addWidget(self.gif_label)
-        self.setLayout(layout)
-
-        self.movie.start()
 
 
 class MainWindow(QMainWindow):
@@ -74,11 +58,14 @@ class MainWindow(QMainWindow):
         '..', 
         'resources', 
         'blank_ternary_plot.html')
+    
     BLANK_CARTESIAN_PATH = os.path.join(
         os.path.dirname(__file__), 
         '..', 
         'resources', 
         'blank_cartesian_plot.html')
+    
+    PLOT_TYPES = ["Ternary", "Cartesian", "ZMap", "Depth Profile"]
     
     def __init__(self):
         super().__init__()
@@ -112,7 +99,7 @@ class MainWindow(QMainWindow):
         
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
-        self.plot_type_combo.addItems(["Ternary", "Cartesian", "ZMap", "Depth Profile"])
+        self.plot_type_combo.addItems(self.PLOT_TYPES)
         #self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
         
         # Add widgets to top bar
