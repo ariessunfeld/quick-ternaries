@@ -97,8 +97,8 @@ class AppController:
             # Case where user is switching to Cartesian, confirmed
             if response == QMessageBox.Yes:
                 self.model.ternary_model.start_setup_model.switch_to_cartesian()
-                self.view.ternary_start_setup_view.switch_to_cartesian_view()
-                self.view.ternary_trace_editor_view.switch_to_cartesian_view()
+                self.view.ternary_setup_menu.switch_to_cartesian_view()
+                self.view.ternary_trace_editor.switch_to_cartesian_view()
                 self.view.bootstrap_button.setVisible(False)
                 self.view.switch_to_blank_cartesian()
                 self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
@@ -109,10 +109,10 @@ class AppController:
                 self.view.plot_type_combo.blockSignals(False)
         elif selected_plot_type.lower() == 'ternary':
             self.model.ternary_model.start_setup_model.switch_to_ternary()
-            self.view.ternary_start_setup_view.switch_to_ternary_view()
-            self.view.ternary_trace_editor_view.switch_to_ternary_view()
+            self.view.ternary_setup_menu.switch_to_ternary_view()
+            self.view.ternary_trace_editor.switch_to_ternary_view()
             self.view.bootstrap_button.setVisible(True)
-            self.view.switch_to_blank_ternary()
+            self.view.display_blank_ternary_plot()
             self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
             
         #self.model.switch_current_model(selected_plot_type)
@@ -128,4 +128,4 @@ class AppController:
         if not has_trace:
             # TODO change this behavior for other plot modes
             # eg when in cartesian, want to call blank_cartesian() method
-            self.view.switch_to_blank_ternary()
+            self.view.display_blank_ternary_plot()

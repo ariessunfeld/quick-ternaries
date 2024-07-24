@@ -28,7 +28,7 @@ from src.views.ternary.setup import (
     AdvancedSettingsView
 )
 
-class TernaryStartSetupView(QWidget):
+class TernarySetupMenu(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.main_layout = QVBoxLayout()

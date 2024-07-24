@@ -39,14 +39,15 @@ from PySide6.QtGui import (
 
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
-from src.views.ternary.setup.view import TernaryStartSetupView
-from src.views.ternary.trace.view import TernaryTraceEditorView
+from src.views.ternary.setup.view import TernarySetupMenu
+from src.views.ternary.trace.view import TernaryTraceEditor
 from src.views.ternary.trace.trace_scroll_area import TabView
 from src.views.utils import (
     CustomSplitter,
     GifPopup,
     PushButton
 )
+from src.views.components import LoadedDataScrollView
 
 from src.services.utils.plotly_interface import PlotlyInterface
 
@@ -95,7 +96,6 @@ class MainWindow(QMainWindow):
         # Plotting mode selection box
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(self.PLOT_TYPES)
-        #self.plot_type_combo.currentIndexChanged.connect(self.switch_plot_type)
         
         # Add widgets to top bar
         self.top_bar.addWidget(self.app_name_label)
@@ -112,19 +112,77 @@ class MainWindow(QMainWindow):
         # Left Scroll Area for Trace Tabs
         self.tab_view = TabView()
 
-        # Dynamic Content Area
-        self.dynamic_content_area = QStackedWidget()
-        self.ternary_start_setup_view = TernaryStartSetupView()
-        self.ternary_trace_editor_view = TernaryTraceEditorView()
-        # We will then have classes for CartesianTraceView, ZMapTraceView, etc.
-        # In these classes we can have the trace-level customization options for these other plot modes
-        # This might involve a file tree refactor where now we have src.views.ternary.start_setup and src.views.ternary.trace
-        # Will have to think about how we handle controllers etc, maybe the app has a "main controller" which changes for diff plot modes
-        self.dynamic_content_area.addWidget(self.ternary_start_setup_view)
-        self.dynamic_content_area.addWidget(self.ternary_trace_editor_view)
-        self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
+        # Dynamic content area for switching between Setup Menu and Trace Editor
+        self.changed_tab_stack = QStackedWidget()
 
-        # Right Area for Plotly Plot (using QWebEngineView)
+        # Dynamic content area for switching between various Setup Menus
+        self.setup_menu_inner_stack = QStackedWidget()
+
+        # Megawidget for loaded data and Setup Menus(s)
+        self.setup_menu_widget = QWidget()
+        self.setup_menu_layout = QVBoxLayout()
+        self.setup_menu_widget.setLayout(self.setup_menu_layout)
+
+        # Scroll area to display filenames for loaded data
+        self.loaded_data_scroll_view = LoadedDataScrollView()
+        self.setup_menu_layout.addWidget(self.loaded_data_scroll_view, 1)
+        self.setup_menu_layout.addWidget(self.setup_menu_inner_stack, 3)
+
+        # Specific plot-type setup menu and trace editor views
+
+        self.ternary_setup_menu = TernarySetupMenu()
+        self.ternary_trace_editor = TernaryTraceEditor()
+
+        # ----------------------------------------
+
+        # self.cartesian_setup_menu = CartesianSetupMenu()
+        # self.cartesian_trace_editor = CartesianTraceEditor()
+
+        # self.corrplot_setup_menu = CorrplotSetupMenu()
+        # self.corrplot_trace_editor = CorrplotTraceEditor()
+        
+        # self.zmap_setup_menu = ZmapSetupMenu()
+        # self.zmap_trace_editor = ZmapTraceEditor()
+        
+        # self.depth_profile_setup_menu = DepthProfileSetupMenu()
+        # self.depth_profile_trace_editor = DepthProfileTraceEditor()
+        
+        # self.area_chart_setup_menu = AreaChartSetupMenu()
+        # self.area_chart_trace_editor = AreaChartTraceEditor()
+
+        # self.roseplot_setup_menu = RoseplotSetupMenu()
+        # self.roseplot_trace_editor = RoseplotTraceEditor()
+
+        # ----------------------------------------
+        
+        # Add the generic setup menu widget to the changed tab stack
+        # This widget contains the loaded data area and the setup menu inner stack
+        self.changed_tab_stack.addWidget(self.setup_menu_widget)
+
+        # Add the plot type trace editors to the changed tab stack
+        self.changed_tab_stack.addWidget(self.ternary_trace_editor)
+        # self.changed_tab_stack.addWidget(self.cartesian_trace_editor)
+        # self.changed_tab_stack.addWidget(self.corrplot_trace_editor)
+        # self.changed_tab_stack.addWidget(self.zmap_trace_editor)
+        # self.changed_tab_stack.addWidget(self.depth_profile_trace_editor)
+        # self.changed_tab_stack.addWidget(self.area_chart_trace_editor)
+        # self.changed_tab_stack.addWidget(self.roseplot_trace_editor)
+
+        # Add the plot type setup menus to the setup menu inner stack
+        self.setup_menu_inner_stack.addWidget(self.ternary_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.cartesian_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.corrplot_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.zmap_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.depth_profile_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.area_chart_setup_menu)
+        # self.setup_menu_inner_stack.addWidget(self.roseplot_setup_menu)
+        
+        # Start the changed tab stack on setup menu widget
+        # Start the inner stack on the ternary setup menu
+        self.changed_tab_stack.setCurrentWidget(self.setup_menu_widget)
+        self.setup_menu_inner_stack.setCurrentWidget(self.ternary_setup_menu)
+
+        # Right Area for displaying Plotly Plot (using QWebEngineView)
         self.plot_view = QWebEngineView()
         self.plot_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -135,10 +193,11 @@ class MainWindow(QMainWindow):
         self.plot_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # Load local HTML file
-        self.switch_to_blank_ternary()
+        self.display_blank_ternary_plot()
 
+        # Add a splitter so user can drag the plot area to resize horizontally
         self.main_splitter = CustomSplitter(Qt.Horizontal)
-        self.main_splitter.addWidget(self.dynamic_content_area)
+        self.main_splitter.addWidget(self.changed_tab_stack)
         self.main_splitter.addWidget(self.plot_scroll_area)
 
         # Main Layout
@@ -146,8 +205,6 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         self.main_layout.addWidget(self.tab_view, 1)
-        # self.main_layout.addWidget(self.dynamic_content_area, 3)
-        # self.main_layout.addWidget(self.plot_scroll_area, 3)
         self.main_layout.addWidget(self.main_splitter, 6)
 
         # Combine Top Bar and Main Layout
@@ -161,9 +218,13 @@ class MainWindow(QMainWindow):
         self.central_widget.setLayout(self.central_layout)
         self.setCentralWidget(self.central_widget)
 
+        # Handle dark/light-mode changes while app is running
         QApplication.instance().paletteChanged.connect(self.on_palette_changed)
 
     def setupFonts(self):
+        """
+        Adds fonts (eg Open Sans) to the set of recognized application fonts
+        """
         font_path = os.path.join(
             os.path.dirname(__file__),
             '..',
@@ -180,18 +241,18 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(750, lambda: self.update_title_view("quick ternaries"))
 
     def switch_to_start_setup_view(self):
-        self.dynamic_content_area.setCurrentWidget(self.ternary_start_setup_view)
+        self.changed_tab_stack.setCurrentWidget(self.ternary_setup_menu)
     
     def switch_to_trace_view(self):
-        self.dynamic_content_area.setCurrentWidget(self.ternary_trace_editor_view)
+        self.changed_tab_stack.setCurrentWidget(self.ternary_trace_editor)
 
     def switch_to_standard_trace_view(self):
         self.switch_to_trace_view()
-        self.ternary_trace_editor_view.switch_to_standard_view()
+        self.ternary_trace_editor.switch_to_standard_view()
     
     def switch_to_bootstrap_trace_view(self):
         self.switch_to_trace_view()
-        self.ternary_trace_editor_view.switch_to_bootstrap_view()
+        self.ternary_trace_editor.switch_to_bootstrap_view()
 
     # def switch_plot_type(self, index):
     #     plot_type = self.plot_type_combo.itemText(index)
@@ -221,7 +282,7 @@ class MainWindow(QMainWindow):
 
         return filepath, dpi
 
-    def switch_to_blank_ternary(self):
+    def display_blank_ternary_plot(self):
         url = QUrl.fromLocalFile(self.BLANK_TERNARY_PATH)
         self.plot_view.setUrl(url)
 

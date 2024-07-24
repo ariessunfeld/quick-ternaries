@@ -37,11 +37,11 @@ class TernaryController:
 
         self.start_setup_controller = TernaryStartSetupController(
             self.model.start_setup_model, 
-            self.view.ternary_start_setup_view)
+            self.view.ternary_setup_menu)
         
         self.trace_controller = TernaryTraceEditorController(
             self.model.tab_model, 
-            self.view.ternary_trace_editor_view)
+            self.view.ternary_trace_editor)
         
         self.tab_controller = TabController(
             self.model.tab_model, 
@@ -49,31 +49,31 @@ class TernaryController:
         
         self.filter_editor_controller = FilterEditorController(
             self.model.tab_model, 
-            self.view.ternary_trace_editor_view.filter_view.filter_editor_view)
+            self.view.ternary_trace_editor.filter_view.filter_editor_view)
         
         self.filter_tab_controller = FilterTabController(
             self.model.tab_model, 
-            self.view.ternary_trace_editor_view.filter_view.filter_tab_view)
+            self.view.ternary_trace_editor.filter_view.filter_tab_view)
         
         self.heatmap_editor_controller = HeatmapEditorController(
             self.model.tab_model, 
-            self.view.ternary_trace_editor_view.heatmap_view)
+            self.view.ternary_trace_editor.heatmap_view)
         
         self.sizemap_editor_controller = SizemapEditorController(
             self.model.tab_model,
-            self.view.ternary_trace_editor_view.sizemap_view)
+            self.view.ternary_trace_editor.sizemap_view)
         
         self.advanced_settings_controller = AdvancedSettingsController(
             self.model.tab_model,
-            self.view.ternary_trace_editor_view.trace_editor_advanced_settings_view)
+            self.view.ternary_trace_editor.trace_editor_advanced_settings_view)
         
         self.molar_conversion_controller = TernaryTraceMolarConversionController(
             self.model.molar_conversion_model,
-            self.view.ternary_trace_editor_view.molar_conversion_view)
+            self.view.ternary_trace_editor.molar_conversion_view)
         
         self.bootstrap_error_entry_controller = TernaryBootstrapErrorEntryController(
             self.model.tab_model,
-            self.view.ternary_trace_editor_view.error_entry_view)
+            self.view.ternary_trace_editor.error_entry_view)
         
         # Give the child controllers access to the shared resource, data library
         self.trace_controller.set_data_library_reference(
@@ -197,7 +197,7 @@ class TernaryController:
         self.sizemap_editor_controller.change_trace_tab(trace_model.sizemap_model)
         
         # Main window's trace view's dynamic content area switches to filter setup view (away from specific filter configuration)
-        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()
+        self.view.ternary_trace_editor.filter_view.switch_to_filter_setup_view()
 
         # Filter tab controller clears existing tab widgets, repopulates with those from trace_model.filter_tab_model
         self.filter_tab_controller.change_trace_tab(trace_model)
@@ -206,7 +206,7 @@ class TernaryController:
 
     def _change_filter_tab(self, filter_model: 'FilterModel'):
         # Main window's trace view's dynamic content area switches to filter view
-        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_editor_view()
+        self.view.ternary_trace_editor.filter_view.switch_to_filter_editor_view()
 
         # If there is a filter model in this signal,
         if filter_model and self.model.tab_model.current_tab.selected_data_file:
@@ -221,7 +221,7 @@ class TernaryController:
             self.filter_editor_controller.change_filter_tab(filter_model)
 
     def _change_filter_setup_tab(self):
-        self.view.ternary_trace_editor_view.filter_view.switch_to_filter_setup_view()
+        self.view.ternary_trace_editor.filter_view.switch_to_filter_setup_view()
 
     def _change_to_start_setup(self):
         self.view.switch_to_start_setup_view()

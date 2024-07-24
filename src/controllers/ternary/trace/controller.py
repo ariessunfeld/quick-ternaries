@@ -7,7 +7,7 @@ from PySide6.QtCore import QObject, Signal
 if TYPE_CHECKING:
     from src.models.ternary.trace import TernaryTraceEditorModel, TraceTabsPanelModel
     from src.models.utils.data_models import DataLibrary
-    from src.views.ternary.trace import TernaryTraceEditorView
+    from src.views.ternary.trace import TernaryTraceEditor
 
 class TernaryTraceEditorController(QObject):
 
@@ -21,7 +21,7 @@ class TernaryTraceEditorController(QObject):
     def __init__(
             self, 
             model: 'TraceTabsPanelModel',
-            view: 'TernaryTraceEditorView'):
+            view: 'TernaryTraceEditor'):
         
         super().__init__()
         

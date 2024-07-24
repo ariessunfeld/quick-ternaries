@@ -39,7 +39,7 @@ from src.views.utils import (
     InfoButton
 )
 
-class TernaryTraceEditorView(QWidget):
+class TernaryTraceEditor(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.main_layout = QVBoxLayout()
@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
 
-    window = TernaryTraceEditorView()
+    window = TernaryTraceEditor()
     window.show()
 
     sys.exit(app.exec())

@@ -29,7 +29,7 @@ from src.utils.ternary_types import TERNARY_TYPES
 
 if TYPE_CHECKING:
     from src.models.ternary.setup import TernaryStartSetupModel
-    from src.views.ternary.setup import TernaryStartSetupView
+    from src.views.ternary.setup import TernarySetupMenu
 
 
 class TernaryStartSetupControllerSignaller(QObject):
@@ -50,7 +50,7 @@ class TernaryStartSetupController(QWidget):
     'Custom apex selection and custom hover data selection will not work.\n\n' +\
     'Remove one or more loaded data files to increase the number of shared column names.'
 
-    def __init__(self, model: 'TernaryStartSetupModel', view: 'TernaryStartSetupView'):
+    def __init__(self, model: 'TernaryStartSetupModel', view: 'TernarySetupMenu'):
 
         super().__init__()
 
