@@ -54,6 +54,8 @@ from src.services.utils.plotly_interface import PlotlyInterface
 
 class MainWindow(QMainWindow):
 
+    # TODO eventually move these paths into a config module
+    # update the paths accordingly
     BLANK_TERNARY_PATH = os.path.join(
         os.path.dirname(__file__), 
         '..', 
@@ -65,6 +67,26 @@ class MainWindow(QMainWindow):
         '..', 
         'resources', 
         'blank_cartesian_plot.html')
+    
+    TERNARY_BOOTSTRAP_TUTORIAL_PATH = os.path.join(
+        os.path.dirname(__file__), 
+        '..', 
+        'resources', 
+        'bootstrap-tutorial.gif')
+    
+    TITLE_FONT = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'assets',
+        'fonts',
+        'Motter_Tektura_Normal.ttf')
+    
+    DEFAULT_PLOT_FONT = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'assets',
+        'fonts',
+        'OpenSans-Regular.ttf')
     
     PLOT_TYPES = ["Ternary", "Cartesian", "ZMap", "Depth Profile"]
     
@@ -225,12 +247,7 @@ class MainWindow(QMainWindow):
         """
         Adds fonts (eg Open Sans) to the set of recognized application fonts
         """
-        font_path = os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            'assets',
-            'fonts',
-            'OpenSans-Regular.ttf')
+        font_path = self.DEFAULT_PLOT_FONT
         QFontDatabase.addApplicationFont(font_path)
 
     @Slot()
@@ -282,6 +299,8 @@ class MainWindow(QMainWindow):
 
         return filepath, dpi
 
+    # TODO refactor these two methods into a single display_blank_plot(self) method
+    # that looks up the current plot type and display the correct one
     def display_blank_ternary_plot(self):
         url = QUrl.fromLocalFile(self.BLANK_TERNARY_PATH)
         self.plot_view.setUrl(url)
@@ -291,11 +310,7 @@ class MainWindow(QMainWindow):
         self.plot_view.setUrl(url)
 
     def show_bootstrap_tutorial_gif(self):
-        tutorial_gif = os.path.join(
-            os.path.dirname(__file__), 
-            '..', 
-            'resources', 
-            'bootstrap-tutorial.gif')
+        tutorial_gif = self.TERNARY_BOOTSTRAP_TUTORIAL_PATH
         msg = "Use the Lasso tool in the top-right of the ternary\nplot window to select a single point.\n\n"
         msg += "Then click `Bootstrap` to configure an uncertainty\ncontour around this point.\n\n"
         msg += "Ensure that only a single point is selected with the lasso."
@@ -309,12 +324,7 @@ class MainWindow(QMainWindow):
         The title label is configured to display the 'quick ternaries' logo which includes a
         hyperlink to the project repository.
         """
-        font_path = os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            'assets',
-            'fonts',
-            'Motter_Tektura_Normal.ttf')
+        font_path = self.TITLE_FONT
         font_id = QFontDatabase.addApplicationFont(font_path)
         self.title_label = QLabel()
         if font_id != -1:
