@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QMessageBox
 
 from src.models.ternary.trace import TernaryTraceEditorModel
 from src.models.utils import TraceTabsPanelModel
-from src.views.ternary.trace import DraggableTab, TabView
+from src.views.components import TabView
+from src.views.components.tab_panel import DraggableTab
 
 class TabController(QObject):
     

@@ -41,7 +41,9 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from src.views.ternary.setup.view import TernarySetupMenu
 from src.views.ternary.trace.view import TernaryTraceEditor
-from src.views.ternary.trace.trace_scroll_area import TabView
+
+from src.views.components import TabView
+
 from src.views.utils import (
     CustomSplitter,
     GifPopup,

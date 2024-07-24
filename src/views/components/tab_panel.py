@@ -31,6 +31,7 @@ class DragTargetIndicator(QLabel):
         #     "QLabel { background-color: #ccc; border: 1px solid black; }"
         # )
 
+
 class DraggableTab(QWidget):
     tab_clicked = Signal(str)
     tab_closed = Signal(str)
@@ -116,6 +117,7 @@ class DraggableTab(QWidget):
 
     def dragMoveEvent(self, event):
         event.ignore()
+
 
 class TabView(QWidget):
     """
