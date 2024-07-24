@@ -23,7 +23,6 @@ from src.views.utils import (
 from src.views.ternary.setup import (
     CustomApexSelectionView,
     CustomHoverDataSelectionView,
-    LoadedDataScrollView,
     TernaryApexScalingView,
     AdvancedSettingsView
 )
@@ -46,7 +45,7 @@ class TernarySetupMenu(QWidget):
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         # Scroll area to display filenames for loaded data
-        self.loaded_data_scroll_view = LoadedDataScrollView()
+        #self.loaded_data_scroll_view = LoadedDataScrollView()
 
         # Combobox to select ternary type
         self.combobox_ternary_type: QComboBox = QComboBox()
@@ -97,7 +96,7 @@ class TernarySetupMenu(QWidget):
         self.advanced_settings_view.setVisible(False)
 
         # Add widgets to the content layout
-        self.content_layout.addWidget(self.loaded_data_scroll_view)
+        #self.content_layout.addWidget(self.loaded_data_scroll_view)
         self.content_layout.addWidget(self.combobox_ternary_type)
         self.content_layout.addWidget(self.custom_apex_selection_view)
         self.content_layout.addWidget(self.labeled_line_edit_ternary_title)
