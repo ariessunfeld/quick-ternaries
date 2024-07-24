@@ -83,14 +83,9 @@ class MainWindow(QMainWindow):
 
         # Bottom Bar
         self.bottom_bar = QHBoxLayout()
-        self.preview_button = QPushButton("Preview")
-        self.save_button = QPushButton("Save")
-        self.bootstrap_button = QPushButton("Bootstrap")
-
-        # switch to pointing hand cursor when hovering over buttons
-        self.preview_button.setCursor(Qt.PointingHandCursor)
-        self.save_button.setCursor(Qt.PointingHandCursor)
-        self.bootstrap_button.setCursor(Qt.PointingHandCursor)
+        self.preview_button = PushButton("Preview")
+        self.save_button = PushButton("Save")
+        self.bootstrap_button = PushButton("Bootstrap")
         
         # disable previewing and saving upon initialization
         self.preview_button.setEnabled(False)
