@@ -268,3 +268,9 @@ In the Command Prompt, the process is similar. The easiest way to get to a speci
 
 O#: O4762  
 see `LICENSE` file for OSS and MIT license details
+
+# Contact
+
+We would truly love to hear from you, whether you need help getting set up, have found a bug, have suggestions for changes or new features, or just want to chat! Please feel free to reach out to us via email:
+- Ari Essunfeld — `ariessunfeld [at] gmail`
+- Reid Morris — `reidmorris0419 [at] gmail`
