@@ -100,7 +100,7 @@ class AppController:
                 self.view.ternary_setup_menu.switch_to_cartesian_view()
                 self.view.ternary_trace_editor.switch_to_cartesian_view()
                 self.view.bootstrap_button.setVisible(False)
-                self.view.switch_to_blank_cartesian()
+                self.view.display_blank_cartesian_plot()
                 self.current_controller.start_setup_controller.custom_apex_selection_controller.refresh_view()
             else:
                 # Block signals, set plot type combo back to Ternary, and unblock signals

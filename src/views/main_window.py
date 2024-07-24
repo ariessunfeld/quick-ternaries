@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         url = QUrl.fromLocalFile(self.BLANK_TERNARY_PATH)
         self.plot_view.setUrl(url)
 
-    def switch_to_blank_cartesian(self):
+    def display_blank_cartesian_plot(self):
         url = QUrl.fromLocalFile(self.BLANK_CARTESIAN_PATH)
         self.plot_view.setUrl(url)
 
