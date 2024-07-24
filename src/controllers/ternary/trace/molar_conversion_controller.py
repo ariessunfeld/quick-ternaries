@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject
 
 if TYPE_CHECKING:
-    from src.models.ternary.trace import TernaryTraceMolarConversionModel
+    from src.models.ternary.trace import MolarConversionModel
     from src.views.ternary.trace import TernaryTraceMolarConversionView
 
 class TernaryTraceMolarConversionController(QObject):
     
     def __init__(
             self,
-            model: 'TernaryTraceMolarConversionModel',
+            model: 'MolarConversionModel',
             view: 'TernaryTraceMolarConversionView'):
         super().__init__()
 

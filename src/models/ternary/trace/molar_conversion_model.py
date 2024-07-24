@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from molmass import Formula, FormulaError
 
-class TernaryTraceMolarConversionModel:
+class MolarConversionModel:
     
     def __init__(self):
         self.column_chemical_mapping = {}
