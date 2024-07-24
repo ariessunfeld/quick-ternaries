@@ -103,3 +103,19 @@ class DataLibraryController(QObject):
             # Signal so the ternary controller can see
             self.remove_data_signal.emit((filepath, sheet))
 
+    def remove_data(self, filepath: str, sheet: str):
+        """Public method for removing data
+        
+        Gets called by parent controller 
+        """
+        # Gets triggered by ternary controller
+        self.model.data_library.remove_data(filepath, sheet)  # remove data from library
+        #self.view.loaded_data_scroll_view.clear()  # clear loaded data view
+        loaded_data = self.model.data_library.get_all_filenames()  # repopulate from library
+        for _shortname, _sheet, _path in loaded_data:
+            #list_item, close_button = self.view.loaded_data_scroll_view.add_item(_shortname, _path)
+            #close_button.clicked.connect(lambda _p=_path, _s=_sheet: self.remove_data(list_item, _p, _s))
+            pass
+        shared_columns = self.model.data_library.get_shared_columns()  # update custom apex selection and hoverdata
+        self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
+        self.custom_hover_data_selection_controller.update_columns(shared_columns)

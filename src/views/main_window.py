@@ -166,8 +166,8 @@ class MainWindow(QMainWindow):
         self.setup_menu_widget.setLayout(self.setup_menu_layout)
 
         # Scroll area to display filenames for loaded data
-        self.loaded_data_scroll_view = DataLibraryView()
-        self.setup_menu_layout.addWidget(self.loaded_data_scroll_view, 1)
+        self.data_library_view = DataLibraryView()
+        self.setup_menu_layout.addWidget(self.data_library_view, 1)
         self.setup_menu_layout.addWidget(self.setup_menu_inner_stack, 3)
 
         # Specific plot-type setup menu and trace editor views

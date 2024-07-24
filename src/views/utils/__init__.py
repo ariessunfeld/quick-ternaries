@@ -14,6 +14,7 @@ from .centered_labeled_button import LabeledButton
 from .custom_splitter import CustomSplitter
 from .gif_popup import GifPopup
 from .custom_pushbutton import PushButton
+from .delete_warning_box import DeleteWarningBox
 
 __all__ = [
     "LeftLabeledCheckbox",
@@ -31,5 +32,6 @@ __all__ = [
     "LabeledButton",
     "CustomSplitter",
     "GifPopup",
-    "PushButton"
+    "PushButton",
+    "DeleteWarningBox"
 ]

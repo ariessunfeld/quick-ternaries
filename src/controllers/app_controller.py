@@ -6,12 +6,14 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMessageBox
 
 from src.views import SettingsDialog
+from src.views.utils import DeleteWarningBox
 
 from src.controllers.ternary import TernaryController
 # from src.controllers.cartesian import CartesianController
 # ...
 
 from src.controllers.components import TabController
+from src.controllers.components import DataLibraryController
 
 if TYPE_CHECKING:
     from src.models.app_state import AppModel
@@ -19,6 +21,11 @@ if TYPE_CHECKING:
     from src.services.app_service import AppService
 
 class AppController:
+
+    TRACE_DELETION_WARNING = (
+        "Warning: removing this data will delete Trace(s) {fmt_list}.\n\n"
+        "To preserve the trace(s), click Cancel and change the trace selected data."
+    )
     
     def __init__(self, model: 'AppModel', view: 'MainWindow', service: 'AppService'):
         self.model = model
@@ -32,11 +39,16 @@ class AppController:
         # Set up child controllers --------------------
 
         # Set up component controllers
-        self.tab_panel_controller = TabController(self.model.tab_model, self.view.tab_view)
+        self.tab_panel_controller = TabController(
+            self.model.tab_model, self.view.tab_view)
+        self.data_library_controller = DataLibraryController(
+            self.model.data_library, self.view.data_library_view)
 
         # Set up plot type controllers
-        self.ternary_controller = TernaryController(self.model.ternary_model, self.view)
-        # self.cartesian_controller = CartesianController(self.model.cartesian_model, self.view)
+        self.ternary_controller = TernaryController(
+            self.model.ternary_model, self.view)
+        # self.cartesian_controller = CartesianController(
+        #   self.model.cartesian_model, self.view)
         # ...
 
         # ---------------------------------------------
@@ -62,7 +74,7 @@ class AppController:
         
         self.view.tab_view.has_trace.connect(self._on_tab_view_has_trace)
 
-        self.view.loaded_data_scroll_view.has_data.connect(self._on_loaded_data_exists)
+        self.view.data_library_view.has_data.connect(self._on_loaded_data_exists)
 
     def _on_preview_clicked(self):
         curr_model = self.model.current_model
@@ -94,10 +106,11 @@ class AppController:
             QMessageBox.information(None, 'Change ternary type', msg)
         else:
             selected_indices = self.view.plotly_interface.get_indices()
+            # TODO make this more robust to different plot types
             top = self.model.current_model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
             left = self.model.current_model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
             right = self.model.current_model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
-            success = self.current_controller.tab_controller.add_bootstrap_trace(None, selected_indices, top+left+right)
+            success = self.tab_panel_controller.add_bootstrap_trace(None, selected_indices, top+left+right)
             if not success:
                 self.view.show_bootstrap_tutorial_gif()
 
@@ -154,3 +167,39 @@ class AppController:
     def _on_loaded_data_exists(self, exists: bool):
         """Event handler for when data is loaded/removed"""
         self.view.tab_view.new_tab_button.setEnabled(exists)
+
+    def _on_remove_data_signal(self, filepath_and_sheet: tuple):
+        """Callback when user tries to remove data from Data Library
+        
+        Checks against the current traces to see which ones are using this data
+        If any are, warns user that those would be deleted, and user has to confirm
+        before proceeding with the delete
+
+        If no traces are using the to-be-deleted data, user simply has to confirm intent
+        """
+        filepath, sheet = filepath_and_sheet
+        data_file = self.model.data_library.get_data(filepath, sheet)
+        would_be_deleted = []
+        for tab_id in self.model.tab_model.order:
+            trace_model = self.model.tab_model.get_trace(tab_id)
+            if trace_model:
+                trace_model_file = trace_model.selected_data_file
+                if data_file == trace_model_file:
+                    would_be_deleted.append(tab_id)
+        fmt_list = ", ".join(would_be_deleted)
+
+        # If any traces would be deleted, triple-check with user
+        # Otherwise, just unload the data
+        if would_be_deleted:
+            
+            msg_box = DeleteWarningBox(
+                'Trace(s) Getting Deleted', 
+                self.TRACE_DELETION_WARNING.format(fmt_list))
+            response = msg_box.exec_()
+
+            if response == 5: #  'yes role' response
+                for tab_id in would_be_deleted:
+                    self.tab_panel_controller.remove_tab(tab_id, ask=False)
+                self.data_library_controller.remove_data(filepath, sheet)
+        else:
+            self.data_library_controller.remove_data(filepath, sheet)
