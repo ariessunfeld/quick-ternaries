@@ -16,52 +16,35 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QApplication,
     QMessageBox,
-    QScrollArea,
-    QSplitter,
-    QSplitterHandle
+    QScrollArea
 )
 
-from PySide6.QtCore import Qt, QRect, QSize, QUrl, QTimer, Slot
-from PySide6.QtGui import QColor, QIcon, QFontDatabase, QFont, QDesktopServices, QPalette, QMovie
+from PySide6.QtCore import (
+    Qt, 
+    QRect, 
+    QSize, 
+    QUrl, 
+    QTimer, 
+    Slot
+)
+
+from PySide6.QtGui import (
+    QIcon,
+    QFontDatabase, 
+    QFont, 
+    QDesktopServices, 
+    QPalette, 
+    QMovie
+)
+
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtGui import QPainter, QPen
 
 from src.views.ternary.setup.view import TernaryStartSetupView
 from src.views.ternary.trace.view import TernaryTraceEditorView
 from src.views.ternary.trace.trace_scroll_area import TabView
+from src.views.utils import CustomSplitter
 
 from src.services.utils.plotly_interface import PlotlyInterface
-
-# Disable the qt.pointer.dispatch debug messages
-os.environ["QT_LOGGING_RULES"] = "qt.pointer.dispatch=false;qt.webengine.*=false"
-
-
-class CustomSplitterHandle(QSplitterHandle):
-    def __init__(self, orientation, parent):
-        super().__init__(orientation, parent)
-        self.setCursor(Qt.SplitHCursor)  # Set the cursor to a horizontal split cursor
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # Set the color and pen for drawing
-        pen = QPen(QColor('#999999'))
-        pen.setWidth(2)
-        painter.setPen(pen)
-
-        # Draw vertical lines or arrows for horizontal splitters
-        mid_x = self.width() // 2 - 2
-        painter.drawLine(mid_x, 0, mid_x, self.height())
-        # painter.drawLine(mid_x - 3, 5, mid_x, 0)
-        # painter.drawLine(mid_x + 3, 5, mid_x, 0)
-
-class CustomSplitter(QSplitter):
-    def __init__(self, orientation, parent=None):
-        super().__init__(orientation, parent)
-
-    def createHandle(self):
-        return CustomSplitterHandle(self.orientation(), self)
     
 
 class GifPopup(QWidget):
