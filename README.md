@@ -28,6 +28,7 @@ Quick Ternaries is a python application designed to make ternary plotting a bree
   - [Running Commands](#running-commands)
   - [Navigating to a Directory](#navigating-to-a-directory)
 - [Copyright and License](#copyright-and-license)
+- [Contact](#contact)
 
 # Installation
 
