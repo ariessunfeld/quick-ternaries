@@ -8,9 +8,6 @@
 - X axis label
 - Y axis label
 
-- Heatmap option
-  (this should contain the column-selection option for the heatmap, like in Ternary start setup)
-
 - Custom hover data option
   (same as Ternary start setup)
 
