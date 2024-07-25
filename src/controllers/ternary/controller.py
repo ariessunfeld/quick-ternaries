@@ -263,7 +263,7 @@ class TernaryController:
 
     def update_shared_columns(self, shared_columns: list):
         self.start_setup_controller.custom_apex_selection_controller.update_columns(shared_columns)
-        self.start_setup_controller.custom_apex_selection_controller.update_columns(shared_columns)
+        self.start_setup_controller.custom_hover_data_selection_controller.update_columns(shared_columns)
 
     def _on_custom_column_added(self, column: str):
         # Step through the tab model's order
