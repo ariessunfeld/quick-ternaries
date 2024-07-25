@@ -2,8 +2,6 @@
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtWidgets import QMessageBox
-
 from src.models.ternary.model import TernaryModel
 from src.controllers.ternary.trace import (
     AdvancedSettingsController,
@@ -79,20 +77,19 @@ class TernaryController:
         
         # Give the child controllers access to the shared resource, data library
         self.trace_controller.set_data_library_reference(
-            self.model.start_setup_model.data_library)
+            self.model.data_library)
         
         self.filter_editor_controller.set_data_library_reference(
-            self.model.start_setup_model.data_library)
+            self.model.data_library)
         
         self.heatmap_editor_controller.set_data_library_reference(
-            self.model.start_setup_model.data_library)
+            self.model.data_library)
         
         self.sizemap_editor_controller.set_data_library_reference(
-            self.model.start_setup_model.data_library)
+            self.model.data_library)
         
         self.filter_tab_controller.set_data_library_reference(
-            self.model.start_setup_model.data_library)
-        
+            self.model.data_library)
 
         # Connect signals when the tab controller says to 
         # switch between start setup and trace tab views
@@ -126,8 +123,8 @@ class TernaryController:
             self.filter_editor_controller.update_view)
 
         # Connect start setup remove data signal to check if data is loaded in any traces
-        self.start_setup_controller.signaller.remove_data_signal.connect(
-            self._on_remove_data_signal)
+        # self.start_setup_controller.signaller.remove_data_signal.connect(
+        #     self._on_remove_data_signal)
 
         # Connect custom apex selection add data signal to molar conversion on add data
         self.start_setup_controller.signaller.apex_column_added.connect(
@@ -158,8 +155,8 @@ class TernaryController:
             self.bootstrap_error_entry_controller.refresh_bootstrapped_trace(trace_model)
         
         # Set the available filenames/files for the trace view
-        loaded_file_names = list(map(lambda x: x[0], self.model.start_setup_model.data_library.get_all_filenames()))
-        loaded_files = [self.model.start_setup_model.data_library.get_data_from_shortname(f) for f in loaded_file_names]
+        loaded_file_names = list(map(lambda x: x[0], self.model.data_library.get_all_filenames()))
+        loaded_files = [self.model.data_library.get_data_from_shortname(f) for f in loaded_file_names]
         
         if trace_model.available_data_file_names is not None:
             prev_available_data_file_names = trace_model.available_data_file_names.copy()
@@ -228,45 +225,49 @@ class TernaryController:
     def _change_to_start_setup(self):
         self.view.switch_to_start_setup_view()
 
-    def _on_remove_data_signal(self, filepath_and_sheet: tuple):
-        # Get the data from the data library
-        # Check it against each trace's "selected data"
-        # If match, warn user about traces that will be deleted
-        filepath, sheet = filepath_and_sheet
-        data_file = self.model.start_setup_model.data_library.get_data(filepath, sheet)
-        would_be_deleted = []
-        for tab_id in self.model.tab_model.order:
-            trace_model = self.model.tab_model.get_trace(tab_id)
-            if trace_model:
-                trace_model_file = trace_model.selected_data_file
-                if data_file == trace_model_file:
-                    would_be_deleted.append(tab_id)
-        fmt_list = ", ".join(would_be_deleted)
+    # def _on_remove_data_signal(self, filepath_and_sheet: tuple):
+    #     # Get the data from the data library
+    #     # Check it against each trace's "selected data"
+    #     # If match, warn user about traces that will be deleted
+    #     filepath, sheet = filepath_and_sheet
+    #     data_file = self.model.start_setup_model.data_library.get_data(filepath, sheet)
+    #     would_be_deleted = []
+    #     for tab_id in self.model.tab_model.order:
+    #         trace_model = self.model.tab_model.get_trace(tab_id)
+    #         if trace_model:
+    #             trace_model_file = trace_model.selected_data_file
+    #             if data_file == trace_model_file:
+    #                 would_be_deleted.append(tab_id)
+    #     fmt_list = ", ".join(would_be_deleted)
 
-        # If any traces would be deleted, triple-check with user
-        if would_be_deleted:
-            warning_msg = f"Warning: removing this data will delete Trace(s) {fmt_list}.\n\n"
-            warning_msg += f"To preserve these trace(s), click Cancel and change their selected data."
+    #     # If any traces would be deleted, triple-check with user
+    #     if would_be_deleted:
+    #         warning_msg = f"Warning: removing this data will delete Trace(s) {fmt_list}.\n\n"
+    #         warning_msg += f"To preserve these trace(s), click Cancel and change their selected data."
             
-            # Run the special message box
-            msg_box = QMessageBox()
-            msg_box.setWindowTitle("Trace(s) getting deleted")
-            msg_box.setText(warning_msg)
-            msg_box.setIcon(QMessageBox.Question)
-            msg_box.addButton('Delete', QMessageBox.YesRole)
-            msg_box.addButton('Cancel', QMessageBox.NoRole)
+    #         # Run the special message box
+    #         msg_box = QMessageBox()
+    #         msg_box.setWindowTitle("Trace(s) getting deleted")
+    #         msg_box.setText(warning_msg)
+    #         msg_box.setIcon(QMessageBox.Question)
+    #         msg_box.addButton('Delete', QMessageBox.YesRole)
+    #         msg_box.addButton('Cancel', QMessageBox.NoRole)
 
-            response = msg_box.exec_()
+    #         response = msg_box.exec_()
 
-            if response == 5: #  'yes role' response
-                # delete the relevant traces
-                for tab_id in would_be_deleted:
-                    self.tab_controller.remove_tab(tab_id, ask=False)
-                self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+    #         if response == 5: #  'yes role' response
+    #             # delete the relevant traces
+    #             for tab_id in would_be_deleted:
+    #                 self.tab_controller.remove_tab(tab_id, ask=False)
+    #             self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
         
-        # If no traces are going to be deleted, just go ahead after initial double-check
-        else:
-            self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+    #     # If no traces are going to be deleted, just go ahead after initial double-check
+    #     else:
+    #         self.start_setup_controller.on_remove_data_confirmed(filepath, sheet)
+
+    def update_shared_columns(self, shared_columns: list):
+        self.start_setup_controller.custom_apex_selection_controller.update_columns(shared_columns)
+        self.start_setup_controller.custom_apex_selection_controller.update_columns(shared_columns)
 
     def _on_custom_column_added(self, column: str):
         # Step through the tab model's order

@@ -38,10 +38,11 @@ class TabController(QObject):
         # Add trace button
         self.view.new_tab_button.clicked.connect(self._add_trace_button_event)
 
-    def _add_trace_button_event(self, event: bool):
+    def _add_trace_button_event(self):
         self.add_trace()
 
     def add_trace(self, trace_model: Optional[TernaryTraceEditorModel] = None):
+        print('Tab controller add trace called')
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
         tab_id = self.model.add_trace(trace_model)

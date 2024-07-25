@@ -75,6 +75,8 @@ class AppController:
         self.view.tab_view.has_trace.connect(self._on_tab_view_has_trace)
 
         self.view.data_library_view.has_data.connect(self._on_loaded_data_exists)
+        
+        self.data_library_controller.shared_columns_signal.connect(self._on_shared_columns_signal)
 
     def _on_preview_clicked(self):
         curr_model = self.model.current_model
@@ -203,3 +205,14 @@ class AppController:
                 self.data_library_controller.remove_data(filepath, sheet)
         else:
             self.data_library_controller.remove_data(filepath, sheet)
+
+    def _on_shared_columns_signal(self, shared_columns: list):
+        """Handle the shared column signal from the data library
+        
+        This signal emits a List[str] with the set intersection of the
+        column names from the currently loaded data
+
+        This controller must tell its child controllers to update their shared columns
+        """
+
+        self.ternary_controller.update_shared_columns(shared_columns)
