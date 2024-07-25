@@ -1,13 +1,12 @@
 """Base class for Trace Editor Models"""
 
-from abc import ABC
 from typing import List, Optional, TYPE_CHECKING
 
 import pandas as pd
 
 from src.models.utils.trace import (
     HeatmapModel, 
-    SizemapModel, 
+    BaseSizemapModel, 
     BootstrapErrorEntryModel
 )
 from src.models.utils.data_models import DataFile
@@ -16,7 +15,7 @@ from src.models.utils.trace.filter import FilterTabsPanelModel
 from src import __version__
 
 
-class BaseTraceEditorModel(ABC):
+class BaseTraceEditorModel:
 
     def __init__(
             self, 
@@ -37,7 +36,7 @@ class BaseTraceEditorModel(ABC):
             filter_data_checked: bool = False,
             advanced_settings_checked: bool = False,
             heatmap_model: Optional[HeatmapModel] = None,
-            sizemap_model: Optional[SizemapModel] = None,
+            sizemap_model: Optional[BaseSizemapModel] = None,
             filter_tab_model: Optional[FilterTabsPanelModel] = None,
             series: Optional[pd.Series] = None,
             line_thickness: Optional[float] = 2.0,
@@ -49,7 +48,7 @@ class BaseTraceEditorModel(ABC):
         # Direct access
         self.kind = kind
         self.heatmap_model = heatmap_model or HeatmapModel()
-        self.sizemap_model = sizemap_model or SizemapModel()
+        self.sizemap_model = sizemap_model or BaseSizemapModel()
         self.filter_tab_model = filter_tab_model or FilterTabsPanelModel()
         self.error_entry_model = error_entry_model or BootstrapErrorEntryModel()
 
@@ -129,7 +128,7 @@ class BaseTraceEditorModel(ABC):
             filter_data_checked=data.get('filter_data_checked', False),
             advanced_settings_checked=data.get('advanced_settings_checked', False),
             heatmap_model=HeatmapModel.from_json(data.get('heatmap_model', {})),
-            sizemap_model=SizemapModel.from_json(data.get('sizemap_model', {})),
+            sizemap_model=BaseSizemapModel.from_json(data.get('sizemap_model', {})),
             filter_tab_model=FilterTabsPanelModel.from_json(data.get('filter_tab_model', {})),
             series=series,
             line_thickness=data.get('line_thickness', 2.0),

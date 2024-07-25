@@ -87,14 +87,6 @@ class TernaryController:
         self.filter_tab_controller.set_data_library_reference(
             self.model.data_library)
 
-        # Connect signals when the tab controller says to 
-        # switch between start setup and trace tab views
-        # self.tab_controller.change_tab_signal.connect(
-        #     self.change_trace_tab)
-        
-        # self.tab_controller.change_to_start_setup_signal.connect(
-        #     self._change_to_start_setup)
-
         # Connect signals for when the filter tab controller says to 
         # switch between filter setup and filter editor views
         self.filter_tab_controller.change_filter_tab_signal.connect(
@@ -118,10 +110,6 @@ class TernaryController:
         self.filter_tab_controller.trace_data_selection_handled.connect(
             self.filter_editor_controller.update_view)
 
-        # Connect start setup remove data signal to check if data is loaded in any traces
-        # self.start_setup_controller.signaller.remove_data_signal.connect(
-        #     self._on_remove_data_signal)
-
         # Connect custom apex selection add data signal to molar conversion on add data
         self.start_setup_controller.signaller.apex_column_added.connect(
             self.molar_conversion_controller.on_new_custom_column_added)
@@ -135,11 +123,9 @@ class TernaryController:
             self._on_custom_column_removed)
 
     def change_trace_tab(self, trace_model: 'TernaryTraceEditorModel'):
-        
-        # Main window dynamic content area switches to trace view
-        #self.view.switch_to_trace_view()
 
         kind = trace_model.kind
+
         if kind == 'standard':
             self.view.switch_to_standard_trace_view()
         elif kind == 'bootstrap':
