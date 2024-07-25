@@ -10,6 +10,7 @@ from src.models.ternary.setup import (
     )
 from src.utils.ternary_types import TERNARY_TYPES
 
+
 class TernaryType:
     def __init__(self, name: str, top: List[str], left: List[str], right: List[str]):
         """
