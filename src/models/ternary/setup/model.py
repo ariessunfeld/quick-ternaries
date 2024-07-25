@@ -81,7 +81,6 @@ class TernaryType:
 class TernaryStartSetupModel:
 
     def __init__(self):
-        self.data_library = DataLibrary()
         
         self.available_ternary_types: List[TernaryType] = \
             [TernaryType(**tt) for tt in TERNARY_TYPES]
@@ -91,8 +90,6 @@ class TernaryStartSetupModel:
         
         self.custom_apex_selection_model = CustomApexSelectionModel()
         self.custom_hover_data_selection_model = CustomHoverDataSelectionModel([], [])
-        self.header_row_selection_model = HeaderRowSelectionModel([])
-        self.sheet_selection_model = SheetSelectionModel([''])
         self.apex_scaling_model = TernaryApexScalingModel()
         self.advanced_settings_model = AdvancedSettingsModel()
         
@@ -104,9 +101,6 @@ class TernaryStartSetupModel:
         self.custom_hover_data_is_checked = False
         self.scale_apices_is_checked = False
         self.advanced_settings_is_checked = False
-        
-        self.controller = None
-        self.view = None
 
     def get_ternary_type(self) -> TernaryType:
         return self.selected_ternary_type
