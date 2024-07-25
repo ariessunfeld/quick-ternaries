@@ -8,8 +8,6 @@ from src.models.ternary.setup import (
     TernaryApexScalingModel,
     AdvancedSettingsModel
     )
-from src.models.utils.data_models import DataLibrary
-from src.models.utils.selection_models import HeaderRowSelectionModel, SheetSelectionModel
 from src.utils.ternary_types import TERNARY_TYPES
 
 class TernaryType:
