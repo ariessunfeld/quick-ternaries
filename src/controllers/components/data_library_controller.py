@@ -136,7 +136,9 @@ class DataLibraryController(QObject):
             filepath: str|Path|None, 
             df: pd.DataFrame, 
             suggested_header: int=0) -> Tuple[str|None, bool]:
-        """Prompts user to select a header row for filepath"""
+        """
+        Prompts user to select a header row for the file being loaded
+        """
         
         def parse_header_val_from_choice(choice: str):
             """Utility function for parsing user choice from input dialog repr"""
@@ -169,15 +171,12 @@ class DataLibraryController(QObject):
         
         Gets called by parent controller when user confirms removal intent
         """
-        self.model.data_library.remove_data(filepath, sheet)
+        self.model.remove_data(filepath, sheet)
         self.view.clear()
         loaded_data = self.model.get_all_filenames()
         for _shortname, _sheet, _path in loaded_data:
             list_item, close_button = self.view.add_item(_shortname, _path)
             close_button.clicked.connect(lambda _p=_path, _s=_sheet: self._remove_data(list_item, _p, _s))
-        shared_columns = self.model.get_shared_columns()  # update custom apex selection and hoverdata
+        shared_columns = self.model.get_shared_columns() 
         
-        # TODO emit signal here rather than performing direct update
         self.shared_columns_signal.emit(shared_columns)
-        # self.custom_apex_selection_controller.update_columns(shared_columns)  # with shared columns
-        # self.custom_hover_data_selection_controller.update_columns(shared_columns)

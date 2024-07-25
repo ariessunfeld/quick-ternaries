@@ -43,10 +43,6 @@ class TernaryController:
             self.model.tab_model, 
             self.view.ternary_trace_editor)
         
-        # self.tab_controller = TabController(
-        #     self.model.tab_model, 
-        #     self.view.tab_view)
-        
         self.filter_editor_controller = FilterEditorController(
             self.model.tab_model, 
             self.view.ternary_trace_editor.filter_view.filter_editor_view)

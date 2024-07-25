@@ -81,6 +81,7 @@ class AppController:
         # Connect data library signals
         self.view.data_library_view.has_data.connect(self._on_loaded_data_exists)
         self.data_library_controller.shared_columns_signal.connect(self._on_shared_columns_signal)
+        self.data_library_controller.remove_data_signal.connect(self._on_remove_data_signal)
 
     def _on_preview_clicked(self):
         """Callback for Preview button click event"""
@@ -203,6 +204,7 @@ class AppController:
                 'Trace(s) Getting Deleted', 
                 self.TRACE_DELETION_WARNING.format(fmt_list))
             response = msg_box.exec_()
+            print(f'Got response: {response=}')
 
             if response == 5: #  'yes role' response
                 for tab_id in would_be_deleted:

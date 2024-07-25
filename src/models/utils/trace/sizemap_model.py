@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-class SizemapModel:
+class BaseSizemapModel:
     
     def __init__(
             self,

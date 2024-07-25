@@ -2,10 +2,10 @@
 
 from typing import List, Optional
 
-from src.models.utils.trace import SizemapModel as SM
+from src.models.utils.trace import BaseSizemapModel
 
 
-class SizemapModel(SM):
+class SizemapModel(BaseSizemapModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
