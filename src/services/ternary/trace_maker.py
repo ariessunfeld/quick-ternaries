@@ -1,7 +1,7 @@
 """Ploty Graph Objects Scatterternary Trace Maker"""
 
 import time
-from typing import List, Dict, Tuple, TYPE_CHECKING
+from typing import List, Dict, Tuple, Optional, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -40,13 +40,17 @@ from src.services.utils.contour_utils import (
 if TYPE_CHECKING:
     from src.models.ternary import TernaryModel
     from src.models.ternary.setup import TernaryType
-    from src.models.ternary.trace import TernaryTraceEditorModel
+    from src.models.ternary.trace import (
+        TernaryTraceEditorModel,
+        HeatmapModel,
+        SizemapModel,
+        TernaryTraceMolarConversionModel,
+        AdvancedSettingsModel
+    )
 
 class TernaryTraceMaker:
 
     APEX_PATTERN = '__{apex}_{us}'
-    HEATMAP_PATTERN = '__{col}_heatmap_{us}'
-    SIZEMAP_PATTERN = '__{col}_sizemap_{us}'
     SIMULATED_PATTERN = '__{col}_simulated_{us}'
 
     N_SIMULATION_POINTS = 10_000
@@ -84,7 +88,6 @@ class TernaryTraceMaker:
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
         name = trace_model.legend_name
-        marker = self._get_basic_marker_dict(trace_model)
         scale_apices = model.start_setup_model.scale_apices_is_checked
         scaling_map = self.get_scaling_map(model) if scale_apices else {}
         
@@ -98,7 +101,6 @@ class TernaryTraceMaker:
                 right_columns,
                 unique_str, 
                 trace_id,
-                marker,
                 scaling_map)
             mode = 'lines'
             customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
@@ -114,7 +116,6 @@ class TernaryTraceMaker:
                 right_columns,
                 unique_str, 
                 trace_id,
-                marker,
                 scaling_map)
             mode = 'markers'
             customdata, hovertemplate = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, top_columns, left_columns, right_columns, scaling_map)
@@ -142,26 +143,11 @@ class TernaryTraceMaker:
         # Get the trace model from the model using the trace id
         trace_model = model.tab_model.get_trace(trace_id)
         name = trace_model.legend_name
-        marker = self._get_basic_marker_dict(trace_model)
         scale_apices = model.start_setup_model.scale_apices_is_checked
         scaling_map = self.get_scaling_map(model) if scale_apices else {}
 
         if trace_model.kind == 'bootstrap':
             raise NotImplementedError
-            marker, trace_data_df = self._prepare_bootstrap_data_cartesian(
-                model, 
-                trace_model, 
-                ternary_type,
-                x_columns, 
-                y_columns, 
-                unique_str, 
-                trace_id,
-                marker,
-                scaling_map)
-            mode = 'lines'
-            customdata, hovertemplate = self._get_bootstrap_hover_data_and_template(trace_model, scaling_map)
-            a, b, c = self._generate_contours(trace_id, trace_data_df, unique_str, trace_model.contour_level)
-            line = dict(width=trace_model.line_thickness)
         else:
             marker, trace_data_df = self._prepare_standard_data_cartesian(
                 model, 
@@ -171,7 +157,6 @@ class TernaryTraceMaker:
                 y_columns, 
                 unique_str, 
                 trace_id,
-                marker,
                 scaling_map)
             mode = 'markers'
             customdata, hovertemplate = self._get_standard_hover_data_and_template(model, trace_model, trace_data_df, x_columns, y_columns, [], scaling_map)
@@ -194,14 +179,13 @@ class TernaryTraceMaker:
 
     def _prepare_standard_data_cartesian(
             self, 
-            model:'TernaryModel', 
+            model:'TernaryModel',
             trace_model:'TernaryTraceEditorModel',
             ternary_type,
-            x_columns:List[str], 
-            y_columns:List[str], 
+            x_columns:List[str],
+            y_columns:List[str],
             unique_str:str, 
             trace_id:str,
-            marker:dict, 
             scaling_map:dict) -> pd.DataFrame:
         """
         TODO docstring
@@ -217,24 +201,9 @@ class TernaryTraceMaker:
 
         # TODO support molar conversion without normalization
 
-        # return marker, trace_data_df
-        heatmap_column = trace_model.heatmap_model.selected_column if trace_model.add_heatmap_checked else None
-        sizemap_column = trace_model.sizemap_model.selected_column if trace_model.add_sizemap_checked else None
-
-        if heatmap_column and sizemap_column:
-            # Sort considering both heatmap and sizemap columns
-            marker, trace_data_df = self._integrated_sort(marker, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str, trace_id)
-        else:
-            if heatmap_column:
-                marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
-                    marker, trace_model, trace_data_df, unique_str, trace_id)
-                
-            if sizemap_column:
-                marker, trace_data_df = self._update_marker_dict_with_sizemap_config(
-                    marker, trace_model, trace_data_df, unique_str, trace_id)
-
-        if trace_model.advanced_settings_checked:
-            marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
+        marker_config = self._config_marker(trace_model, trace_data_df, unique_str, trace_id)
+        marker = marker_config.marker
+        trace_data_df = marker_config.data
 
         trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)] = trace_data_df[x_columns].sum(axis=1)
         trace_data_df[self.APEX_PATTERN.format(apex='left', us=unique_str)] = trace_data_df[y_columns].sum(axis=1)
@@ -251,7 +220,6 @@ class TernaryTraceMaker:
             right_columns:List[str],
             unique_str:str, 
             trace_id:str,
-            marker:dict, 
             scaling_map:dict) -> pd.DataFrame:
         """
         TODO docstring
@@ -265,32 +233,28 @@ class TernaryTraceMaker:
             trace_data_df = self._apply_scale_factors(trace_data_df, scaling_map)
 
         convert_to_molar = trace_model.wtp_to_molar_checked
-        trace_data_df = self._molar_calibration(model, ternary_type,
+        trace_data_df = self._molar_calibration(model.molar_conversion_model, ternary_type,
                                                 trace_data_df,
                                                 top_columns, left_columns, right_columns,
                                                 unique_str, trace_id,
                                                 convert_to_molar)
 
-        # return marker, trace_data_df
-        heatmap_column = trace_model.heatmap_model.selected_column if trace_model.add_heatmap_checked else None
-        sizemap_column = trace_model.sizemap_model.selected_column if trace_model.add_sizemap_checked else None
-
-        if heatmap_column and sizemap_column:
-            # Sort considering both heatmap and sizemap columns
-            marker, trace_data_df = self._integrated_sort(marker, trace_data_df, trace_model, heatmap_column, sizemap_column, unique_str, trace_id)
-        else:
-            if heatmap_column:
-                marker, trace_data_df = self._update_marker_dict_with_heatmap_config(
-                    marker, trace_model, trace_data_df, unique_str, trace_id)
-                
-            if sizemap_column:
-                marker, trace_data_df = self._update_marker_dict_with_sizemap_config(
-                    marker, trace_model, trace_data_df, unique_str, trace_id)
-
-        if trace_model.advanced_settings_checked:
-            marker = self._update_marker_with_trace_advanced_settings(marker, trace_model)
+        marker_config = self._config_marker(trace_model, trace_data_df, unique_str, trace_id)
+        marker = marker_config.marker
+        trace_data_df = marker_config.data
 
         return marker, trace_data_df
+    
+    def _config_marker(self, trace_model:'TernaryTraceEditorModel', data:pd.DataFrame, uuid:str, trace_id:str):
+        marker_config = MarkerConfig(data, uuid, trace_id)
+        marker_config.apply_default(trace_model)
+        if trace_model.add_heatmap_checked:
+            marker_config.apply_heatmap(trace_model.heatmap_model)
+        if trace_model.add_sizemap_checked:
+            marker_config.apply_sizemap(trace_model.sizemap_model)
+        if trace_model.advanced_settings_checked:
+            marker_config.apply_advanced_settings(trace_model.advanced_settings_model)
+        return marker_config
     
     def _prepare_bootstrap_data(
             self,
@@ -302,7 +266,6 @@ class TernaryTraceMaker:
             right_columns: List[str],
             unique_str: str,
             trace_id: str,
-            marker: dict,
             scaling_map: dict) -> pd.DataFrame:
         """
         TODO docstring
@@ -321,9 +284,9 @@ class TernaryTraceMaker:
         # Expand the dataframe to make room for simulated points
         trace_data_df = pd.DataFrame(
             data=np.repeat(
-                trace_data_df.values, 
-                self.N_SIMULATION_POINTS, 
-                axis=0), 
+                trace_data_df.values,
+                self.N_SIMULATION_POINTS,
+                axis=0),
             columns=trace_data_df.columns)
 
         # Fill the expanded dataframe with simulated data
@@ -337,128 +300,27 @@ class TernaryTraceMaker:
 
         # Apply molar conversion if needed, and siomple normalization if not
         trace_data_df = self._molar_calibration(
-            model, 
+            model.molar_conversion_model,
             ternary_type,
             trace_data_df,
-            top_columns, 
-            left_columns, 
+            top_columns,
+            left_columns,
             right_columns,
-            unique_str, 
+            unique_str,
             trace_id,
-            convert_to_molar, 
+            convert_to_molar,
             bootstrap=True)
 
-        return marker, trace_data_df
-
-    def _integrated_sort(
-            self,
-            marker: dict, 
-            trace_data_df: pd.DataFrame, 
-            trace_model: 'TernaryTraceEditorModel', 
-            heatmap_column: str, 
-            sizemap_column: str, 
-            unique_str: str,
-            trace_id: str):
-        """Sort the dataframe considering both heatmap and sizemap columns and update marker
-        
-        TODO: right now there is a lot of duplicated code in thise method wrt update_marker_with_heatmap() and 
-        update_marker_with_sizemap(). Need to refactor to eliminate duplicated code without compromising integrated sort
-        """
-        heatmap_sorted_col = self.HEATMAP_PATTERN.format(col=heatmap_column, us=unique_str)
-        sizemap_sorted_col = self.SIZEMAP_PATTERN.format(col=sizemap_column, us=unique_str)
-
-        heatmap_model = trace_model.heatmap_model
-        sizemap_model = trace_model.sizemap_model
-
-        trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column].copy()
-        if heatmap_model.log_transform_checked:
-            trace_data_df[heatmap_sorted_col] = trace_data_df[heatmap_column].apply(lambda x: np.log(x) if x > 0 else 0)
-
-        trace_data_df[sizemap_sorted_col] = trace_data_df[sizemap_column].copy()
-        if sizemap_model.log_transform_checked:
-            trace_data_df[sizemap_sorted_col] =\
-                trace_data_df[sizemap_sorted_col].apply(lambda x: np.log(x) if x > 0 else 0)
-
-        min_size = self._float(sizemap_model.range_min, 'sizemap minimum size', trace_id) 
-        max_size = self._float(sizemap_model.range_max, 'sizemap maximum size', trace_id)
-        size_range = max_size - min_size
-        size_normalized = ((trace_data_df[sizemap_sorted_col] - trace_data_df[sizemap_sorted_col].min()) /
-                           (trace_data_df[sizemap_sorted_col].max() - trace_data_df[sizemap_sorted_col].min())) * size_range + min_size
-        trace_data_df[sizemap_sorted_col] = size_normalized
-        trace_data_df[sizemap_sorted_col].fillna(0.0, inplace=True)
-
-        # Handle heatmap sort mode
-        if heatmap_model.sorting_mode == 'no change':
-            pass
-        elif heatmap_model.sorting_mode == 'high on top':
-            trace_data_df = trace_data_df.sort_values(
-                by=heatmap_sorted_col, 
-                ascending=True)
-        elif heatmap_model.sorting_mode == 'low on top':
-            trace_data_df = trace_data_df.sort_values(
-                by=heatmap_sorted_col, 
-                ascending=False)
-        elif heatmap_model.sorting_mode == 'shuffled':
-            trace_data_df = trace_data_df.sample(frac=1)
-
-        # Handle sizemap sort mode
-        if sizemap_model.sorting_mode == 'no change':
-            pass
-        elif sizemap_model.sorting_mode == 'high on top':
-            trace_data_df = trace_data_df.sort_values(
-                by=sizemap_sorted_col, 
-                ascending=True)
-        elif sizemap_model.sorting_mode == 'low on top':
-            trace_data_df = trace_data_df.sort_values(
-                by=sizemap_sorted_col, 
-                ascending=False)
-        elif sizemap_model.sorting_mode == 'shuffled':
-            trace_data_df = trace_data_df.sample(frac=1)
-
-        sizeref = 2. * max(size_normalized) / (max_size**2)
-
-        marker['size'] = trace_data_df[sizemap_sorted_col]
-        marker['sizemin'] = min_size
-        marker['sizeref'] = sizeref
-        marker['color'] = trace_data_df[heatmap_sorted_col]
-        marker['colorscale'] = trace_model.heatmap_model.colorscale
-        if trace_model.heatmap_model.reverse_colorscale:
-            marker['colorscale'] += '_r'
-        marker['colorbar'] = dict(
-            title=dict(
-                text=trace_model.heatmap_model.bar_title,
-                side=trace_model.heatmap_model.title_position,
-                font=dict(
-                    #size=float(trace_model.heatmap_model.title_font_size),
-                    size=self._float(trace_model.heatmap_model.title_font_size, 'heatmap title font size', trace_id),
-                    family=trace_model.heatmap_model.font
-                )
-            ),
-            #len=float(trace_model.heatmap_model.length),
-            len=self._float(trace_model.heatmap_model.length, 'heatmap length', trace_id),
-            #thickness=float(trace_model.heatmap_model.thickness),
-            thickness=self._float(trace_model.heatmap_model.thickness, 'heatmap thickness', trace_id),
-            #x=float(trace_model.heatmap_model.x),
-            x=self._float(trace_model.heatmap_model.x, 'heatmap x position', trace_id),
-            #y=float(trace_model.heatmap_model.y),
-            y=self._float(trace_model.heatmap_model.y, 'heatmap y position', trace_id),
-            tickfont=dict(
-                #size=float(trace_model.heatmap_model.tick_font_size),
-                size=self._float(trace_model.heatmap_model.tick_font_size, 'heatmap tick font size', trace_id),
-                family=trace_model.heatmap_model.font
-            ),
-            orientation='h' if trace_model.heatmap_model.bar_orientation == 'horizontal' else 'v'
-        )
-        #marker['cmin'] = float(trace_model.heatmap_model.range_min)
-        marker['cmin'] = self._float(trace_model.heatmap_model.range_min, 'heatmap range minimum', trace_id)
-        #marker['cmax'] = float(trace_model.heatmap_model.range_max)
-        marker['cmax'] = self._float(trace_model.heatmap_model.range_max, 'heatmap range maximum', trace_id)
+        marker_config = MarkerConfig(trace_data_df, unique_str, trace_id)
+        marker_config.apply_default(trace_model)
+        marker = marker_config.marker
 
         return marker, trace_data_df
+
     
     def _molar_calibration(
             self,
-            model:'TernaryModel', 
+            molar_conversion_model:'MolarConversionModel',
             ternary_type: 'TernaryType',
             trace_data_df: pd.DataFrame,
             top_columns: List[str], 
@@ -475,16 +337,16 @@ class TernaryTraceMaker:
         # Instantiate a molar converter helper object
         molar_converter = MolarConverter(
             trace_data_df,
-            top_columns, 
-            left_columns, 
+            top_columns,
+            left_columns,
             right_columns,
             self.APEX_PATTERN,
-            unique_str, 
+            unique_str,
             trace_id,
             bootstrap)
         
         if convert_to_molar:
-            sorted_repr_of_molar_conversion_model = model.molar_conversion_model.get_sorted_repr()
+            sorted_repr_of_molar_conversion_model = molar_conversion_model.get_sorted_repr()
             custom_ternary_type = (ternary_type.name == 'Custom')
             return molar_converter.molar_conversion(
                 sorted_repr_of_molar_conversion_model, custom_ternary_type)
@@ -492,10 +354,10 @@ class TernaryTraceMaker:
             return molar_converter.nonmolar_conversion()
     
     def _generate_contours(
-            self, 
-            trace_id: str, 
+            self,
+            trace_id: str,
             trace_data_df: pd.DataFrame,
-            unique_str: str, 
+            unique_str: str,
             contour_level):
         """
         TODO docstring
@@ -521,12 +383,12 @@ class TernaryTraceMaker:
             return first_contour[:, 0], first_contour[:, 1], first_contour[:, 2]
         
     def _get_standard_hover_data_and_template(
-            self, 
-            model: 'TernaryModel', 
+            self,
+            model: 'TernaryModel',
             trace_model: 'TernaryTraceEditorModel',
             trace_data_df: pd.DataFrame,
-            top_columns: List[str], 
-            left_columns: List[str], 
+            top_columns: List[str],
+            left_columns: List[str],
             right_columns: List[str],
             scale_map:dict) -> Tuple[np.array, str]:
         """
@@ -645,161 +507,6 @@ class TernaryTraceMaker:
         """Returns a unique string to be used in dataframe column names"""
         return str(hash(time.time()))
 
-    def _get_basic_marker_dict(self, trace_model: 'TernaryTraceEditorModel') -> dict:
-        """Returns a dictionary with size, symbol, and color keys populated with values from trace"""
-        marker = dict(
-            size   = float(trace_model.point_size),
-            symbol = trace_model.selected_point_shape,
-            color  = trace_model.color
-        )
-        return marker
-    
-    def _update_marker_with_trace_advanced_settings(self, 
-            marker: dict, 
-            trace_model: 'TernaryTraceEditorModel') -> dict:
-        
-        advanced_settings_model = trace_model.advanced_settings_model
-
-        marker.update(
-            dict(
-                opacity = advanced_settings_model.opacity,
-                line = dict(
-                    color = advanced_settings_model.outline_color,
-                    width = advanced_settings_model.outline_thickness / 10
-                    )
-                )
-        )
-        return marker
-    
-    def _update_marker_dict_with_sizemap_config(
-            self,
-            marker: dict,
-            trace_model: 'TernaryTraceEditorModel',
-            data_df: pd.DataFrame,
-            uuid: str, 
-            trace_id: str) -> Tuple[dict, pd.DataFrame]:
-        """Returns marker and data_df after making necessary changes for sizemap config"""
-
-        sizemap_model = trace_model.sizemap_model
-        size_column = sizemap_model.selected_column
-        size_column_sorted = self.SIZEMAP_PATTERN.format(col=size_column, us=uuid)
-        
-        # Extract min and max sizes from range entries
-        # TODO error handling for bad values
-        #min_size = float(sizemap_model.range_min)
-        min_size = self._float(sizemap_model.range_min, 'sizemap range minimum', trace_id)
-        #max_size = float(sizemap_model.range_max)
-        max_size = self._float(sizemap_model.range_max, 'sizemap range maximum', trace_id)
-
-        data_df[size_column_sorted] = data_df[size_column].copy()
-        if sizemap_model.log_transform_checked:
-            data_df[size_column_sorted] =\
-                data_df[size_column_sorted].apply(lambda x: np.log(x) if x > 0 else 0)
-
-        # Normalize the size_column to the range [min_size, max_size]
-        size_range = max_size - min_size
-        size_normalized = ((data_df[size_column_sorted] - data_df[size_column_sorted].min()) /
-                           (data_df[size_column_sorted].max() - data_df[size_column_sorted].min())) * size_range + min_size
-        sizeref = 2. * max(size_normalized) / (max_size**2)
-        data_df[size_column_sorted] = size_normalized
-        data_df[size_column_sorted].fillna(0.0, inplace=True)
-            
-        # Handle sizemap sort mode
-        if sizemap_model.sorting_mode == 'no change':
-            pass
-        elif sizemap_model.sorting_mode == 'high on top':
-            data_df = data_df.sort_values(
-                by=size_column_sorted, 
-                ascending=True)
-        elif sizemap_model.sorting_mode == 'low on top':
-            data_df = data_df.sort_values(
-                by=size_column_sorted, 
-                ascending=False)
-        elif sizemap_model.sorting_mode == 'shuffled':
-            data_df = data_df.sample(frac=1)
-
-        marker['size'] = data_df[size_column_sorted]
-        marker['sizemin'] = min_size
-        marker['sizeref'] = sizeref
-
-        return marker, data_df
-
-    def _update_marker_dict_with_heatmap_config(
-            self, 
-            marker: dict, 
-            trace_model: 'TernaryTraceEditorModel',
-            data_df: pd.DataFrame,
-            uuid: str, 
-            trace_id: str) -> Tuple[dict, pd.DataFrame]:
-        """Returns makrer and data_df after making necessary changes for heatmap config"""
-        # If `heatmap`` is checked, pull the heatmap parameters as well and configure the trace accordingly
-        #   If advanced heatmap is checked, pull that info too
-        #       If log-transforming heatmap, make a new column in the copy of the selected data for this data
-        # TODO add error handling for casting everything to float
-        heatmap_model = trace_model.heatmap_model
-        color_column = heatmap_model.selected_column
-        if heatmap_model.log_transform_checked:
-            data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
-                data_df[color_column].apply(lambda x: np.log(x) if x > 0 else 0)
-        else:
-            data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)] =\
-                data_df[color_column]
-            
-        # Handle heatmap sort mode
-        if trace_model.heatmap_model.sorting_mode == 'no change':
-            pass
-        elif trace_model.heatmap_model.sorting_mode == 'high on top':
-            data_df = data_df.sort_values(
-                by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
-                ascending=True)
-        elif trace_model.heatmap_model.sorting_mode == 'low on top':
-            data_df = data_df.sort_values(
-                by=self.HEATMAP_PATTERN.format(col=color_column, us=uuid), 
-                ascending=False)
-        elif trace_model.heatmap_model.sorting_mode == 'shuffled':
-            data_df = data_df.sample(frac=1)
-        
-        colorscale = heatmap_model.colorscale
-        if heatmap_model.reverse_colorscale:
-            colorscale += '_r'
-
-        marker['color'] = data_df[self.HEATMAP_PATTERN.format(col=color_column, us=uuid)]
-        marker['colorscale'] = colorscale
-        marker['colorbar'] = dict(
-            title=dict(
-                text=heatmap_model.bar_title,
-                side=heatmap_model.title_position,
-                font=dict(
-                    #size=float(heatmap_model.title_font_size),
-                    size=self._float(heatmap_model.title_font_size, 'heatmap title font size', trace_id),
-                    family=heatmap_model.font
-                    )
-                    ),
-            #len=float(heatmap_model.length),
-            len=self._float(heatmap_model.length, 'heatmap length', trace_id),
-            #thickness=float(heatmap_model.thickness),
-            thickness=self._float(heatmap_model.thickness, 'heatmap thickness', trace_id),
-            # TODO add this (thickness) to view and controller
-            #x=float(heatmap_model.x),
-            x=self._float(heatmap_model.x, 'heatmap x position', trace_id),
-            #y=float(heatmap_model.y),
-            y=self._float(heatmap_model.y, 'heatmap y position', trace_id),
-            tickfont=dict(
-                #size=float(heatmap_model.tick_font_size),
-                size=self._float(heatmap_model.tick_font_size, 'heatmap tick font size', trace_id),
-                family=heatmap_model.font
-                ),
-            orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
-        )
-        # TODO add error handling here for when floats fail or stuff is blank
-        # TODO warn user if min >= max
-        #marker['cmin'] = float(heatmap_model.range_min)
-        marker['cmin'] = self._float(heatmap_model.range_min, 'heatmap range minimum', trace_id)
-        #marker['cmax'] = float(heatmap_model.range_max)
-        marker['cmax'] = self._float(heatmap_model.range_max, 'heatmap range maximum', trace_id)
-
-        return marker, data_df
-
     def _get_trace_name(self, trace_model: 'TernaryTraceEditorModel'):
         """Extracts the trace name from the trace editor model"""
         return trace_model.legend_name
@@ -899,12 +606,175 @@ class TernaryTraceMaker:
         except ValueError as err:
             # TODO figure out how to handle gracefull
             raise ValueError from err
+
+class MarkerConfig:
+
+    HEATMAP_PATTERN = '__{col}_heatmap_{us}'
+    SIZEMAP_PATTERN = '__{col}_sizemap_{us}'
+
+    def __init__(self,
+                 data: pd.DataFrame,
+                 uuid: str,
+                 trace_id: str):
+        self._marker: dict = {}
+        self._data: pd.DataFrame = data
+        self.uuid: str = uuid
+        self.trace_id: str = trace_id
+        self.heatmap_column: Optional[str] = None
+        self.sizemap_column: Optional[str] = None
+
+    def apply_heatmap(self, heatmap_model: 'HeatmapModel'):
+        """Apply heatmap configurations to the marker"""
+
+        color_column = heatmap_model.selected_column
+        self.heatmap_column = self.HEATMAP_PATTERN.format(col=color_column, us=self.uuid)
+
+        self._data[self.heatmap_column] = self._data[color_column].copy()
+        if heatmap_model.log_transform_checked:
+            self._data[self.heatmap_column] =\
+                self._data[self.heatmap_column].apply(lambda x: np.log(x) if x > 0 else 0)
+
+        # Handle heatmap sort mode
+        if heatmap_model.sorting_mode != 'no change':
+            self._sort_data(heatmap_model.sorting_mode, self.heatmap_column)
+
+        self._update_colorscale(heatmap_model)
+        self._update_colorbar(heatmap_model)
+
+        # TODO warn user if min >= max
+        self._marker.update(
+            color = self._data[self.heatmap_column],
+            cmin = heatmap_model.range_min,
+            cmax = heatmap_model.range_max
+        )
+
+    def _update_colorscale(self, heatmap_model: 'HeatmapModel'):
+        """Update the heatmap's colorscale"""
+        colorscale = heatmap_model.colorscale
+        if heatmap_model.reverse_colorscale:
+            colorscale += '_r'
+        self._marker["colorscale"] = colorscale
+
+    def _update_colorbar(self, heatmap_model: 'HeatmapModel'):
+        """Update the colorbar aesthetics given user configured settings"""
+        self._marker["colorbar"] = dict(
+            title=dict(
+                text=heatmap_model.bar_title,
+                side=heatmap_model.title_position,
+                font=dict(
+                    size=heatmap_model.title_font_size,
+                    family=heatmap_model.font
+                )
+            ),
+
+            len=heatmap_model.length,
+            # TODO add this (thickness) to view and controller
+            thickness=heatmap_model.thickness,
+
+            x=heatmap_model.x,
+            y=heatmap_model.y,
+
+            tickfont=dict(
+                size=heatmap_model.tick_font_size,
+                family=heatmap_model.font
+            ),
+
+            orientation='h' if heatmap_model.bar_orientation == 'horizontal' else 'v'
+        )
+    
+    def apply_sizemap(self, sizemap_model: 'SizemapModel'):
+        """Apply sizemap configurations to the marker"""
+
+        size_column = sizemap_model.selected_column
+        self.sizemap_column = self.SIZEMAP_PATTERN.format(col=size_column, us=self.uuid)
+
+        self._data[self.sizemap_column] = self._data[size_column].copy()
+        if sizemap_model.log_transform_checked:
+            self._data[self.sizemap_column] =\
+                self._data[self.sizemap_column].apply(lambda x: np.log(x) if x > 0 else 0)
+
+        if sizemap_model.sorting_mode != 'no change':
+            self._sort_data(sizemap_model.sorting_mode, self.sizemap_column)
+
+        self._normalize_sizes(sizemap_model)
+
+        self._marker.update(
+            size = self._data[self.sizemap_column]
+        )
+    
+    def _normalize_sizes(self, sizemap_model: 'SizemapModel'):
+        # user-selected min and max sizes
+        min_size = sizemap_model.range_min
+        max_size = sizemap_model.range_max
+        size_range = max_size - min_size
+
+        # min and max values of the sizemap column
+        data_min = self._data[self.sizemap_column].min()
+        data_max = self._data[self.sizemap_column].max()
+
+        # normalize the existing size column
+        if data_min!=data_max:
+            size_normalized = (self._data[self.sizemap_column] - data_min) / (data_max - data_min)
+        else:
+            # if all values are the same, set them to the maximum size
+            size_normalized = pd.Series([1.0] * len(self._data[self.sizemap_column]))
+
+        # scale to the desired range
+        size_normalized = size_normalized*size_range + min_size
+        # for some reason zero values aren't automatically mapped to the
+        # min size in the previous line, so we have to do it manually here
+        size_normalized[self._data[self.sizemap_column] == 0] = min_size
+        self._data[self.sizemap_column] = size_normalized
+        self._data[self.sizemap_column].fillna(0.0, inplace=True)
+
+        sizeref = 2. * max(size_normalized) / (max_size**2)
+
+        self._marker.update(
+            sizemin = min_size,
+            sizeref = sizeref
+        )
+
+    def apply_advanced_settings(self, advanced_settings_model: 'AdvancedSettingsModel') -> dict:
+        self._marker.update(
+            opacity = advanced_settings_model.opacity,
+            line = dict(
+                color = advanced_settings_model.outline_color,
+                width = advanced_settings_model.outline_thickness / 10
+            )
+        )
+
+    def apply_default(self, trace_model: 'TernaryTraceEditorModel') -> dict:
+        """Update the marker dictionary with size, symbol, and color keys populated with values from trace"""
+        self._marker.update(
+            size   = trace_model.point_size,
+            symbol = trace_model.selected_point_shape,
+            color  = trace_model.color
+        )
+
+    def _sort_data(self, sorting_mode: str, sort_column:str):
+        """
+        Sort data points by some column name (column must be numeric)
+        """
+        if sorting_mode == 'high on top':
+            self._data = self._data.sort_values(by=sort_column, ascending=True)
+        elif sorting_mode == 'low on top':
+            self._data = self._data.sort_values(by=sort_column, ascending=False)
+        elif sorting_mode == 'shuffled':
+            self._data = self._data.sample(frac=1)
+
+        if (self.heatmap_column is not None) and (self.heatmap_column != sort_column):
+            self._marker.update(color = self._data[self.heatmap_column])
+        elif (self.sizemap_column is not None) and (self.sizemap_column != sort_column):
+            self._marker.update(size = self._data[self.sizemap_column])
         
-    def _float(self, value: str, item: str=None, trace_id: str=None):
-        try:
-            return float(value)
-        except ValueError as err:
-            raise FloatConversionError(item, trace_id) from err
+    @property
+    def marker(self) -> dict:
+        return self._marker
+    
+    @property
+    def data(self) -> pd.DataFrame:
+        return self._data
+
 
 class MolarConverter:
     """
@@ -944,7 +814,7 @@ class MolarConverter:
         for apex_name, apex_cols_list in zip(['top', 'left', 'right'], 
                                              [self.top_columns, self.left_columns, self.right_columns]):
             try:
-                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] =\
                     self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
             except KeyError as err:
                 msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
@@ -957,7 +827,7 @@ class MolarConverter:
             if self.bootstrap:
                 apex_cols_list = [self.SIMULATED_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]
             try:
-                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] = \
+                self.trace_data_df[self.apex_pattern.format(apex=apex_name, us=self.unique_str)] =\
                     self.trace_data_df[apex_cols_list].sum(axis=1)
             except KeyError as err:
                 msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
@@ -970,5 +840,5 @@ class MolarConverter:
             col_name = self.SIMULATED_PATTERN.format(col=col, us=self.unique_str) if self.bootstrap else col
             molar_col_name = self.MOLAR_PATTERN.format(col=col, us=self.unique_str)
             self.trace_data_df[molar_col_name] = self.trace_data_df[col_name] / calculator.get_molar_mass(molar_mapping.get(col))
-        except MolarMassCalculatorException as e:
+        except MolarMassCalculatorException as err:
             raise TraceMolarConversionException(self.trace_id, col, molar_mapping.get(col), 'Error parsing formula for column.')

@@ -50,8 +50,8 @@ class HeatmapEditorController:
         self.view.heatmap_column_combobox.clear()
         self.view.heatmap_column_combobox.addItems(heatmap_model.available_columns)
         self.view.heatmap_column_combobox.setCurrentText(heatmap_model.selected_column)
-        self.view.range_min_line_edit.setText(heatmap_model.range_min)
-        self.view.range_max_line_edit.setText(heatmap_model.range_max)
+        self.view.range_min_line_edit.setText(str(heatmap_model.range_min))
+        self.view.range_max_line_edit.setText(str(heatmap_model.range_max))
         self.view.heatmap_colorscale_combobox.setCurrentText(heatmap_model.colorscale)
         self.view.log_transform_checkbox.setChecked(heatmap_model.log_transform_checked)
         self.view.reverse_colorscale_checkbox.setChecked(heatmap_model.reverse_colorscale)
@@ -90,10 +90,10 @@ class HeatmapEditorController:
             self.view.range_max_line_edit.setText(str(2*median_val)) # this will update model too
 
     def _on_range_min_changed(self):
-        self.model.current_tab.heatmap_model.range_min = self.view.range_min_line_edit.text()
+        self.model.current_tab.heatmap_model.range_min = self._float(self.view.range_min_line_edit.text())
 
     def _on_range_max_changed(self):
-        self.model.current_tab.heatmap_model.range_max = self.view.range_max_line_edit.text()
+        self.model.current_tab.heatmap_model.range_max = self._float(self.view.range_max_line_edit.text())
 
     def _on_colorscale_changed(self):
         self.model.current_tab.heatmap_model.colorscale = self.view.heatmap_colorscale_combobox.currentText()

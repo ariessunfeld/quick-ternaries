@@ -38,8 +38,8 @@ class SizemapEditorController:
         self.view.sizemap_column_combobox.clear()
         self.view.sizemap_column_combobox.addItems(sizemap_model.available_columns)
         self.view.sizemap_column_combobox.setCurrentText(sizemap_model.selected_column)
-        self.view.range_min_line_edit.setText(sizemap_model.range_min)
-        self.view.range_max_line_edit.setText(sizemap_model.range_max)
+        self.view.range_min_line_edit.setText(str(sizemap_model.range_min))
+        self.view.range_max_line_edit.setText(str(sizemap_model.range_max))
         self.view.log_transform_checkbox.setChecked(sizemap_model.log_transform_checked)
         self.view.show_advanced_checkbox.setChecked(sizemap_model.advanced_settings_checked)
         self.view.advanced_options_layout_widget.setVisible(sizemap_model.advanced_settings_checked)
@@ -67,10 +67,10 @@ class SizemapEditorController:
             self.view.range_max_line_edit.setText(str(6.0))
 
     def _on_range_min_changed(self):
-        self.model.current_tab.sizemap_model.range_min = self.view.range_min_line_edit.text()
+        self.model.current_tab.sizemap_model.range_min = self._float(self.view.range_min_line_edit.text())
 
     def _on_range_max_changed(self):
-        self.model.current_tab.sizemap_model.range_max = self.view.range_max_line_edit.text()
+        self.model.current_tab.sizemap_model.range_max = self._float(self.view.range_max_line_edit.text())
 
     def _on_log_transform_changed(self):
         is_checked = self.view.log_transform_checkbox.isChecked()
