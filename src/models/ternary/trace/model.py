@@ -6,9 +6,9 @@ import pandas as pd
 
 from src.models.ternary.trace import (
     HeatmapModel, 
+    SizemapModel,
     AdvancedSettingsModel
 )
-from src.models.ternary.trace.sizemap_model import SizemapModel
 from src.models.ternary.trace.filter import FilterTabsPanelModel
 from src.models.ternary.trace.bootstrap import BootstrapErrorEntryModel
 
