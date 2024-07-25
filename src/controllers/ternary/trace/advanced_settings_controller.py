@@ -2,11 +2,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.models.ternary.trace import AdvancedSettingsModel
-    from src.models.utils import TraceTabsPanelModel
+    from src.models.utils import TabsPanelModel
     from src.views.ternary.trace import AdvancedSettingsView
 
 class AdvancedSettingsController:
-    def __init__(self, model: 'TraceTabsPanelModel', view: 'AdvancedSettingsView'):
+    def __init__(self, model: 'TabsPanelModel', view: 'AdvancedSettingsView'):
         self.model = model
         self.view = view
 

@@ -9,12 +9,12 @@ import numpy as np
 from src.models.ternary.trace.filter import FilterModel
 
 if TYPE_CHECKING:
-    from src.models.utils import TraceTabsPanelModel
+    from src.models.utils import TabsPanelModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace.filter import FilterEditorView
 
 class FilterEditorController(QObject):
-    def __init__(self, model: 'TraceTabsPanelModel', view: 'FilterEditorView'):
+    def __init__(self, model: 'TabsPanelModel', view: 'FilterEditorView'):
         super().__init__()
         self.model = model
         self.view = view

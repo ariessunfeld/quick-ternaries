@@ -1,6 +1,6 @@
 from src.models.ternary.setup import TernaryStartSetupModel
 from src.models.ternary.trace import MolarConversionModel
-from src.models.utils import TraceTabsPanelModel
+from src.models.utils import TabsPanelModel
 from src.models.ternary.plot import TernaryRenderPlotModel
 
 from src.models.utils import DataLibrary
@@ -18,5 +18,5 @@ class TernaryModel:
     def set_data_library(self, data_library: DataLibrary):
         self.data_library = data_library
 
-    def set_tab_model(self, tab_model: TraceTabsPanelModel):
+    def set_tab_model(self, tab_model: TabsPanelModel):
         self.tab_model = tab_model

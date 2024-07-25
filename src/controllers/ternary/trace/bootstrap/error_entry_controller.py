@@ -6,14 +6,14 @@ from PySide6.QtCore import QObject
 
 if TYPE_CHECKING:
     from src.models.ternary.trace import TernaryTraceEditorModel
-    from src.models.utils import TraceTabsPanelModel
+    from src.models.utils import TabsPanelModel
     from src.views.ternary.trace.bootstrap import TernaryBootstrapErrorEntryView
 
 class TernaryBootstrapErrorEntryController(QObject):
     
     def __init__(
             self,
-            model: 'TraceTabsPanelModel',
+            model: 'TabsPanelModel',
             view: 'TernaryBootstrapErrorEntryView'):
         super().__init__()
 

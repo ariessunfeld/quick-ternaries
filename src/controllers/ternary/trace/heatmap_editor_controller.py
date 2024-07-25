@@ -6,12 +6,12 @@ import numpy as np
 
 if TYPE_CHECKING:
     from src.models.ternary.trace import HeatmapModel
-    from src.models.utils import TraceTabsPanelModel
+    from src.models.utils import TabsPanelModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace import TernaryHeatmapEditorView
 
 class HeatmapEditorController:
-    def __init__(self, model: 'TraceTabsPanelModel', view: 'TernaryHeatmapEditorView'):
+    def __init__(self, model: 'TabsPanelModel', view: 'TernaryHeatmapEditorView'):
         self.model = model
         self.view = view
 

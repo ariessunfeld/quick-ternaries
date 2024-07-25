@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.models.ternary.trace import TernaryTraceEditorModel
 
-class TraceTabsPanelModel:
+class TabsPanelModel:
     def __init__(self):
         self.traces: Dict[str,'TernaryTraceEditorModel'] = {}
         self.order: List[str] = []

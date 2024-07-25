@@ -119,7 +119,7 @@ class DraggableTab(QWidget):
         event.ignore()
 
 
-class TabView(QWidget):
+class TabPanelView(QWidget):
     """
     Megawidget containing the tab add/remove/scroll area
     """

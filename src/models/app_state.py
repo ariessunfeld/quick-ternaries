@@ -9,14 +9,14 @@ from src.models.ternary import TernaryModel
 # from src.models.zmaps import ZmapModel
 # from src.models.roseplot import RoseplotModel
 
-from src.models.utils import TraceTabsPanelModel
+from src.models.utils import TabsPanelModel
 # import more plot mode models here
 
 class AppModel:
     def __init__(self):
 
         self.data_library = DataLibrary()
-        self.tab_model = TraceTabsPanelModel()
+        self.tab_model = TabsPanelModel()
 
         self.ternary_model = TernaryModel()
         self.cartesian_model = None  # TODO

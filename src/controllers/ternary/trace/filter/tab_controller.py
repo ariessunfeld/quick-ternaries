@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QMessageBox
 from src.models.ternary.trace.filter import FilterModel
 
 if TYPE_CHECKING:
-    from src.models.utils import TraceTabsPanelModel
+    from src.models.utils import TabsPanelModel
     from src.models.ternary.trace import TernaryTraceEditorModel
     from src.models.utils.data_models import DataLibrary
     from src.views.ternary.trace.filter import FilterTabView
@@ -18,7 +18,7 @@ class FilterTabController(QObject):
     change_to_filter_setup_signal = Signal()
     trace_data_selection_handled = Signal()
 
-    def __init__(self, model: 'TraceTabsPanelModel', view: 'FilterTabView'):
+    def __init__(self, model: 'TabsPanelModel', view: 'FilterTabView'):
         super().__init__()
         self.model = model
         self.view = view

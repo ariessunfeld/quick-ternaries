@@ -6,8 +6,8 @@ from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QMessageBox
 
 from src.models.ternary.trace import TernaryTraceEditorModel
-from src.models.utils import TraceTabsPanelModel
-from src.views.components import TabView
+from src.models.utils import TabsPanelModel
+from src.views.components import TabPanelView
 from src.views.components.tab_panel import DraggableTab
 
 class TabController(QObject):
@@ -15,7 +15,7 @@ class TabController(QObject):
     change_tab_signal = Signal(TernaryTraceEditorModel)
     change_to_start_setup_signal = Signal()
 
-    def __init__(self, model: TraceTabsPanelModel, view: TabView):
+    def __init__(self, model: TabsPanelModel, view: TabPanelView):
         super().__init__()
         self.model = model
         self.view = view
@@ -42,7 +42,6 @@ class TabController(QObject):
         self.add_trace()
 
     def add_trace(self, trace_model: Optional[TernaryTraceEditorModel] = None):
-        print('Tab controller add trace called')
         if trace_model is None:
             trace_model = TernaryTraceEditorModel()
         tab_id = self.model.add_trace(trace_model)
@@ -83,9 +82,6 @@ class TabController(QObject):
 
         # Extract data file from source model
         trace_data_file = source_trace_model.selected_data_file
-
-        # TODO apply filters and heatmap sorting to copy of data file
-        # ...
 
         # Get the series from the [filtered and sorted] data file
         series = trace_data_file.get_series(curves_sorted[max_curve_number][0])

@@ -42,7 +42,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from src.views.ternary.setup.view import TernarySetupMenu
 from src.views.ternary.trace.view import TernaryTraceEditor
 
-from src.views.components import TabView
+from src.views.components import TabPanelView
 
 from src.views.utils import (
     CustomSplitter,
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         self.bottom_bar.addStretch(1)
 
         # Left Scroll Area for Trace Tabs
-        self.tab_view = TabView()
+        self.tab_view = TabPanelView()
 
         # Dynamic content area for switching between Setup Menu and Trace Editor
         self.changed_tab_stack = QStackedWidget()
@@ -278,7 +278,8 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(750, lambda: self.update_title_view("quick ternaries"))
 
     def switch_to_start_setup_view(self):
-        self.changed_tab_stack.setCurrentWidget(self.ternary_setup_menu)
+        #self.changed_tab_stack.setCurrentWidget(self.ternary_setup_menu)
+        self.changed_tab_stack.setCurrentWidget(self.setup_menu_widget)
     
     def switch_to_trace_view(self):
         self.changed_tab_stack.setCurrentWidget(self.ternary_trace_editor)

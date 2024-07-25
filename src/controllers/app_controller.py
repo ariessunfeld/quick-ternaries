@@ -74,11 +74,16 @@ class AppController:
         
         self.view.tab_view.has_trace.connect(self._on_tab_view_has_trace)
 
+        # Connect change tab signals to child controllers
+        self.tab_panel_controller.change_tab_signal.connect(self.ternary_controller.change_trace_tab)
+        self.tab_panel_controller.change_to_start_setup_signal.connect(self.ternary_controller.change_to_start_setup)
+
+        # Connect data library signals
         self.view.data_library_view.has_data.connect(self._on_loaded_data_exists)
-        
         self.data_library_controller.shared_columns_signal.connect(self._on_shared_columns_signal)
 
     def _on_preview_clicked(self):
+        """Callback for Preview button click event"""
         curr_model = self.model.current_model
         url = self.service.write_html(curr_model, self.view.plot_type_combo.currentText())
         if url:

@@ -43,9 +43,9 @@ class TernaryController:
             self.model.tab_model, 
             self.view.ternary_trace_editor)
         
-        self.tab_controller = TabController(
-            self.model.tab_model, 
-            self.view.tab_view)
+        # self.tab_controller = TabController(
+        #     self.model.tab_model, 
+        #     self.view.tab_view)
         
         self.filter_editor_controller = FilterEditorController(
             self.model.tab_model, 
@@ -93,11 +93,11 @@ class TernaryController:
 
         # Connect signals when the tab controller says to 
         # switch between start setup and trace tab views
-        self.tab_controller.change_tab_signal.connect(
-            self._change_trace_tab)
+        # self.tab_controller.change_tab_signal.connect(
+        #     self.change_trace_tab)
         
-        self.tab_controller.change_to_start_setup_signal.connect(
-            self._change_to_start_setup)
+        # self.tab_controller.change_to_start_setup_signal.connect(
+        #     self._change_to_start_setup)
 
         # Connect signals for when the filter tab controller says to 
         # switch between filter setup and filter editor views
@@ -137,12 +137,8 @@ class TernaryController:
             self._on_custom_column_added)
         self.start_setup_controller.signaller.apex_column_removed.connect(
             self._on_custom_column_removed)
-        
-        # Enable the add trace button if there's data in the loaded data view
-        # self.start_setup_controller.view.loaded_data_scroll_view.has_data.connect(
-        #     self.tab_controller.view.new_tab_button.setEnabled)
 
-    def _change_trace_tab(self, trace_model: 'TernaryTraceEditorModel'):
+    def change_trace_tab(self, trace_model: 'TernaryTraceEditorModel'):
         
         # Main window dynamic content area switches to trace view
         #self.view.switch_to_trace_view()
@@ -222,7 +218,7 @@ class TernaryController:
     def _change_filter_setup_tab(self):
         self.view.ternary_trace_editor.filter_view.switch_to_filter_setup_view()
 
-    def _change_to_start_setup(self):
+    def change_to_start_setup(self):
         self.view.switch_to_start_setup_view()
 
     # def _on_remove_data_signal(self, filepath_and_sheet: tuple):
