@@ -69,9 +69,9 @@ class TernaryHtmlMaker(BaseHtmlMaker):
             QMessageBox.critical(None, err.message, msg)
         except TraceMissingColumnException as err:
             msg = f"An error occured while trying to parse data for Trace {err.trace_id}.\n\n"
-            msg += f"The Plot Type chosen in the Start Setup menu expects the datafile\n" 
-            msg += f"for Trace {err.trace_id} to include the following columns: {err.column}.\n\n"
-            msg += f"Please select the 'Custom' Plot Type or choose a different datafile."
+            msg += f"The following columns are required by the Plot Type chosen in the Setup Menu,"
+            msg += f" but are missing from the datafile selected for this trace: {err.column}.\n\n"
+            msg += f"Please select the 'Custom' Plot Type, or choose a different datafile for this trace."
             QMessageBox.critical(None, err.message, msg)
         except FloatConversionError as err:
             msg = f"An error occured while trying to configure Trace {err.trace_id}.\n\n"

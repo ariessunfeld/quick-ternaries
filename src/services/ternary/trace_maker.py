@@ -938,7 +938,8 @@ class MolarConverter:
                     self.trace_data_df[[self.MOLAR_PATTERN.format(col=c, us=self.unique_str) for c in apex_cols_list]].sum(axis=1)
             except KeyError as err:
                 msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
-                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
+                missing = [x for y in [self.top_columns, self.left_columns, self.right_columns] for x in y if x not in self.trace_data_df.columns]
+                raise TraceMissingColumnException(self.trace_id, missing, msg) from err
         return self.trace_data_df
 
     def nonmolar_conversion(self) -> pd.DataFrame:
@@ -951,7 +952,8 @@ class MolarConverter:
                     self.trace_data_df[apex_cols_list].sum(axis=1)
             except KeyError as err:
                 msg = "The datafile for the specified trace is missing one or more columns required by the Plot Type"
-                raise TraceMissingColumnException(self.trace_id, str(err).split('Index(')[1].split('dtype')[0].rstrip().rstrip(','), msg)
+                missing = [x for y in [self.top_columns, self.left_columns, self.right_columns] for x in y if x not in self.trace_data_df.columns]
+                raise TraceMissingColumnException(self.trace_id, missing, msg) from err
         return self.trace_data_df
 
     def _add_molar_proportion_column(self, col: str, molar_mapping: Dict[str, str]) -> None:

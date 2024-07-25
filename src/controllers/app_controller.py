@@ -202,7 +202,7 @@ class AppController:
             
             msg_box = DeleteWarningBox(
                 'Trace(s) Getting Deleted', 
-                self.TRACE_DELETION_WARNING.format(fmt_list))
+                self.TRACE_DELETION_WARNING.format(fmt_list=fmt_list))
             response = msg_box.exec_()
             print(f'Got response: {response=}')
 
