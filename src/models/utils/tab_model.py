@@ -4,8 +4,76 @@ This model contains the trace editor models for individual traces
 
 from typing import Dict, List, Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from src.models.ternary.trace import TernaryTraceEditorModel
+from src.models.ternary.trace import TernaryTraceEditorModel
+from src.models.cartesian.trace import CartesianTraceEditorModel
+from src.models.corrplot.trace import CorrplotTraceEditorModel
+
+
+class TabNode:
+    """Represents a node for the tab panel model.
+    
+    Each node contains references to trace editor models for all plot types.
+    When shared attributes are updated in one trace editor model, the changes 
+    propagate to the other trace editor models. When plot-specific attributes
+    are modified in one trace editor, the changes do not propagate.
+    """
+    def __init__(
+            self, 
+            tab_id: str,
+            ternary_trace_model: Optional[TernaryTraceEditorModel] = None, 
+            cartesian_trace_model: Optional[CartesianTraceEditorModel] = None, 
+            corrplot_trace_model: Optional[CorrplotTraceEditorModel] = None, 
+            # TODO
+            zmap_trace_model: Optional[str] = None, 
+            depth_profile_trace_model: Optional[str] = None,  
+            roseplot_trace_model: Optional[str] = None, 
+            area_chart_trace_model: Optional[str] = None):
+        
+        self.tab_id = tab_id
+        self.models = {
+            'ternary': ternary_trace_model or TernaryTraceEditorModel(),
+            'cartesian': cartesian_trace_model or CartesianTraceEditorModel(),
+            'corrplot': corrplot_trace_model or CorrplotTraceEditorModel(),
+            # add other plot types here
+        }
+    
+    def update_shared_attributes(self, **kwargs):
+        """Update shared attributes across all models."""
+        for model in self.models.values():
+            for key, value in kwargs.items():
+                if hasattr(model, key):
+                    setattr(model, key, value)
+
+    def get_model(self, plot_type: str):
+        """Get the model for the specified plot type."""
+        return self.models.get(plot_type)
+    
+    def to_json(self) -> dict:
+        """Serializes the TabNode to a JSON-compatible dictionary."""
+        return {
+            'tab_id': self.tab_id,
+            'models': {plot_type: model.to_json() for plot_type, model in self.models.items()}
+        }
+
+    @classmethod
+    def from_json(cls, data: dict):
+        """Deserializes the TabNode from a JSON-compatible dictionary."""
+        tab_id = data['tab_id']
+        models_data = data['models']
+        
+        # Deserialize each model based on the plot type
+        ternary_trace_model = TernaryTraceEditorModel.from_json(models_data.get('ternary', {}))
+        cartesian_trace_model = CartesianTraceEditorModel.from_json(models_data.get('cartesian', {}))
+        corrplot_trace_model = CorrplotTraceEditorModel.from_json(models_data.get('corrplot', {}))
+        # Add other plot types here
+        
+        return cls(
+            tab_id=tab_id,
+            ternary_trace_model=ternary_trace_model,
+            cartesian_trace_model=cartesian_trace_model,
+            corrplot_trace_model=corrplot_trace_model,
+            # Add other models here
+        )
 
 class TabsPanelModel:
     def __init__(self):
