@@ -48,35 +48,10 @@ class TernaryTraceEditorModel:
         
         # Direct access
         self.kind = kind
-        
-        # if heatmap_model is None:
-        #     self.heatmap_model = HeatmapModel()
-        # else:
-        #     self.heatmap_model = heatmap_model
         self.heatmap_model = heatmap_model or HeatmapModel()
-
-        # if sizemap_model is None:
-        #     self.sizemap_model = SizemapModel()
-        # else:
-        #     self.sizemap_model = sizemap_model
         self.sizemap_model = sizemap_model or SizemapModel()
-        
-        # if filter_tab_model is None:
-        #     self.filter_tab_model = FilterTabsPanelModel()
-        # else:
-        #     self.filter_tab_model = filter_tab_model
         self.filter_tab_model = filter_tab_model or FilterTabsPanelModel()
-        
-        # if error_entry_model is None:
-        #     self.error_entry_model = TernaryBootstrapErrorEntryModel()
-        # else:
-        #     self.error_entry_model = error_entry_model
         self.error_entry_model = error_entry_model or BootstrapErrorEntryModel()
-
-        # if advanced_settings_model is None:
-        #     self.advanced_settings_model = AdvancedSettingsModel()
-        # else:
-        #     self.advanced_settings_model = advanced_settings_model
         self.advanced_settings_model = advanced_settings_model or AdvancedSettingsModel()
 
         # Controlled access
