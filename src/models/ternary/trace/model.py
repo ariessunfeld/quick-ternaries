@@ -10,7 +10,7 @@ from src.models.ternary.trace import (
 )
 from src.models.ternary.trace.sizemap_model import SizemapModel
 from src.models.ternary.trace.filter import FilterTabsPanelModel
-from src.models.ternary.trace.bootstrap import TernaryBootstrapErrorEntryModel
+from src.models.ternary.trace.bootstrap import BootstrapErrorEntryModel
 
 if TYPE_CHECKING:
     from src.models.utils.data_models import DataFile
@@ -43,7 +43,7 @@ class TernaryTraceEditorModel:
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
             contour_level: Optional[float] = 68.0,
-            error_entry_model: Optional[TernaryBootstrapErrorEntryModel] = None,
+            error_entry_model: Optional[BootstrapErrorEntryModel] = None,
             advanced_settings_model: Optional[AdvancedSettingsModel] = None):
         
         # Direct access
@@ -71,7 +71,7 @@ class TernaryTraceEditorModel:
         #     self.error_entry_model = TernaryBootstrapErrorEntryModel()
         # else:
         #     self.error_entry_model = error_entry_model
-        self.error_entry_model = error_entry_model or TernaryBootstrapErrorEntryModel()
+        self.error_entry_model = error_entry_model or BootstrapErrorEntryModel()
 
         # if advanced_settings_model is None:
         #     self.advanced_settings_model = AdvancedSettingsModel()

@@ -2,7 +2,7 @@
 
 from typing import List, Tuple
 
-class TernaryBootstrapErrorEntryModel:
+class BootstrapErrorEntryModel:
     
     def __init__(self):
         self.column_error_map = {}
