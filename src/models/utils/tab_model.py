@@ -2,6 +2,7 @@
 This model contains the trace editor models for individual traces
 """
 
+import json
 from typing import Dict, List, Optional, TYPE_CHECKING
 
 from src.models.ternary.trace import TernaryTraceEditorModel
@@ -75,9 +76,11 @@ class TabNode:
             # Add other models here
         )
 
+
 class TabsPanelModel:
     def __init__(self):
         self.traces: Dict[str,'TernaryTraceEditorModel'] = {}
+        self.tabs: Dict[str, TabNode] = {}
         self.order: List[str] = []
         self.tab_counter: int = 0
         self.current_tab: Optional['TernaryTraceEditorModel'] = None
@@ -91,6 +94,17 @@ class TabsPanelModel:
         self.traces[tab_id] = trace_model
         self.order.append(tab_id)
         return tab_id
+    
+    def add_tab(self, tab: Optional[TabNode]) -> str:
+        self.tab_counter += 1
+        tab_id = str(self.tab_counter)
+        if tab:
+            tab.tab_id = tab_id
+            self.tabs[tab_id] = tab
+        else:
+            self.tabs[tab_id] = TabNode(tab_id)
+        self.order.append(tab_id)
+        return tab_id
 
     def remove_trace(self, tab_id: str):
         """Removes a trace from the dict and the order"""
@@ -99,9 +113,19 @@ class TabsPanelModel:
         if tab_id in self.order:
             self.order.remove(tab_id)
 
+    def remove_tab(self, tab_id: str):
+        if tab_id in self.tabs:
+            del self.tabs[tab_id]
+        if tab_id in self.order:
+            self.order.remove(tab_id)
+
     def get_trace(self, tab_id: str) -> 'TernaryTraceEditorModel':
         """Returns a reference to a specific trace"""
         return self.traces.get(tab_id)
+    
+    def get_tab(self, tab_id: str) -> TabNode:
+        """Returns a reference to a specific tab node"""
+        return self.tabs.get(tab_id)
 
     def update_order(self, new_order: list):
         self.order = new_order
@@ -110,12 +134,32 @@ class TabsPanelModel:
         """Returns all traces"""
         return {id: self.traces[id] for id in self.order}
     
+    def get_all_tabs(self) -> Dict[str, TabNode]:
+        """Returns all tabs"""
+        return {id: self.tabs[id] for id in self.order}
+    
     def set_current_tab(self, tab_id: str):
         """Points self.current_tab to traces[tab_id]"""
         self.current_tab = self.traces.get(tab_id)
 
+    def __set_current_tab(self, tab_id: str):
+        """Points self.current_tab to traces[tab_id]"""
+        self.current_tab = self.tabs.get(tab_id)
+
+    def to_json(self) -> dict:
+        return {
+            'order': self.order,
+            'tab_counter': self.tab_counter,
+            'tabs': {tab_id: tab.to_json() for tab_id, tab in self.tabs.items()}
+        }
+
+    @classmethod
+    def from_json(cls, data: dict):
+        model = cls()
+        model.order = data.get('order')
+        model.tab_counter = data.get('tab_counter')
+        model.tabs = {tab_id: TabNode.from_json(tab_data) for tab_id, tab_data in data.get('tabs', {}).items()}
+        return model
+
     def __str__(self) -> str:
-        return f"""traces: {self.traces},
-order: {self.order},
-tab_counter: {self.tab_counter}
-"""
+        return json.dumps(self.to_json(), indent=4)
