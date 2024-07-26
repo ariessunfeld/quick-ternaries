@@ -51,7 +51,7 @@ class LayoutCreator:
         return dict(
             xaxis=axis_settings,
             yaxis=axis_settings,
-            bgcolor=settings.background_color,
+            plot_bgcolor=settings.background_color,
             title=dict(
                 font=dict(
                     family=settings.title_font,
