@@ -204,7 +204,6 @@ class AppController:
                 'Trace(s) Getting Deleted', 
                 self.TRACE_DELETION_WARNING.format(fmt_list=fmt_list))
             response = msg_box.exec_()
-            print(f'Got response: {response=}')
 
             if response == 5: #  'yes role' response
                 for tab_id in would_be_deleted:

@@ -1,5 +1,6 @@
 """Base class for Trace Editor Models"""
 
+from abc import ABC
 from typing import List, Optional, TYPE_CHECKING
 
 import pandas as pd
@@ -15,7 +16,7 @@ from src.models.utils.trace.filter import FilterTabsPanelModel
 from src import __version__
 
 
-class BaseTraceEditorModel:
+class BaseTraceEditorModel(ABC):
 
     def __init__(
             self, 
