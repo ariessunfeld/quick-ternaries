@@ -68,16 +68,20 @@ class AdvancedSettingsController:
         self.model.tick_font_size = value
 
     def _on_show_tick_marks_changed(self):
-        is_checked = self.view.show_tick_marks.isChecked()
-        self.model.show_tick_marks = is_checked
-        self.view.tick_font_combo.setEnabled(is_checked)
-        self.view.tick_font_size_spinbox.setEnabled(is_checked)
+        show_tick_marks = self.view.show_tick_marks.isChecked()
+        self.model.show_tick_marks = show_tick_marks
+        self.view.tick_font_combo.setEnabled(show_tick_marks)
+
+        show_grid = self.view.show_grid.isChecked()
+        self.view.gridline_step_size.setEnabled(show_tick_marks or show_grid)
 
     def _on_show_grid_changed(self):
-        is_checked = self.view.show_grid.isChecked()
-        self.model.show_grid = is_checked
-        self.view.gridline_color.setEnabled(is_checked)
-        self.view.gridline_step_size.setEnabled(is_checked)
+        show_grid = self.view.show_grid.isChecked()
+        self.model.show_grid = show_grid
+        self.view.gridline_color.setEnabled(show_grid)
+
+        show_tick_marks = self.view.show_tick_marks.isChecked()
+        self.view.gridline_step_size.setEnabled(show_tick_marks or show_grid)
 
     def _set_default_values(self):
         """
