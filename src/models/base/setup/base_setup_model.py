@@ -2,6 +2,8 @@
 
 from abc import ABC
 
+from src.models.base.setup import 
+
 class BaseSetupModel(ABC):
 
     def __init__(
@@ -9,7 +11,8 @@ class BaseSetupModel(ABC):
             title: str = '',
             custom_hover_data_checked: bool = False,
             scale_axes_checked: bool = False,
-            advanced_settings_checked: bool = False):
+            advanced_settings_checked: bool = False,
+            hover_data_selection_model:):
         
         self._title = title
         self._custom_hover_data_checked = custom_hover_data_checked

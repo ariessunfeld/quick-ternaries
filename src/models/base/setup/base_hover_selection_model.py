@@ -2,7 +2,7 @@
 
 from typing import List
 
-class CustomHoverDataSelectionModel:
+class BaseHoverDataSelectionModel:
     def __init__(
             self, 
             available_attrs: List[str] = None, 
