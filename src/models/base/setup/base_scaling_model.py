@@ -1,9 +1,8 @@
 """Model for Axis Scaling configuration"""
 
-from abc import ABC
 from typing import List, Tuple, Dict
 
-class BaseAxisScalingModel(ABC):
+class BaseAxisScalingModel:
     
     def __init__(self):
         self.column_scale_mapping: Dict[str, str] = {}

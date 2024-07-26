@@ -1,7 +1,7 @@
 """Contains the model for the Heatmap configuration, which is part of the Trace configuration"""
 from typing import List, Optional
 
-class HeatmapModel:
+class BaseHeatmapModel:
     
     def __init__(
             self,

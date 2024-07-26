@@ -1,6 +1,6 @@
 """Represents state of Ternary Bootstrap editor error entry area"""
 
-from src.models.utils.trace import BootstrapErrorEntryModel as BaseBootstrapErrorEntryModel
+from src.models.utils.trace import BaseBootstrapErrorEntryModel as BaseBootstrapErrorEntryModel
 
 
 class BootstrapErrorEntryModel(BaseBootstrapErrorEntryModel):

@@ -1,8 +1,12 @@
 """Base class for Setup Menu models"""
 
 from abc import ABC
+from typing import Optional
 
-from src.models.base.setup import 
+from src.models.base.setup import (
+    BaseAxisScalingModel,
+    BaseHoverDataSelectionModel
+)
 
 class BaseSetupModel(ABC):
 
@@ -12,7 +16,11 @@ class BaseSetupModel(ABC):
             custom_hover_data_checked: bool = False,
             scale_axes_checked: bool = False,
             advanced_settings_checked: bool = False,
-            hover_data_selection_model:):
+            hover_data_selection_model: Optional[BaseHoverDataSelectionModel] = None,
+            axis_scaling_model: Optional[BaseAxisScalingModel] = None):
+        
+        self.hover_data_selection_model = hover_data_selection_model or BaseHoverDataSelectionModel()
+        self.axis_scaling_model = axis_scaling_model or BaseAxisScalingModel()
         
         self._title = title
         self._custom_hover_data_checked = custom_hover_data_checked

@@ -1,9 +1,9 @@
-from .heatmap_model import HeatmapModel
+from .heatmap_model import BaseHeatmapModel
 from .sizemap_model import BaseSizemapModel
-from .error_entry_model import BootstrapErrorEntryModel
+from .error_entry_model import BaseBootstrapErrorEntryModel
 
 __all__ = [
-    "HeatmapModel",
+    "BaseHeatmapModel",
     "BaseSizemapModel",
-    "BootstrapErrorEntryModel"
+    "BaseBootstrapErrorEntryModel"
 ]

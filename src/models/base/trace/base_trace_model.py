@@ -6,9 +6,9 @@ from typing import List, Optional, TYPE_CHECKING
 import pandas as pd
 
 from src.models.utils.trace import (
-    HeatmapModel, 
+    BaseHeatmapModel, 
     BaseSizemapModel, 
-    BootstrapErrorEntryModel
+    BaseBootstrapErrorEntryModel
 )
 from src.models.utils.data_models import DataFile
 from src.models.utils.trace.filter import FilterTabsPanelModel
@@ -36,7 +36,7 @@ class BaseTraceEditorModel(ABC):
             add_sizemap_checked: bool = False,
             filter_data_checked: bool = False,
             advanced_settings_checked: bool = False,
-            heatmap_model: Optional[HeatmapModel] = None,
+            heatmap_model: Optional[BaseHeatmapModel] = None,
             sizemap_model: Optional[BaseSizemapModel] = None,
             filter_tab_model: Optional[FilterTabsPanelModel] = None,
             series: Optional[pd.Series] = None,
@@ -44,14 +44,14 @@ class BaseTraceEditorModel(ABC):
             line_style: Optional[str] = 'solid',
             selected_contour_mode: Optional[str] = '1 sigma',
             contour_level: Optional[float] = 68.0,
-            error_entry_model: Optional[BootstrapErrorEntryModel] = None):
+            error_entry_model: Optional[BaseBootstrapErrorEntryModel] = None):
         
         # Direct access
         self.kind = kind
-        self.heatmap_model = heatmap_model or HeatmapModel()
+        self.heatmap_model = heatmap_model or BaseHeatmapModel()
         self.sizemap_model = sizemap_model or BaseSizemapModel()
         self.filter_tab_model = filter_tab_model or FilterTabsPanelModel()
-        self.error_entry_model = error_entry_model or BootstrapErrorEntryModel()
+        self.error_entry_model = error_entry_model or BaseBootstrapErrorEntryModel()
 
         # Controlled access
         self._available_data_file_names = available_data_file_names
@@ -128,7 +128,7 @@ class BaseTraceEditorModel(ABC):
             add_sizemap_checked=data.get('add_sizemap_checked', False),
             filter_data_checked=data.get('filter_data_checked', False),
             advanced_settings_checked=data.get('advanced_settings_checked', False),
-            heatmap_model=HeatmapModel.from_json(data.get('heatmap_model', {})),
+            heatmap_model=BaseHeatmapModel.from_json(data.get('heatmap_model', {})),
             sizemap_model=BaseSizemapModel.from_json(data.get('sizemap_model', {})),
             filter_tab_model=FilterTabsPanelModel.from_json(data.get('filter_tab_model', {})),
             series=series,
@@ -136,7 +136,7 @@ class BaseTraceEditorModel(ABC):
             line_style=data.get('line_style', 'solid'),
             selected_contour_mode=data.get('selected_contour_mode', '1 sigma'),
             contour_level=data.get('contour_level', 68.0),
-            error_entry_model=BootstrapErrorEntryModel.from_json(data.get('error_entry_model', {}))
+            error_entry_model=BaseBootstrapErrorEntryModel.from_json(data.get('error_entry_model', {}))
         )
 
     @property

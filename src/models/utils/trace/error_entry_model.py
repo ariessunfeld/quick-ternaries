@@ -2,7 +2,7 @@
 
 from typing import List, Tuple
 
-class BootstrapErrorEntryModel:
+class BaseBootstrapErrorEntryModel:
     
     def __init__(self):
         self.column_error_map = {}
@@ -23,4 +23,3 @@ class BootstrapErrorEntryModel:
 
     def get_sorted_repr(self) -> List[Tuple[str, str]]:
         return sorted(self.column_error_map.items())
-
