@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, List
 from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
-    from src.models.ternary.setup import CustomApexSelectionModel
     from src.views.ternary.setup import AxisSelectionView
     from src.models.ternary.setup import AxisSelectionModel
 
