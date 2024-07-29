@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject
 
 if TYPE_CHECKING:
-    from src.models.ternary.setup import TernaryApexScalingModel
+    from src.models.ternary.setup import TernaryAxisScalingModel
     from src.views.ternary.setup import TernaryApexScalingView
 
 class TernaryApexScalingController(QObject):
     
     def __init__(
             self,
-            model: 'TernaryApexScalingModel',
+            model: 'TernaryAxisScalingModel',
             view: 'TernaryApexScalingView'):
         super().__init__()
 

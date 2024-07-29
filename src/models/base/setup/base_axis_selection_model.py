@@ -1,11 +1,11 @@
 """Base class for axis selection models"""
 
-from typing import List
+from typing import List, Optional
 
 
 class BaseAxisSelectionModel:
-    def __init__(self, options: List[str], selected: str):
-        self._options = options
+    def __init__(self, options: Optional[List[str]] = None, selected: str = ''):
+        self._options = options or []
         self._selected = selected
 
     @property

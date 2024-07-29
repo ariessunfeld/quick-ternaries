@@ -4,14 +4,14 @@ from typing import List, Optional
 
 from src.models.base.setup import BaseAxisSelectionModel
 
-class AxisSelectionModel(BaseAxisSelectionModel):
+class TernaryAxisSelectionModel(BaseAxisSelectionModel):
 
     AXES = ['top', 'left', 'right']
 
     def __init__(
             self, 
-            options: List[str], 
-            selected: str, 
+            options: Optional[List[str]] = None, 
+            selected: str = '', 
             top: Optional[List[str]] = None, 
             left: Optional[List[str]] = None, 
             right: Optional[List[str]] = None):

@@ -1,13 +1,15 @@
 """Contains Model for the Setup part of the GUI (part where data loading, ternary apex selection, apex display name, and title are set)"""
 
-from typing import List
+from typing import List, Optional
+
+from src.models.base.setup import BaseSetupModel
 
 from src.models.ternary.setup import (
-    AxisSelectionModel,
-    CustomHoverDataSelectionModel,
-    TernaryApexScalingModel,
-    AdvancedSettingsModel
-    )
+    TernaryAxisSelectionModel,
+    TernaryHoverDataSelectionModel,
+    TernaryAxisScalingModel,
+    TernaryAdvancedSettingsModel)
+
 from src.utils.ternary_types import TERNARY_TYPES
 
 
@@ -77,9 +79,29 @@ class TernaryType:
     def __str__(self):
         return str(self.__dict__)
 
-class TernaryStartSetupModel:
+class TernaryStartSetupModel(BaseSetupModel):
 
-    def __init__(self):
+    def __init__(
+            self, 
+            title: str = '',
+            custom_hover_data_checked: bool = False,
+            scale_axes_checked: bool = False,
+            advanced_settings_checked: bool = False,
+            hover_data_selection_model: Optional[TernaryHoverDataSelectionModel] = None,
+            axis_scaling_model: Optional[TernaryAxisScalingModel] = None,
+            axis_selection_model: Optional[TernaryAxisSelectionModel] = None,
+            advanced_settings_model: Optional[TernaryAdvancedSettingsModel] = None):
+        
+        super().__init__(
+            title, 
+            custom_hover_data_checked, 
+            scale_axes_checked, 
+            advanced_settings_checked)
+        
+        self.hover_data_selection_model = hover_data_selection_model or TernaryHoverDataSelectionModel([], [])
+        self.axis_scaling_model = axis_scaling_model or TernaryAxisScalingModel()
+        self.axis_selection_model = axis_selection_model or TernaryAxisSelectionModel()
+        self.advanced_settings_model = advanced_settings_model or TernaryAdvancedSettingsModel()
         
         self.available_ternary_types: List[TernaryType] = \
             [TernaryType(**tt) for tt in TERNARY_TYPES]
@@ -87,10 +109,10 @@ class TernaryStartSetupModel:
         self.selected_ternary_type: TernaryType = \
             self.available_ternary_types[0]
         
-        self.custom_apex_selection_model = AxisSelectionModel([], [])
-        self.custom_hover_data_selection_model = CustomHoverDataSelectionModel([], [])
-        self.apex_scaling_model = TernaryApexScalingModel()
-        self.advanced_settings_model = AdvancedSettingsModel()
+        self.custom_apex_selection_model = TernaryAxisSelectionModel()
+        self.custom_hover_data_selection_model = TernaryHoverDataSelectionModel([], [])
+        self.apex_scaling_model = TernaryAxisScalingModel()
+        self.advanced_settings_model = TernaryAdvancedSettingsModel()
         
         self.title: str = ''
         self.top_apex_display_name: str = ''

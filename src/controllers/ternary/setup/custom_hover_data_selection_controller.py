@@ -1,13 +1,13 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.models.ternary.setup import CustomHoverDataSelectionModel
+    from src.models.ternary.setup import TernaryHoverDataSelectionModel
     from src.views.ternary.setup import CustomHoverDataSelectionView
 
 class CustomHoverDataSelectionController:
     def __init__(
             self,
-            model: 'CustomHoverDataSelectionModel',
+            model: 'TernaryHoverDataSelectionModel',
             view: 'CustomHoverDataSelectionView'):
         """Initialize the Custom Hover Data Selection controller"""
         self.model = model

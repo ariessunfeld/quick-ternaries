@@ -1,4 +1,4 @@
-class AdvancedSettingsModel:
+class TernaryAdvancedSettingsModel:
     def __init__(
             self,
             background_color: str = '#e3ecf7', # plotly's default figure color

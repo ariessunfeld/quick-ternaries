@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from src.views.utils import AddRemoveList
 
 if TYPE_CHECKING:
-    from src.models.ternary.setup import AxisSelectionModel
+    from src.models.ternary.setup import TernaryAxisSelectionModel
 
 
 class AxisSelectionView(QWidget):
@@ -47,7 +47,7 @@ class AxisSelectionView(QWidget):
         self.add_remove_list_top_apex_columns.setText('Top Apex')
         self.add_remove_list_left_apex_columns.setText('Left Apex')
 
-    def refresh(self, model: 'AxisSelectionModel'):
+    def refresh(self, model: 'TernaryAxisSelectionModel'):
 
         # Clear the view
         self.list_widget_available_columns.clear()

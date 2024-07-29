@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.views.ternary.setup import AdvancedSettingsView
-    from src.models.ternary.setup import AdvancedSettingsModel
+    from src.models.ternary.setup import TernaryAdvancedSettingsModel
 
 class AdvancedSettingsController:
-    def __init__(self, model: 'AdvancedSettingsModel', view: 'AdvancedSettingsView'):
+    def __init__(self, model: 'TernaryAdvancedSettingsModel', view: 'AdvancedSettingsView'):
         self.model = model
         self.view = view
 

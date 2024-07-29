@@ -2,7 +2,7 @@
 
 from typing import List, Tuple
 
-class TernaryApexScalingModel:
+class TernaryAxisScalingModel:
     
     def __init__(self):
         self.column_scale_mapping = {}

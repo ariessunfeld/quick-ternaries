@@ -6,14 +6,14 @@ from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
     from src.views.ternary.setup import AxisSelectionView
-    from src.models.ternary.setup import AxisSelectionModel
+    from src.models.ternary.setup import TernaryAxisSelectionModel
 
 class AxisSelectionController(QObject):
 
     column_added_to_apices = Signal(str)
     column_removed_from_apices = Signal(str)
 
-    def __init__(self, model: 'AxisSelectionModel', view: 'AxisSelectionView'):
+    def __init__(self, model: 'TernaryAxisSelectionModel', view: 'AxisSelectionView'):
         
         super().__init__()
 
