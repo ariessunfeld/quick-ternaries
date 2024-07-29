@@ -1,4 +1,9 @@
-"""Contains the model representing the custom apex selection logic, part of the BaseSetupModel"""
+"""
+Ternary instance Axis Selection Model
+
+Properties defined in this class represent axes
+Adding options and syncing options with axes is handled by base class
+"""
 
 from typing import List, Optional
 
