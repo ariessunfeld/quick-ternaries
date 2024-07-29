@@ -1,3 +1,6 @@
+"""View class for the Ternary custom apex selection interface"""
+
+from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -8,12 +11,11 @@ from PySide6.QtWidgets import (
 
 from src.views.utils import AddRemoveList
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from src.models.ternary.setup.custom_apex_selection_model import CustomApexSelectionModel
+    from src.models.ternary.setup import AxisSelectionModel
 
-class CustomApexSelectionView(QWidget):
+
+class AxisSelectionView(QWidget):
     """A megawidget containing the ListWidgets and buttons for custom apex selection"""
 
     def __init__(self, parent:QWidget|None=None):
@@ -45,17 +47,16 @@ class CustomApexSelectionView(QWidget):
         self.add_remove_list_top_apex_columns.setText('Top Apex')
         self.add_remove_list_left_apex_columns.setText('Left Apex')
 
-    def refresh(self, model: 'CustomApexSelectionModel'):
+    def refresh(self, model: 'AxisSelectionModel'):
+
+        # Clear the view
         self.list_widget_available_columns.clear()
         self.add_remove_list_top_apex_columns.clear()
         self.add_remove_list_right_apex_columns.clear()
         self.add_remove_list_left_apex_columns.clear()
 
-        self.list_widget_available_columns.addItems(
-            model.get_available_columns())
-        self.add_remove_list_top_apex_columns.addItems(
-            model.get_top_apex_selected_columns())
-        self.add_remove_list_right_apex_columns.addItems(
-            model.get_right_apex_selected_columns())
-        self.add_remove_list_left_apex_columns.addItems(
-            model.get_left_apex_selected_columns())
+        # Repopulate with values from model
+        self.list_widget_available_columns.addItems(model.options)
+        self.add_remove_list_top_apex_columns.addItems(model.top)
+        self.add_remove_list_right_apex_columns.addItems(model.right)
+        self.add_remove_list_left_apex_columns.addItems(model.left)

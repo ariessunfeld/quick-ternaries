@@ -21,7 +21,7 @@ from src.views.utils import (
     LabeledButton
 )
 from src.views.ternary.setup import (
-    CustomApexSelectionView,
+    AxisSelectionView,
     CustomHoverDataSelectionView,
     TernaryApexScalingView,
     AdvancedSettingsView
@@ -53,7 +53,7 @@ class TernarySetupMenu(QWidget):
 
         # Menu with columns for each apex, only displayed if 
         # combobox choice is "Custom"
-        self.custom_apex_selection_view = CustomApexSelectionView()
+        self.custom_apex_selection_view = AxisSelectionView()
         # Hide the CustomApexSelectionView at first
         self.custom_apex_selection_view.setVisible(False)
 

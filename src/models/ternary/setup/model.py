@@ -4,6 +4,7 @@ from typing import List
 
 from src.models.ternary.setup import (
     CustomApexSelectionModel,
+    AxisSelectionModel,
     CustomHoverDataSelectionModel,
     TernaryApexScalingModel,
     AdvancedSettingsModel
@@ -87,7 +88,7 @@ class TernaryStartSetupModel:
         self.selected_ternary_type: TernaryType = \
             self.available_ternary_types[0]
         
-        self.custom_apex_selection_model = CustomApexSelectionModel()
+        self.custom_apex_selection_model = AxisSelectionModel([], [])
         self.custom_hover_data_selection_model = CustomHoverDataSelectionModel([], [])
         self.apex_scaling_model = TernaryApexScalingModel()
         self.advanced_settings_model = AdvancedSettingsModel()
@@ -138,15 +139,12 @@ class TernaryStartSetupModel:
         self._clear_selections()
 
     def _clear_selections(self):
-        right_apex_cols = self.custom_apex_selection_model.get_right_apex_selected_columns()
-        left_apex_cols = self.custom_apex_selection_model.get_left_apex_selected_columns()
-        top_apex_cols = self.custom_apex_selection_model.get_top_apex_selected_columns()
+        right_apex_cols = self.custom_apex_selection_model.right
+        left_apex_cols = self.custom_apex_selection_model.left
+        top_apex_cols = self.custom_apex_selection_model.top
         for col in right_apex_cols:
-            self.custom_apex_selection_model.remove_right_apex_column(col)
-            self.custom_apex_selection_model.add_available_column(col)
+            self.custom_apex_selection_model.rem_from_axis(col, 'right')
         for col in left_apex_cols:
-            self.custom_apex_selection_model.remove_left_apex_column(col)
-            self.custom_apex_selection_model.add_available_column(col)
+            self.custom_apex_selection_model.rem_from_axis(col, 'left')
         for col in top_apex_cols:
-            self.custom_apex_selection_model.remove_top_apex_column(col)
-            self.custom_apex_selection_model.add_available_column(col)
+            self.custom_apex_selection_model.rem_from_axis(col, 'top')

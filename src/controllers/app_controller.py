@@ -115,9 +115,9 @@ class AppController:
         else:
             selected_indices = self.view.plotly_interface.get_indices()
             # TODO make this more robust to different plot types
-            top = self.model.current_model.start_setup_model.custom_apex_selection_model.get_top_apex_selected_columns()
-            left = self.model.current_model.start_setup_model.custom_apex_selection_model.get_left_apex_selected_columns()
-            right = self.model.current_model.start_setup_model.custom_apex_selection_model.get_right_apex_selected_columns()
+            top = self.model.current_model.start_setup_model.custom_apex_selection_model.top
+            left = self.model.current_model.start_setup_model.custom_apex_selection_model.left
+            right = self.model.current_model.start_setup_model.custom_apex_selection_model.right
             success = self.tab_panel_controller.add_bootstrap_trace(None, selected_indices, top+left+right)
             if not success:
                 self.view.show_bootstrap_tutorial_gif()

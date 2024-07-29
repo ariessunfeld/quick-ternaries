@@ -1,17 +1,20 @@
-from typing import TYPE_CHECKING
+"""Ternary instance of the axis selection controller"""
+
+from typing import TYPE_CHECKING, List
 
 from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
     from src.models.ternary.setup import CustomApexSelectionModel
-    from src.views.ternary.setup import CustomApexSelectionView
+    from src.views.ternary.setup import AxisSelectionView
+    from src.models.ternary.setup import AxisSelectionModel
 
-class CustomApexSelectionController(QObject):
+class AxisSelectionController(QObject):
 
     column_added_to_apices = Signal(str)
     column_removed_from_apices = Signal(str)
 
-    def __init__(self, model: 'CustomApexSelectionModel', view: 'CustomApexSelectionView'):
+    def __init__(self, model: 'AxisSelectionModel', view: 'AxisSelectionView'):
         
         super().__init__()
 
@@ -24,32 +27,30 @@ class CustomApexSelectionController(QObject):
         
     def setup_connections(self):
         # Add/remove button connections
-        self.view.add_remove_list_top_apex_columns.button_add.clicked.connect(self.clicked_top_apex_button_add)
-        self.view.add_remove_list_top_apex_columns.button_remove.clicked.connect(self.clicked_top_apex_button_remove)
+        self.view.add_remove_list_top_apex_columns.button_add.clicked.connect(self._on_btn_add_top_clicked)
+        self.view.add_remove_list_top_apex_columns.button_remove.clicked.connect(self._on_btn_rem_top_clicked)
         self.view.add_remove_list_right_apex_columns.button_add.clicked.connect(self.clicked_right_apex_button_add)
         self.view.add_remove_list_right_apex_columns.button_remove.clicked.connect(self.clicked_right_apex_button_remove)
         self.view.add_remove_list_left_apex_columns.button_add.clicked.connect(self.clicked_left_apex_button_add)
         self.view.add_remove_list_left_apex_columns.button_remove.clicked.connect(self.clicked_left_apex_button_remove)
 
-    def clicked_top_apex_button_add(self):
+    def _on_btn_add_top_clicked(self):
         """Gets selected column from view's available_columns,
         adds to model's top_apex_columns and removes from model's available columns"""
         selected_column = self.view.list_widget_available_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.add_top_apex_column(col)
-            self.model.remove_available_column(col)
+            self.model.add_to_axis(col, 'top')
             self.view.refresh(self.model)
             self.column_added_to_apices.emit(col)
 
-    def clicked_top_apex_button_remove(self):
+    def _on_btn_rem_top_clicked(self):
         """Gets selected column from view's top_apex columns,
         adds to model's available columns and removes from model's top_apex columns"""
         selected_column = self.view.add_remove_list_top_apex_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.remove_top_apex_column(col)
-            self.model.add_available_column(col)
+            self.model.rem_from_axis(col, 'top')
             self.view.refresh(self.model)
             self.column_removed_from_apices.emit(col)
 
@@ -59,8 +60,7 @@ class CustomApexSelectionController(QObject):
         selected_column = self.view.list_widget_available_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.add_right_apex_column(col)
-            self.model.remove_available_column(col)
+            self.model.add_to_axis(col, 'right')
             self.view.refresh(self.model)
             self.column_added_to_apices.emit(col)
 
@@ -70,8 +70,7 @@ class CustomApexSelectionController(QObject):
         selected_column = self.view.add_remove_list_right_apex_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.remove_right_apex_column(col)
-            self.model.add_available_column(col)
+            self.model.rem_from_axis(col, 'right')
             self.view.refresh(self.model)
             self.column_removed_from_apices.emit(col)
 
@@ -81,8 +80,7 @@ class CustomApexSelectionController(QObject):
         selected_column = self.view.list_widget_available_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.add_left_apex_column(col)
-            self.model.remove_available_column(col)
+            self.model.add_to_axis(col, 'left')
             self.view.refresh(self.model)
             self.column_added_to_apices.emit(col)
 
@@ -92,31 +90,33 @@ class CustomApexSelectionController(QObject):
         selected_column = self.view.add_remove_list_left_apex_columns.currentItem()
         if selected_column is not None:
             col = selected_column.text()
-            self.model.remove_left_apex_column(col)
-            self.model.add_available_column(col)
+            self.model.rem_from_axis(col, 'left')
             self.view.refresh(self.model)
             self.column_removed_from_apices.emit(col)
 
-    def update_columns(self, new_columns: list[str]):
-        # Set model's available columns to new_columns
-        self.model.available_columns = []
-        for col in new_columns:
-            self.model.add_available_column(col)
-        # Remove from model's available columns each of the model's selected columns
-        for col in self.model.get_top_apex_selected_columns():
-            self.model.remove_available_column(col)
-            if col not in new_columns:
-                self.model.remove_top_apex_column(col)
-        for col in self.model.get_left_apex_selected_columns():
-            self.model.remove_available_column(col)
-            if col not in new_columns:
-                self.model.remove_left_apex_column(col)
-        for col in self.model.get_right_apex_selected_columns():
-            self.model.remove_available_column(col)
-            if col not in new_columns:
-                self.model.remove_right_apex_column(col)
-        # Flush the view with the model state (handled by model)
+    def update_options(self, new_options: List[str]):
+        self.model.options = []
+
+        for option in new_options:
+            self.model.add_option(option)
+
+        for option in self.model.top:
+            self.model.rem_option(option)
+            if option not in new_options:
+                self.model.rem_from_axis(option, 'top')
+                
+        for option in self.model.left:
+            self.model.rem_option(option)
+            if option not in new_options:
+                self.model.rem_from_axis(option, 'left')
+
+        for option in self.model.right:
+            self.model.rem_option(option)
+            if option not in new_options:
+                self.model.rem_from_axis(option, 'right')
+
         self.view.refresh(self.model)
 
     def refresh_view(self):
+        """Public access to command a view refresh"""
         self.view.refresh(self.model)

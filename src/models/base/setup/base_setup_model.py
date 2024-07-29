@@ -5,7 +5,8 @@ from typing import Optional
 
 from src.models.base.setup import (
     BaseAxisScalingModel,
-    BaseHoverDataSelectionModel
+    BaseHoverDataSelectionModel,
+    BaseAxisSelectionModel
 )
 
 class BaseSetupModel(ABC):
@@ -17,10 +18,12 @@ class BaseSetupModel(ABC):
             scale_axes_checked: bool = False,
             advanced_settings_checked: bool = False,
             hover_data_selection_model: Optional[BaseHoverDataSelectionModel] = None,
-            axis_scaling_model: Optional[BaseAxisScalingModel] = None):
+            axis_scaling_model: Optional[BaseAxisScalingModel] = None,
+            axis_selection_model: Optional[BaseAxisSelectionModel] = None):
         
         self.hover_data_selection_model = hover_data_selection_model or BaseHoverDataSelectionModel()
         self.axis_scaling_model = axis_scaling_model or BaseAxisScalingModel()
+        self.axis_selection_model = axis_selection_model or BaseAxisSelectionModel()
         
         self._title = title
         self._custom_hover_data_checked = custom_hover_data_checked

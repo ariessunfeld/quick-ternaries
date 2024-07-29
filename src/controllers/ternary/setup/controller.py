@@ -18,7 +18,7 @@ from src.models.ternary.setup import TernaryType
 from src.controllers.ternary.setup import (
     AdvancedSettingsController,
     TernaryApexScalingController,
-    CustomApexSelectionController,
+    AxisSelectionController,
     CustomHoverDataSelectionController
 )
 
@@ -92,7 +92,7 @@ class TernaryStartSetupController(QWidget):
             self.view.advanced_settings_view)
 
         # Set up custom apex selection connections
-        self.custom_apex_selection_controller = CustomApexSelectionController(
+        self.custom_apex_selection_controller = AxisSelectionController(
             self.model.custom_apex_selection_model,
             self.view.custom_apex_selection_view)
         
@@ -188,9 +188,9 @@ class TernaryStartSetupController(QWidget):
             TernaryType(
                 **{
                     'name': 'Custom',
-                    'top': self.model.custom_apex_selection_model.get_top_apex_selected_columns(),
-                    'left': self.model.custom_apex_selection_model.get_left_apex_selected_columns(),
-                    'right': self.model.custom_apex_selection_model.get_right_apex_selected_columns()
+                    'top': self.model.custom_apex_selection_model.top,
+                    'left': self.model.custom_apex_selection_model.left,
+                    'right': self.model.custom_apex_selection_model.right
                 }
             )
         )
