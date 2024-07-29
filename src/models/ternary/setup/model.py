@@ -3,7 +3,6 @@
 from typing import List
 
 from src.models.ternary.setup import (
-    CustomApexSelectionModel,
     AxisSelectionModel,
     CustomHoverDataSelectionModel,
     TernaryApexScalingModel,
