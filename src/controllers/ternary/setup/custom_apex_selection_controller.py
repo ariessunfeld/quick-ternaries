@@ -29,8 +29,8 @@ class AxisSelectionController(QObject):
         # Add/remove button connections
         self.view.add_remove_list_top_apex_columns.button_add.clicked.connect(self._on_btn_add_top_clicked)
         self.view.add_remove_list_top_apex_columns.button_remove.clicked.connect(self._on_btn_rem_top_clicked)
-        self.view.add_remove_list_right_apex_columns.button_add.clicked.connect(self.clicked_right_apex_button_add)
-        self.view.add_remove_list_right_apex_columns.button_remove.clicked.connect(self.clicked_right_apex_button_remove)
+        self.view.add_remove_list_right_apex_columns.button_add.clicked.connect(self._on_btn_add_right_clicked)
+        self.view.add_remove_list_right_apex_columns.button_remove.clicked.connect(self._on_btn_rem_right_clicked)
         self.view.add_remove_list_left_apex_columns.button_add.clicked.connect(self.clicked_left_apex_button_add)
         self.view.add_remove_list_left_apex_columns.button_remove.clicked.connect(self.clicked_left_apex_button_remove)
 
@@ -54,7 +54,7 @@ class AxisSelectionController(QObject):
             self.view.refresh(self.model)
             self.column_removed_from_apices.emit(col)
 
-    def clicked_right_apex_button_add(self):
+    def _on_btn_add_right_clicked(self):
         """Gets selected column from view's available_columns,
         adds to model's right_apex_columns and removes from model's available columns"""
         selected_column = self.view.list_widget_available_columns.currentItem()
@@ -64,7 +64,7 @@ class AxisSelectionController(QObject):
             self.view.refresh(self.model)
             self.column_added_to_apices.emit(col)
 
-    def clicked_right_apex_button_remove(self):
+    def _on_btn_rem_right_clicked(self):
         """Gets selected column from view's right_apex columns,
         adds to model's available columns and removes from model's right_apex columns"""
         selected_column = self.view.add_remove_list_right_apex_columns.currentItem()
