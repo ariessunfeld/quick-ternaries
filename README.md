@@ -84,6 +84,7 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
 - Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
 - Right-click the `quick-ternaries_windows_conda.bat` file, click `Run`, and then click `Run Anyway`
   - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows_conda.bat` to launch the app.)
+  - If double-clicking doesn't work, open the Anaconda Prompt, navigate to the location of the file, and run the command `call quick-ternaries_windows_conda.bat`
 - Follow the prompts in the Anaconda Prompt and agree to update if asked
 
 #### Without Anaconda
