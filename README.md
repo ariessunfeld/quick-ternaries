@@ -34,7 +34,7 @@ Quick Ternaries is a python application designed to make ternary plotting a bree
 
 Below are installation instructions for macOS and Windows. Regardless of your operating system, we recommend following the Automatic setup instructions, and launching the tool with the provided launcher. This way, each time you boot up the tool, it will check for updates and offer to install them if any are found.
 
-Note: This tool requires Python 3.11+.
+Note: This tool requires Python 3.11.
 
 For basic instructions on how to use the Terminal/Command Prompt, see the [New to the Terminal](#new-to-the-terminal) section.
 
