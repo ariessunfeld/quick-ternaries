@@ -1,6 +1,8 @@
 # quick-ternaries
 
-Quick Ternaries is a python application designed to make ternary plotting a breeze. 
+Quick Ternaries is a python application designed to make ternary plotting a breeze.  
+  
+[![DOI](https://zenodo.org/badge/709465811.svg)](https://doi.org/10.5281/zenodo.14511221)
 
 # Table of Contents
 
