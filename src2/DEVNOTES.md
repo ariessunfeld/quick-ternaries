@@ -1,0 +1,7 @@
+- view8.py is the version that was built in Dec 2024
+- view9.py is intermediate and not meant to run
+- view10.py implements a robust centralized trace editor data model that supports plot type changes
+- view11.py builds on view10.py and introduces the setup menu, also designed with plot type switching in mind. However, it is bare bones and doesn't currently perform plot type switch modification.
+- view12.py introduces better selection of columns for axes etc, and removal of data from data library, but has a bug when switching plot types wrt setup menu
+- view13.py introduces plot type switching on the setup menu, and saving/loading but it's preliminary and buggy
+- view15.py fixes save/load bugs across trace editor and setup menu; also improves tab renaming and preserves order across save/load
