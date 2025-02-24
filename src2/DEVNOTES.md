@@ -5,3 +5,4 @@
 - view12.py introduces better selection of columns for axes etc, and removal of data from data library, but has a bug when switching plot types wrt setup menu
 - view13.py introduces plot type switching on the setup menu, and saving/loading but it's preliminary and buggy
 - view15.py fixes save/load bugs across trace editor and setup menu; also improves tab renaming and preserves order across save/load
+- view16.py adds heatmap-specific widgets that display only when the heatmap checkbox is toggled
