@@ -7,3 +7,6 @@
 - view15.py fixes save/load bugs across trace editor and setup menu; also improves tab renaming and preserves order across save/load
 - view16.py adds heatmap-specific widgets that display only when the heatmap checkbox is toggled
 - view17.py introduces groupbox clustering for dependent widgets. Groupboxed widgets appear below the rest of the form.
+- view18.py introduces filters!
+- view18b.py fixes filter renaming
+
