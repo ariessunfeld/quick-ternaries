@@ -40,6 +40,8 @@ Note: This tool requires Python 3.11.
 
 For basic instructions on how to use the Terminal/Command Prompt, see the [New to the Terminal](#new-to-the-terminal) section.
 
+**Important:** Before installing or launching the tool, disconnect from any VPNs that block python package managers like `pip` or `conda`.
+
 ## macOS
 
 ### Automatic
