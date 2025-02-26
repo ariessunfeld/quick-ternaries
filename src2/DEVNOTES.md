@@ -9,4 +9,5 @@
 - view17.py introduces groupbox clustering for dependent widgets. Groupboxed widgets appear below the rest of the form.
 - view18.py introduces filters!
 - view18b.py fixes filter renaming
+- view19.py : bug fixes
 
