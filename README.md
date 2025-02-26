@@ -82,12 +82,18 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
 
 #### With Anaconda
 
-- Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-conda-launcher/quick-ternaries-windows-conda-launcher.zip)
-- Open the File Browser, right-click the zipfile, and unzip it by clicking Extract All
-- Right-click the `quick-ternaries_windows_conda.bat` file, click `Run`, and then click `Run Anyway`
-  - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_windows_conda.bat` to launch the app.)
-  - If double-clicking doesn't work, open the Anaconda Prompt, navigate to the location of the file, and run the command `call quick-ternaries_windows_conda.bat`
-- Follow the prompts in the Anaconda Prompt and agree to update if asked
+- Download the Windows Anaconda launcher zipfile from the [Windows Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/windows-conda-launcher-2025-02-25/QuickTernaries.zip)
+- Open the File Browser, right-click the zipfile `QuickTernaries.zip`, and unzip it by clicking Extract All
+- Open the `Anaconda Prompt` application and navigate into the unzipped QuickTernaries folder
+  - Be sure to [install Anaconda]([url](https://www.anaconda.com/download)) first if you have not done so already. It is free software; you just have to provide an email to download it.
+  - To open the `Anaconda Prompt`, go to the Windows Start Menu and search for "Anaconda", then select the Anaconda Prompt.
+  - To navigate into the folder, copy the path from the File Browser and use the `cd` command in the Anaconda Prompt. For example, it might look like `cd C:\Users\YourName\Documents\QuickTernaries\`
+- Once you have navigated into the folder, ensure the presence of the following files by running `dir` (It is okay if there are additional files, but there should be at least these three.)
+  - `setup.bat`
+  -  `TemplateLauncher.bat`
+  - `updater.py`
+- Run `call setup.bat` to build the launcher. This only has to happen once.
+- You can now close the `Anaconda Prompt` window and launch Quick Ternaries like a normal application by double-clicking the file `RunQuickTernaries.bat` from the File Browser.
 
 #### Without Anaconda
 
