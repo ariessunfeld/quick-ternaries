@@ -19,4 +19,5 @@
 - view28.py fixes bugs where creating new tab would not populate heatmap fields
 - view29.py improves filter sync with available cols as well as during loading of workspace
 - view30.py introduces more advanced color picker
-
+- view31.py introduces point shape selection using nice visible shapes
+- 
