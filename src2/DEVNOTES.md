@@ -10,4 +10,10 @@
 - view18.py introduces filters!
 - view18b.py fixes filter renaming
 - view19.py : bug fixes
+- view22.py syncs the data library with the selection options per trace and handles deleting loaded files gracefully
+- skip view23*.py
+- view24.py introduces a connection between selected datafile and heatmap options via a trace editor controller
+- view25.py: skip
+- view26.py adds sizemap configuration and connects datafile to sizemap
+- view27*.py was complicated, claude fixed bugs: heatmap selection column persists through loading workspace, advanced settings added
 
