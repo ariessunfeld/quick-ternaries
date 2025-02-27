@@ -16,4 +16,5 @@
 - view25.py: skip
 - view26.py adds sizemap configuration and connects datafile to sizemap
 - view27*.py was complicated, claude fixed bugs: heatmap selection column persists through loading workspace, advanced settings added
-
+- view28.py fixes bugs where creating new tab would not populate heatmap fields
+- 
