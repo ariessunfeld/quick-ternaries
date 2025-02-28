@@ -22,4 +22,5 @@
 - view31.py introduces point shape selection using nice visible shapes
 - view32.py introduces colorscale selection using visible scales
 - view32b.py fixes this with a better dropdown
--
+- view33c.py introduces more advanced heatmap options but has a datafile column selection bug
+- view34.py fixes the datafile selection bug

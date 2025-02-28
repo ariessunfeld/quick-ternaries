@@ -108,7 +108,158 @@ def get_all_columns_from_file(file_path):
     except Exception as e:
         print(f"Error getting columns from file {file_path}: {str(e)}")
         return []
+    
+class ColorScaleButton(QWidget):
+    """
+    Custom widget displaying a preview of the color scale and a button to select from standard Plotly color scales.
+    """
+    colorScaleChanged = Signal(str)  # Signal emitted when color scale changes
+    
+    # List of standard Plotly color scales
+    PLOTLY_COLOR_SCALES = [
+        "Plotly3", "Viridis", "Cividis", "Inferno", "Magma", "Plasma", 'Turbo',
+        'Blackbody', 'Bluered', 'Electric', 'Hot', 'Jet', 'Rainbow', 'Blues',
+        'BuGn', 'BuPu', 'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PuBu',
+        'PuBuGn', 'PuRd', 'Purples', 'RdBu', 'RdPu', 'Reds', 'YlGn', 'YlGnBu',
+        'YlOrBr', 'YlOrRd', 'turbid', 'thermal', 'haline', 'solar', 'ice',
+        'gray', 'deep', 'dense', 'algae', 'matter', 'speed', 'amp', 'tempo',
+        'Burg', 'Burgyl', 'Redor', 'Oryel', 'Peach', 'Pinkyl', 'Mint', 'Blugrn',
+        'Darkmint', 'Emrld', 'Aggrnyl', 'Bluyl', 'Teal', 'Tealgrn', 'Purp',
+        'Purpor', 'Sunset', 'Magenta', 'Sunsetdark', 'Agsunset', 'Brwnyl'
+    ]
+    
+    def __init__(self, colorscale="Viridis", parent=None):
+        super().__init__(parent)
+        
+        # Create the layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create the color scale preview widget
+        self.preview = QLabel()
+        self.preview.setMinimumSize(80, 20)
+        self.preview.setMaximumSize(80, 20)
+        self.preview.setScaledContents(True)
+        
+        # Create the button to open the menu
+        self.button = QPushButton("Select ColorScale")
+        
+        # Add widgets to layout
+        layout.addWidget(self.preview)
+        layout.addWidget(self.button)
+        
+        # Create the menu but don't show it yet
+        self.createMenu()
+        
+        # Set the initial color scale
+        self.setColorScale(colorscale)
+        
+        # Connect button click to show menu
+        self.button.clicked.connect(self.showMenu)
+    
+    def createMenu(self):
+        """Create the popup menu with all color scale options"""
+        self.menu = QMenu(self)
+        
+        # Create a scroll area for long lists
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        # Create an action for each color scale with an icon
+        # Arrange in columns to make the menu manageable
+        num_columns = 3
+        color_scales_chunks = [self.PLOTLY_COLOR_SCALES[i:i+num_columns] 
+                              for i in range(0, len(self.PLOTLY_COLOR_SCALES), num_columns)]
+        
+        for chunk in color_scales_chunks:
+            submenu = QMenu(self.menu)
+            for cs_name in chunk:
+                icon = self.create_colorscale_icon(cs_name)
+                action = QAction(icon, cs_name, self)
+                action.triggered.connect(lambda checked=False, name=cs_name: self.onColorScaleSelected(name))
+                submenu.addAction(action)
+            self.menu.addMenu(submenu)
+    
+    def showMenu(self):
+        """Show the popup menu when the button is clicked"""
+        # Position the menu below the button
+        pos = self.button.mapToGlobal(self.button.rect().bottomLeft())
+        self.menu.popup(pos)
+    
+    def setColorScale(self, colorscale_name):
+        """Set the color scale from its name"""
+        try:
+            # Validate the color scale name is in our list
+            if colorscale_name not in self.PLOTLY_COLOR_SCALES:
+                colorscale_name = "Viridis"  # Default to Viridis if invalid
+                
+            # Update the preview
+            pixmap = self.create_colorscale_icon(colorscale_name).pixmap(80, 20)
+            self.preview.setPixmap(pixmap)
+            
+            # Store the current color scale
+            self.current_colorscale = colorscale_name
+        except Exception as e:
+            print(f"Error setting color scale: {e}")
+            # Default to Viridis if there's an issue
+            self.current_colorscale = "Viridis"
+            try:
+                icon = self.create_colorscale_icon("Viridis")
+                if not icon.isNull():
+                    self.preview.setPixmap(icon.pixmap(80, 20))
+            except Exception:
+                pass  # Silently fail if we can't even create the default icon
+    
+    def onColorScaleSelected(self, colorscale_name):
+        """Handle selection of a color scale from the menu"""
+        self.setColorScale(colorscale_name)
+        self.colorScaleChanged.emit(colorscale_name)
+    
+    def getColorScale(self):
+        """Return the current color scale name"""
+        return self.current_colorscale
+    
+    def create_colorscale_icon(self, colorscale_name, width=150, height=20):
+        """Create a QIcon for a Plotly color scale"""
+        try:
+            # Try to get the colorscale
+            colorscale = None
+            try:
+                colorscale = get_colorscale(colorscale_name)
+            except:
+                # If get_colorscale fails, create a simple gradient
+                colorscale = [(0, "lightblue"), (0.5, "blue"), (1, "darkblue")]
+            
+            # Create a subplot with a single cell
+            fig = make_subplots(rows=1, cols=1)
 
+            # Create a heatmap trace
+            heatmap_data = np.array([list(range(width))])
+            fig.add_trace(go.Heatmap(z=heatmap_data, colorscale=colorscale, showscale=False))
+
+            # Update the layout
+            fig.update_layout(
+                width=width, height=height,
+                margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                showlegend=False
+            )
+
+            # Convert to image
+            img_bytes = fig.to_image(format="png")
+
+            # Create QIcon
+            pixmap = QPixmap()
+            pixmap.loadFromData(img_bytes)
+            return QIcon(pixmap)
+        except Exception as e:
+            # Return an empty icon if there's an error
+            print(f"Error generating color scale icon: {e}")
+            return QIcon()
+        
 class ColorScaleDropdown(QWidget):
     """
     Alternative implementation using a combobox dropdown for color scale selection
@@ -135,6 +286,12 @@ class ColorScaleDropdown(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
+        # Create the color scale preview widget
+        self.preview = QLabel()
+        self.preview.setMinimumSize(80, 20)
+        self.preview.setMaximumSize(80, 20)
+        self.preview.setScaledContents(True)
+        
         # Create the combobox for selection
         self.comboBox = QComboBox()
         self.comboBox.setIconSize(QPixmap(60, 15).size())
@@ -145,6 +302,8 @@ class ColorScaleDropdown(QWidget):
             self.comboBox.addItem(icon, cs_name)
         
         # Add widgets to layout
+        # SKIP ADDING THE PREVIEW (unecessary width in widget)
+        # layout.addWidget(self.preview)
         layout.addWidget(self.comboBox)
         
         # Set the initial color scale
@@ -222,7 +381,117 @@ class ColorScaleDropdown(QWidget):
         except Exception as e:
             # Return an empty icon if there's an error
             print(f"Error generating color scale icon: {e}")
-            return QIcon()   
+            return QIcon()
+    
+class ShapeButton(QWidget):
+    """
+    Custom widget displaying the current shape icon and a button to select from standard Plotly shapes.
+    """
+    shapeChanged = Signal(str)  # Signal emitted when shape changes
+    
+    # List of standard Plotly marker shapes
+    PLOTLY_SHAPES = [
+        "circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down", 
+        "triangle-left", "triangle-right", "pentagon", "hexagon", "star", "hexagram",
+        "star-triangle-up", "star-triangle-down", "star-square", "star-diamond",
+        "diamond-tall", "diamond-wide", "hourglass", "bowtie"
+    ]
+    
+    def __init__(self, shape="circle", parent=None):
+        super().__init__(parent)
+        
+        # Create the layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create the shape preview widget
+        self.shapePreview = QLabel()
+        self.shapePreview.setMinimumSize(24, 24)
+        self.shapePreview.setMaximumSize(24, 24)
+        self.shapePreview.setAlignment(Qt.AlignCenter)
+        
+        # Create the button or combobox
+        self.shapeCombo = QComboBox()
+        for shape_name in self.PLOTLY_SHAPES:
+            # Generate icon for the shape
+            icon = self.create_plotly_marker_icon(shape_name)
+            self.shapeCombo.addItem(icon, shape_name)
+        
+        # Add widgets to layout
+        layout.addWidget(self.shapePreview)
+        layout.addWidget(self.shapeCombo)
+        
+        # Set the initial shape
+        self.setShape(shape)
+        
+        # Connect signals
+        self.shapeCombo.currentTextChanged.connect(self.onShapeSelected)
+    
+    def setShape(self, shape_name):
+        """Set the shape from its name"""
+        try:
+            # Find the index of the shape in the combobox
+            index = self.PLOTLY_SHAPES.index(shape_name)
+            self.shapeCombo.setCurrentIndex(index)
+            
+            # Update the preview
+            icon = self.create_plotly_marker_icon(shape_name)
+            self.shapePreview.setPixmap(icon.pixmap(24, 24))
+            
+            # Store the current shape
+            self.current_shape = shape_name
+        except (ValueError, IndexError):
+            # Default to circle if there's an issue
+            if len(self.PLOTLY_SHAPES) > 0:
+                self.setShape(self.PLOTLY_SHAPES[0])
+            else:
+                self.current_shape = "circle"
+    
+    def onShapeSelected(self, shape_name):
+        """Handle selection of a shape from the combobox"""
+        self.setShape(shape_name)
+        self.shapeChanged.emit(shape_name)
+    
+    def getShape(self):
+        """Return the current shape name"""
+        return self.current_shape
+    
+    def create_plotly_marker_icon(self, shape, size=32):
+        """Create a QIcon for a Plotly marker shape"""
+        try:
+            # Create a subplot with a single cell
+            fig = make_subplots(rows=1, cols=1)
+
+            # Add a scatter trace with the desired marker
+            fig.add_trace(go.Scatter(
+                x=[0], y=[0],
+                mode='markers',
+                marker=dict(symbol=shape, size=size*0.8, color='black')
+            ))
+
+            # Update the layout to remove axes and set a fixed range
+            fig.update_layout(
+                width=size, height=size,
+                margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(visible=False, range=[-1, 1]),
+                yaxis=dict(visible=False, range=[-1, 1]),
+                showlegend=False
+            )
+
+            # Convert to image
+            img_bytes = fig.to_image(format="png")
+
+            # Create QIcon
+            pixmap = QPixmap()
+            pixmap.loadFromData(img_bytes)
+            return QIcon(pixmap)
+        except Exception as e:
+            # Return an empty icon if there's an error
+            print(f"Error generating shape icon: {e}")
+            return QIcon()
+        
 
 class ShapeButtonWithMenu(QWidget):
     """
@@ -1082,28 +1351,6 @@ class TraceEditorModel:
             "advanced": True
         }
     )
-    heatmap_sort_mode: str = field(
-        default="no change",
-        metadata={
-            "label": "Heatmap Sort Mode:",
-            "widget": QComboBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "advanced": True
-        }
-    )
-    heatmap_log_transform: bool = field(
-        default=False,
-        metadata={
-            "label": "Log-transform range:",
-            "widget": QCheckBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "advanced": True
-        }
-    )
     heatmap_reverse_colorscale: bool = field(
         default=False,
         metadata={
@@ -1115,6 +1362,29 @@ class TraceEditorModel:
             "advanced": True
         }
     )
+    heatmap_log_transform: bool = field(
+        default=False,
+        metadata={
+            "label": "Log-transform:",
+            "widget": QCheckBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
+            "group": "heatmap",
+            "advanced": True
+        }
+    )
+    heatmap_sort_mode: str = field(
+        default="no change",
+        metadata={
+            "label": "Heatmap Sort Mode:",
+            "widget": QComboBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
+            "group": "heatmap",
+            "advanced": True
+        }
+    )
+    # Advanced heatmap colorbar position & dimensions fields
     heatmap_bar_orientation: str = field(
         default="vertical",
         metadata={
@@ -1123,11 +1393,12 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
             "depends_on": ["heatmap_on", "heatmap_use_advanced"],
             "group": "heatmap",
+            "subgroup": "position_dimensions",
+            "subgroup_title": "Position && Dimensions",
             "advanced": True
         }
     )
-    # Position and dimensions fields (nested in heatmap advanced section)
-    heatmap_x_position: float = field(
+    heatmap_colorbar_x: float = field(
         default=1.1,
         metadata={
             "label": "X Position:",
@@ -1135,12 +1406,12 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
             "depends_on": ["heatmap_on", "heatmap_use_advanced"],
             "group": "heatmap",
-            "nested_group": "position_dimensions",  # new metadata for nested groupbox
-            "nested_group_title": "Position & Dimensions",  # title for the nested groupbox
+            "subgroup": "position_dimensions",
+            "subgroup_title": "Position && Dimensions",
             "advanced": True
         }
     )
-    heatmap_y_position: float = field(
+    heatmap_colorbar_y: float = field(
         default=0.5,
         metadata={
             "label": "Y Position:",
@@ -1148,11 +1419,12 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
             "depends_on": ["heatmap_on", "heatmap_use_advanced"],
             "group": "heatmap",
-            "nested_group": "position_dimensions",
+            "subgroup": "position_dimensions",
+            "subgroup_title": "Position & Dimensions",
             "advanced": True
         }
     )
-    heatmap_length: float = field(
+    heatmap_colorbar_len: float = field(
         default=0.6,
         metadata={
             "label": "Length:",
@@ -1160,11 +1432,12 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
             "depends_on": ["heatmap_on", "heatmap_use_advanced"],
             "group": "heatmap",
-            "nested_group": "position_dimensions",
+            "subgroup": "position_dimensions",
+            "subgroup_title": "Position & Dimensions",
             "advanced": True
         }
     )
-    heatmap_thickness: float = field(
+    heatmap_colorbar_thickness: float = field(
         default=18.0,
         metadata={
             "label": "Thickness:",
@@ -1172,7 +1445,8 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
             "depends_on": ["heatmap_on", "heatmap_use_advanced"],
             "group": "heatmap",
-            "nested_group": "position_dimensions",
+            "subgroup": "position_dimensions",
+            "subgroup_title": "Position & Dimensions",
             "advanced": True
         }
     )
@@ -1303,72 +1577,13 @@ class TraceEditorView(QWidget):
                     filter_combo.setCurrentText(all_cols[0])
                 filter_combo.blockSignals(False)
 
-# 1. First, add the new fields to the TraceEditorModel with proper nesting metadata
-@dataclass
-class TraceEditorModel:
-    # ... existing fields ...
-    
-    # Position and dimensions fields (nested in heatmap advanced section)
-    heatmap_x_position: float = field(
-        default=1.1,
-        metadata={
-            "label": "X Position:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",  # new metadata for nested groupbox
-            "nested_group_title": "Position & Dimensions",  # title for the nested groupbox
-            "advanced": True
-        }
-    )
-    heatmap_y_position: float = field(
-        default=0.5,
-        metadata={
-            "label": "Y Position:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-    heatmap_length: float = field(
-        default=0.6,
-        metadata={
-            "label": "Length:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-    heatmap_thickness: float = field(
-        default=18.0,
-        metadata={
-            "label": "Thickness:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-
-    # 2. Now modify the TraceEditorView._build_ui method to handle nested groupboxes
     def _build_ui(self):
         # Clear existing state.
         self.widgets = {}
         self.group_boxes = {}
-        self.nested_group_boxes = {}  # Store references to nested groupboxes
-        
-        # Collect fields by group and nested_group
+        self.subgroup_boxes = {}  # Track nested group boxes
         group_fields = {}
-        nested_group_fields = {}
+        subgroup_fields = {}  # Track fields that go in nested group boxes
         
         # Process each field in the model.
         for f in fields(self.model):
@@ -1378,20 +1593,27 @@ class TraceEditorModel:
             widget_cls = metadata["widget"]
             if widget_cls is None:
                 continue
-            
-            # Create widget instance and store in self.widgets
             label_text = metadata["label"]
             widget = widget_cls(self)
             self.widgets[f.name] = widget
             value = getattr(self.model, f.name)
-            
-            # Connect widget signals & setup based on type (existing code)
             if isinstance(widget, QLineEdit):
                 widget.setText(str(value))
                 if f.name == "trace_name":
                     widget.textChanged.connect(lambda text, fname=f.name: self._on_trace_name_changed(text))
                 else:
                     widget.textChanged.connect(lambda text, fname=f.name: setattr(self.model, fname, text))
+            elif isinstance(widget, ColorButton):
+                widget.setColor(value)
+                widget.colorChanged.connect(lambda color_str, fname=f.name: setattr(self.model, fname, color_str))
+            elif isinstance(widget, ColorScaleDropdown):
+                # Handle our custom ColorScaleDropdown
+                widget.setColorScale(value)
+                widget.colorScaleChanged.connect(lambda scale_str, fname=f.name: setattr(self.model, fname, scale_str))
+            elif isinstance(widget, ShapeButton) or isinstance(widget, ShapeButtonWithMenu):
+                # Special handling for our custom shape buttons
+                widget.setShape(value)
+                widget.shapeChanged.connect(lambda shape_str, fname=f.name: setattr(self.model, fname, shape_str))
             elif isinstance(widget, QDoubleSpinBox):
                 widget.setValue(float(value))
                 widget.valueChanged.connect(lambda val, fname=f.name: setattr(self.model, fname, val))
@@ -1403,119 +1625,157 @@ class TraceEditorModel:
                 if f.name == "filters_on":
                     widget.stateChanged.connect(lambda _: self._update_filters_visibility())
             elif isinstance(widget, QComboBox):
-                # ... existing combobox code ...
+                if f.name == "line_style":
+                    widget.addItems(["solid", "dashed", "dotted"])
+                elif f.name == "heatmap_sort_mode":
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
+                elif f.name == "heatmap_colorscale":
+                    widget.addItems(["Viridis", "Cividis", "Plasma", "Inferno"])
+                elif f.name == "sizemap_sort_mode":
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
+                elif f.name == "sizemap_scale":
+                    widget.addItems(["linear", "log"])
+                elif f.name == "heatmap_bar_orientation":
+                    widget.addItems(["vertical", "horizontal"])
+                else:
+                    widget.addItems([])
                 widget.setCurrentText(str(value))
                 widget.currentTextChanged.connect(lambda text, fname=f.name: setattr(self.model, fname, text))
-            elif isinstance(widget, ColorButton):
-                widget.setColor(value)
-                widget.colorChanged.connect(lambda color_str, fname=f.name: setattr(self.model, fname, color_str))
-            elif isinstance(widget, ShapeButtonWithMenu) or isinstance(widget, ShapeButtonWithMenu):
-                widget.setShape(value)
-                widget.shapeChanged.connect(lambda shape_str, fname=f.name: setattr(self.model, fname, shape_str))
-            elif isinstance(widget, ColorScaleDropdown):
-                widget.setColorScale(value)
-                widget.colorScaleChanged.connect(lambda scale_str, fname=f.name: setattr(self.model, fname, scale_str))
             
-            # Handle grouping with nesting support
+            # Enhanced grouping with subgrouping support
             group_name = metadata.get("group", None)
-            nested_group = metadata.get("nested_group", None)
+            subgroup_name = metadata.get("subgroup", None)
             
-            if nested_group and group_name:
-                # Store for creating nested groupbox later
-                key = (group_name, nested_group)
-                if key not in nested_group_fields:
-                    nested_group_fields[key] = []
-                nested_group_fields[key].append((f.name, label_text, widget, metadata))
+            if group_name and subgroup_name:
+                # This field goes in a nested group box
+                key = (group_name, subgroup_name)
+                if key not in subgroup_fields:
+                    subgroup_fields[key] = []
+                subgroup_fields[key].append((f.name, label_text, widget, metadata))
             elif group_name:
-                # Store for creating regular groupbox (exclude if in nested group)
+                # This field goes in a regular group box
                 if group_name not in group_fields:
                     group_fields[group_name] = []
                 group_fields[group_name].append((f.name, label_text, widget, metadata))
             else:
-                # Add to main form directly
+                # This field goes directly in the form
                 self.form_layout.addRow(label_text, widget)
-        
-        # Now handle group boxes.
+
+        print(f"Found subgroup fields: {list(subgroup_fields.keys())}")
+
+         # Now handle group boxes and nested group boxes
         for group_name, field_tuples in group_fields.items():
             if group_name == "heatmap":
+                print(f"Building heatmap group with {len(field_tuples)} fields")
                 # Special handling for heatmap group
                 group_box = QGroupBox("Heatmap", self)
                 vlayout = QVBoxLayout(group_box)
                 
-                # Create a form layout for basic fields.
+                # Create a form layout for basic fields
                 basic_form = QFormLayout()
                 
-                # Create an advanced container.
+                # Create an advanced container
                 advanced_container = QWidget(self)
                 advanced_form = QFormLayout(advanced_container)
                 advanced_container.setLayout(advanced_form)
                 self.advanced_heatmap_container = advanced_container
                 
-                # Process fields
+                # Process field tuples to separate basic and advanced
                 toggle_tuple = None
                 for fname, label_text, widget, meta in field_tuples:
                     if fname == "heatmap_use_advanced":
                         toggle_tuple = (fname, label_text, widget, meta)
-                    elif meta.get("advanced", False) and not meta.get("nested_group"):
-                        # Advanced fields that don't belong to a nested group
-                        advanced_form.addRow(label_text, widget)
-                    elif not meta.get("advanced", False):
-                        # Basic fields
+                    elif meta.get("advanced", False):
+                        # Only add fields without a subgroup directly to advanced form
+                        if not meta.get("subgroup"):
+                            advanced_form.addRow(label_text, widget)
+                    else:
                         basic_form.addRow(label_text, widget)
                 
-                # Add basic fields to the layout
+                # Add basic form to the main layout
                 vlayout.addLayout(basic_form)
                 
-                # Add the advanced toggle row after basic fields.
+                # Add the advanced toggle after basic fields
                 if toggle_tuple:
                     t_fname, t_label, t_widget, t_meta = toggle_tuple
                     basic_form.addRow(t_label, t_widget)
+                    # Connect the toggle to update visibility of advanced items
                     if isinstance(t_widget, QCheckBox):
-                        t_widget.stateChanged.connect(lambda state: advanced_container.setVisible(bool(state)))
+                        # Disconnect any existing connections first to avoid duplicates
+                        try:
+                            t_widget.stateChanged.disconnect()
+                        except:
+                            pass
+                        # Connect to our enhanced handler
+                        t_widget.stateChanged.connect(lambda state: self._update_advanced_visibility(bool(state)))
                 
-                # Process nested groups within the advanced container
-                for (parent_group, nested_name), nested_fields in nested_group_fields.items():
-                    if parent_group == group_name:
-                        # Find the title for this nested group
-                        nested_title = "Position & Dimensions"  # Default
-                        for _, _, _, meta in nested_fields:
-                            if "nested_group_title" in meta:
-                                nested_title = meta["nested_group_title"]
-                                break
-                        
-                        # Create the nested groupbox
-                        nested_group_box = QGroupBox(nested_title)
+                # Now handle any nested group boxes within the heatmap advanced section
+                for (group, subgroup), sub_field_tuples in subgroup_fields.items():
+                    if group == "heatmap":
+                        print(f"Building nested groupbox for {subgroup} with {len(sub_field_tuples)} fields")
+                        # Create the nested group box with title from metadata
+                        subgroup_title = sub_field_tuples[0][3].get("subgroup_title", subgroup.replace("_", " ").title())
+                        nested_group_box = QGroupBox(subgroup_title)
                         nested_layout = QFormLayout(nested_group_box)
                         
-                        # Add fields to the nested groupbox
-                        for fname, label_text, widget, meta in nested_fields:
-                            nested_layout.addRow(label_text, widget)
+                        # Add fields to the nested group box
+                        for sub_fname, sub_label, sub_widget, sub_meta in sub_field_tuples:
+                            print(f"  Adding field {sub_fname} to nested groupbox")
+                            nested_layout.addRow(sub_label, sub_widget)
                         
-                        # Add the nested groupbox to the advanced container
+                        # Store the nested group box for visibility control
+                        self.subgroup_boxes[(group, subgroup)] = nested_group_box
+                        
+                        # Add the nested group box to the advanced container
                         advanced_form.addRow(nested_group_box)
-                        
-                        # Store reference to the nested groupbox
-                        self.nested_group_boxes[(parent_group, nested_name)] = nested_group_box
                 
-                # Add the advanced container last
+                # Add the advanced container to the main layout
                 vlayout.addWidget(advanced_container)
-                advanced_container.setVisible(getattr(self.model, "heatmap_use_advanced", False))
                 
-                # Store the heatmap group box
+                # Set initial visibility based on model
+                heatmap_use_advanced = getattr(self.model, "heatmap_use_advanced", False)
+                print(f"Initial heatmap_use_advanced state: {heatmap_use_advanced}")
+                advanced_container.setVisible(heatmap_use_advanced)
+                
+                # Store the heatmap group box for later visibility control
                 self.group_boxes["heatmap"] = (group_box, vlayout)
                 self.form_layout.addRow(group_box)
+                
+                # Force nested groupbox visibility update
+                self._update_advanced_visibility(heatmap_use_advanced)
             else:
-                # Regular group box handling (unchanged)
                 group_box = QGroupBox(group_name.capitalize(), self)
                 group_layout = QFormLayout(group_box)
                 for fname, label_text, widget, meta in field_tuples:
-                    if not meta.get("nested_group"):  # Skip fields that belong to nested groups
-                        group_layout.addRow(label_text, widget)
+                    group_layout.addRow(label_text, widget)
                 self.group_boxes[group_name] = (group_box, group_layout)
                 self.form_layout.addRow(group_box)
-        
-        # Build filters UI
         self._build_filters_ui()
+
+    def _update_advanced_visibility(self, show_advanced):
+        """Update visibility of all advanced components when the toggle changes"""
+        print(f"Updating advanced visibility: {show_advanced}")
+        
+        # First, update the main advanced container
+        if hasattr(self, "advanced_heatmap_container"):
+            self.advanced_heatmap_container.setVisible(show_advanced)
+            print(f"Set advanced_heatmap_container visibility to {show_advanced}")
+        
+        # Then, update all nested groupboxes
+        for (group, subgroup), nested_box in self.subgroup_boxes.items():
+            if group == "heatmap":
+                print(f"Setting {group}/{subgroup} visibility to {show_advanced}")
+                nested_box.setVisible(show_advanced)
+                
+                # Force visibility of all child widgets too
+                for i in range(nested_box.layout().count()):
+                    item = nested_box.layout().itemAt(i)
+                    if item and item.widget():
+                        item.widget().setVisible(show_advanced)
+        
+        # Update the model value
+        if hasattr(self.model, "heatmap_use_advanced"):
+            self.model.heatmap_use_advanced = show_advanced
 
     def set_plot_type(self, plot_type: str):
         self.current_plot_type = plot_type.lower()
@@ -1542,20 +1802,15 @@ class TraceEditorModel:
                 widget.hide()
                 if label:
                     label.hide()
-        # Process grouped fields.
+        # Process grouped fields with nested groupbox support
         for group_name, (group_box, _) in self.group_boxes.items():
             if group_name == "heatmap":
                 heatmap_on = getattr(self.model, "heatmap_on", False)
                 group_box.setVisible(heatmap_on)
-                if heatmap_on and hasattr(self, "advanced_heatmap_container"):
-                    heatmap_advanced = getattr(self.model, "heatmap_use_advanced", False)
-                    self.advanced_heatmap_container.setVisible(heatmap_advanced)
-                    
-                    # Update visibility of nested groupboxes
-                    for (parent_group, nested_name), nested_box in self.nested_group_boxes.items():
-                        if parent_group == "heatmap":
-                            # Position & Dimensions box is visible if advanced is enabled
-                            nested_box.setVisible(heatmap_advanced)
+                if heatmap_on:
+                    # Use our dedicated method to update all advanced visibility
+                    heatmap_use_advanced = getattr(self.model, "heatmap_use_advanced", False)
+                    self._update_advanced_visibility(heatmap_use_advanced)
             else:
                 group_visible = False
                 for f in fields(self.model):
@@ -1602,19 +1857,36 @@ class TraceEditorModel:
             elif isinstance(widget, ColorButton):
                 # Update the color button
                 widget.setColor(value)
-            elif isinstance(widget, ShapeButtonWithMenu):
+            elif isinstance(widget, ShapeButton) or isinstance(widget, ShapeButtonWithMenu):
                 # Update the shape button
                 widget.setShape(value)
             elif isinstance(widget, ColorScaleDropdown):
                 # Update the color scale button
                 widget.setColorScale(value)
+
+        if "heatmap_colorbar_x" in self.widgets:
+            spinbox = self.widgets["heatmap_colorbar_x"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(-2.0, 3.0)
+                spinbox.setSingleStep(0.1)
         
-        if hasattr(self, "nested_group_boxes"):
-            for (parent_group, nested_name), nested_box in self.nested_group_boxes.items():
-                if parent_group == "heatmap":
-                    heatmap_on = getattr(self.model, "heatmap_on", False)
-                    heatmap_advanced = getattr(self.model, "heatmap_use_advanced", False)
-                    nested_box.setVisible(heatmap_on and heatmap_advanced)
+        if "heatmap_colorbar_y" in self.widgets:
+            spinbox = self.widgets["heatmap_colorbar_y"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(0.0, 1.0)
+                spinbox.setSingleStep(0.05)
+        
+        if "heatmap_colorbar_len" in self.widgets:
+            spinbox = self.widgets["heatmap_colorbar_len"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(0.1, 1.0)
+                spinbox.setSingleStep(0.05)
+        
+        if "heatmap_colorbar_thickness" in self.widgets:
+            spinbox = self.widgets["heatmap_colorbar_thickness"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(1.0, 50.0)
+                spinbox.setSingleStep(1.0)
 
     def _on_trace_name_changed(self, text: str):
         self.model.trace_name = text
@@ -1704,30 +1976,43 @@ class TraceEditorController:
             datafile_combo.currentTextChanged.connect(self.on_datafile_changed)
 
     def on_datafile_changed(self, new_file: str):
-        # Get numeric columns from the new datafile (for heatmap & sizemap)
+        """Handle datafile changes with smarter column handling for heatmap and sizemap."""
+        print(f"Datafile changed to: {new_file}")
+        
+        # Get numeric columns from the new datafile
         numeric_cols = get_numeric_columns_from_file(new_file)
+        print(f"Numeric columns in new file: {numeric_cols}")
         
         # Get ALL columns from the new datafile (for filters)
         all_cols = get_all_columns_from_file(new_file)
-
+        
         # --- Update heatmap column options ---
         heatmap_combo = self.view.widgets.get("heatmap_column")
         if heatmap_combo:
             heatmap_combo.blockSignals(True)
             current_value = self.model.heatmap_column
+            print(f"Current heatmap column: {current_value}")
+            
+            # Clear and add new columns
             heatmap_combo.clear()
             heatmap_combo.addItems(numeric_cols)
             
-            # If there's an existing non-empty value in the model, preserve it
-            if current_value and current_value.strip():
-                # Add the saved value to the combobox if it's not already there
-                if heatmap_combo.findText(current_value) == -1:
-                    heatmap_combo.addItem(current_value)
+            # Check if current value exists in the new file's columns
+            value_exists_in_new_file = current_value in numeric_cols
+            
+            # If this is an interactive datafile change (not a workspace load)
+            # and the current value is not in the new file, we must change it
+            if not value_exists_in_new_file:
+                if numeric_cols:
+                    print(f"Heatmap column '{current_value}' not in new file, switching to '{numeric_cols[0]}'")
+                    self.model.heatmap_column = numeric_cols[0]
+                    heatmap_combo.setCurrentText(numeric_cols[0])
+                else:
+                    print("No numeric columns in new file, clearing heatmap column")
+                    self.model.heatmap_column = ""
+            else:
+                print(f"Keeping existing heatmap column '{current_value}' as it exists in new file")
                 heatmap_combo.setCurrentText(current_value)
-            # For new traces or empty values, set a default from the available columns
-            elif numeric_cols:
-                heatmap_combo.setCurrentText(numeric_cols[0])
-                self.model.heatmap_column = numeric_cols[0]
             
             heatmap_combo.blockSignals(False)
 
@@ -1736,26 +2021,58 @@ class TraceEditorController:
         if sizemap_combo:
             sizemap_combo.blockSignals(True)
             current_value = self.model.sizemap_column
+            
+            # Clear and add new columns
             sizemap_combo.clear()
             sizemap_combo.addItems(numeric_cols)
             
-            # If there's an existing non-empty value in the model, preserve it
-            if current_value and current_value.strip():
-                # Add the saved value to the combobox if it's not already there
-                if sizemap_combo.findText(current_value) == -1:
-                    sizemap_combo.addItem(current_value)
+            # Check if current value exists in the new file's columns
+            value_exists_in_new_file = current_value in numeric_cols
+            
+            # If the value doesn't exist in the new file, change it
+            if not value_exists_in_new_file:
+                if numeric_cols:
+                    self.model.sizemap_column = numeric_cols[0]
+                    sizemap_combo.setCurrentText(numeric_cols[0])
+                else:
+                    self.model.sizemap_column = ""
+            else:
                 sizemap_combo.setCurrentText(current_value)
-            # For new traces or empty values, set a default from the available columns
-            elif numeric_cols:
-                sizemap_combo.setCurrentText(numeric_cols[0])
-                self.model.sizemap_column = numeric_cols[0]
                 
             sizemap_combo.blockSignals(False)
         
-        # CRITICAL FIX: Force rebuild of the filters UI to update all column options
-        # This ensures filter columns are updated immediately when datafile changes
-        if hasattr(self.view, '_build_filters_ui'):
-            self.view._build_filters_ui()
+        # --- Update filter column options in existing filters ---
+        if hasattr(self.model, 'filters') and self.model.filters:
+            for filter_model in self.model.filters:
+                # Find the filter editor if it exists
+                filter_editor = None
+                for child in self.view.findChildren(FilterEditorView):
+                    if hasattr(child, 'filter_model') and child.filter_model == filter_model:
+                        filter_editor = child
+                        break
+                
+                if filter_editor and hasattr(filter_editor, 'widgets'):
+                    filter_combo = filter_editor.widgets.get('filter_column')
+                    if filter_combo:
+                        filter_combo.blockSignals(True)
+                        current_value = filter_model.filter_column
+                        filter_combo.clear()
+                        filter_combo.addItems(all_cols)
+                        
+                        # Check if current value exists in the new file's columns
+                        value_exists_in_new_file = current_value in all_cols
+                        
+                        # If the value doesn't exist in the new file, change it
+                        if not value_exists_in_new_file:
+                            if all_cols:
+                                filter_model.filter_column = all_cols[0]
+                                filter_combo.setCurrentText(all_cols[0])
+                            else:
+                                filter_model.filter_column = ""
+                        else:
+                            filter_combo.setCurrentText(current_value)
+                        
+                        filter_combo.blockSignals(False)
 
 # --------------------------------------------------------------------
 # Setup Menu Models
@@ -2439,6 +2756,51 @@ class MainWindow(QMainWindow):
         
         # Wait for the UI to update
         QApplication.processEvents()
+        
+        # Get datafile and its columns
+        datafile = trace_model.datafile
+        numeric_cols = []
+        if datafile:
+            numeric_cols = get_numeric_columns_from_file(datafile)
+            print(f"Numeric columns in {datafile}: {numeric_cols}")
+        
+        # Get access to the widgets
+        heatmap_combo = self.traceEditorView.widgets.get("heatmap_column")
+        if heatmap_combo and trace_model.heatmap_column:
+            # For workspace loading, we'll preserve the column selection exactly as saved,
+            # even if it's not in the current file
+            print(f"  Current heatmap combobox items: {[heatmap_combo.itemText(i) for i in range(heatmap_combo.count())]}")
+            
+            # First, ensure there are numeric columns from the datafile
+            heatmap_combo.clear()
+            if numeric_cols:
+                heatmap_combo.addItems(numeric_cols)
+            
+            # Now add the saved value if it's not already in the list
+            if trace_model.heatmap_column and heatmap_combo.findText(trace_model.heatmap_column) == -1:
+                print(f"  Adding missing heatmap column: '{trace_model.heatmap_column}'")
+                heatmap_combo.addItem(trace_model.heatmap_column)
+            
+            # Set the combobox to the saved value
+            heatmap_combo.setCurrentText(trace_model.heatmap_column)
+            print(f"  After set: '{heatmap_combo.currentText()}'")
+            
+            # Update the model to ensure it matches
+            self.traceEditorView.model.heatmap_column = trace_model.heatmap_column
+        
+        # Same for sizemap column
+        sizemap_combo = self.traceEditorView.widgets.get("sizemap_column")
+        if sizemap_combo and trace_model.sizemap_column:
+            # Similar pattern for sizemap
+            sizemap_combo.clear()
+            if numeric_cols:
+                sizemap_combo.addItems(numeric_cols)
+            
+            if trace_model.sizemap_column and sizemap_combo.findText(trace_model.sizemap_column) == -1:
+                sizemap_combo.addItem(trace_model.sizemap_column)
+            
+            sizemap_combo.setCurrentText(trace_model.sizemap_column)
+            self.traceEditorView.model.sizemap_column = trace_model.sizemap_column
 
         colorscale_button = self.traceEditorView.widgets.get("heatmap_colorscale")
         if colorscale_button and hasattr(trace_model, "heatmap_colorscale") and trace_model.heatmap_colorscale:
@@ -2453,31 +2815,31 @@ class MainWindow(QMainWindow):
         if shape_button and hasattr(trace_model, "point_shape") and trace_model.point_shape:
             shape_button.setShape(trace_model.point_shape)
         
-        # Get access to the widgets
-        heatmap_combo = self.traceEditorView.widgets.get("heatmap_column")
-        if heatmap_combo and trace_model.heatmap_column:
-            print(f"  Current combobox items: {[heatmap_combo.itemText(i) for i in range(heatmap_combo.count())]}")
-            print(f"  Current selected text: '{heatmap_combo.currentText()}'")
+        # # Get access to the widgets
+        # heatmap_combo = self.traceEditorView.widgets.get("heatmap_column")
+        # if heatmap_combo and trace_model.heatmap_column:
+        #     print(f"  Current combobox items: {[heatmap_combo.itemText(i) for i in range(heatmap_combo.count())]}")
+        #     print(f"  Current selected text: '{heatmap_combo.currentText()}'")
             
-            # Add the value if it's not there
-            if heatmap_combo.findText(trace_model.heatmap_column) == -1:
-                print(f"  Adding missing item: '{trace_model.heatmap_column}'")
-                heatmap_combo.addItem(trace_model.heatmap_column)
+        #     # Add the value if it's not there
+        #     if heatmap_combo.findText(trace_model.heatmap_column) == -1:
+        #         print(f"  Adding missing item: '{trace_model.heatmap_column}'")
+        #         heatmap_combo.addItem(trace_model.heatmap_column)
             
-            # Directly set the value
-            heatmap_combo.setCurrentText(trace_model.heatmap_column)
-            print(f"  After set: '{heatmap_combo.currentText()}'")
+        #     # Directly set the value
+        #     heatmap_combo.setCurrentText(trace_model.heatmap_column)
+        #     print(f"  After set: '{heatmap_combo.currentText()}'")
             
-            # Force the model to have the correct value
-            self.traceEditorView.model.heatmap_column = trace_model.heatmap_column
+        #     # Force the model to have the correct value
+        #     self.traceEditorView.model.heatmap_column = trace_model.heatmap_column
         
-        # Same for sizemap column
-        sizemap_combo = self.traceEditorView.widgets.get("sizemap_column")
-        if sizemap_combo and trace_model.sizemap_column:
-            if sizemap_combo.findText(trace_model.sizemap_column) == -1:
-                sizemap_combo.addItem(trace_model.sizemap_column)
-            sizemap_combo.setCurrentText(trace_model.sizemap_column)
-            self.traceEditorView.model.sizemap_column = trace_model.sizemap_column
+        # # Same for sizemap column
+        # sizemap_combo = self.traceEditorView.widgets.get("sizemap_column")
+        # if sizemap_combo and trace_model.sizemap_column:
+        #     if sizemap_combo.findText(trace_model.sizemap_column) == -1:
+        #         sizemap_combo.addItem(trace_model.sizemap_column)
+        #     sizemap_combo.setCurrentText(trace_model.sizemap_column)
+        #     self.traceEditorView.model.sizemap_column = trace_model.sizemap_column
         
         # Fix filter columns if any filters exist
         if hasattr(trace_model, 'filters') and trace_model.filters:

@@ -135,6 +135,12 @@ class ColorScaleDropdown(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
+        # Create the color scale preview widget
+        self.preview = QLabel()
+        self.preview.setMinimumSize(80, 20)
+        self.preview.setMaximumSize(80, 20)
+        self.preview.setScaledContents(True)
+        
         # Create the combobox for selection
         self.comboBox = QComboBox()
         self.comboBox.setIconSize(QPixmap(60, 15).size())
@@ -145,6 +151,8 @@ class ColorScaleDropdown(QWidget):
             self.comboBox.addItem(icon, cs_name)
         
         # Add widgets to layout
+        # SKIP ADDING THE PREVIEW (unecessary width in widget)
+        # layout.addWidget(self.preview)
         layout.addWidget(self.comboBox)
         
         # Set the initial color scale
@@ -222,7 +230,7 @@ class ColorScaleDropdown(QWidget):
         except Exception as e:
             # Return an empty icon if there's an error
             print(f"Error generating color scale icon: {e}")
-            return QIcon()   
+            return QIcon()
 
 class ShapeButtonWithMenu(QWidget):
     """
@@ -1126,7 +1134,6 @@ class TraceEditorModel:
             "advanced": True
         }
     )
-    # Position and dimensions fields (nested in heatmap advanced section)
     heatmap_x_position: float = field(
         default=1.1,
         metadata={
@@ -1303,63 +1310,6 @@ class TraceEditorView(QWidget):
                     filter_combo.setCurrentText(all_cols[0])
                 filter_combo.blockSignals(False)
 
-# 1. First, add the new fields to the TraceEditorModel with proper nesting metadata
-@dataclass
-class TraceEditorModel:
-    # ... existing fields ...
-    
-    # Position and dimensions fields (nested in heatmap advanced section)
-    heatmap_x_position: float = field(
-        default=1.1,
-        metadata={
-            "label": "X Position:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",  # new metadata for nested groupbox
-            "nested_group_title": "Position & Dimensions",  # title for the nested groupbox
-            "advanced": True
-        }
-    )
-    heatmap_y_position: float = field(
-        default=0.5,
-        metadata={
-            "label": "Y Position:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-    heatmap_length: float = field(
-        default=0.6,
-        metadata={
-            "label": "Length:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-    heatmap_thickness: float = field(
-        default=18.0,
-        metadata={
-            "label": "Thickness:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": ["heatmap_on", "heatmap_use_advanced"],
-            "group": "heatmap",
-            "nested_group": "position_dimensions",
-            "advanced": True
-        }
-    )
-
-    # 2. Now modify the TraceEditorView._build_ui method to handle nested groupboxes
     def _build_ui(self):
         # Clear existing state.
         self.widgets = {}
@@ -1403,7 +1353,20 @@ class TraceEditorModel:
                 if f.name == "filters_on":
                     widget.stateChanged.connect(lambda _: self._update_filters_visibility())
             elif isinstance(widget, QComboBox):
-                # ... existing combobox code ...
+                if f.name == "line_style":
+                    widget.addItems(["solid", "dashed", "dotted"])
+                elif f.name == "heatmap_sort_mode":
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
+                elif f.name == "heatmap_colorscale":
+                    widget.addItems(["Viridis", "Cividis", "Plasma", "Inferno"])
+                elif f.name == "sizemap_sort_mode":
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
+                elif f.name == "sizemap_scale":
+                    widget.addItems(["linear", "log"])
+                elif f.name == "heatmap_bar_orientation":
+                    widget.addItems(["vertical", "horizontal"])
+                else:
+                    widget.addItems([])
                 widget.setCurrentText(str(value))
                 widget.currentTextChanged.connect(lambda text, fname=f.name: setattr(self.model, fname, text))
             elif isinstance(widget, ColorButton):
@@ -1471,7 +1434,12 @@ class TraceEditorModel:
                     t_fname, t_label, t_widget, t_meta = toggle_tuple
                     basic_form.addRow(t_label, t_widget)
                     if isinstance(t_widget, QCheckBox):
-                        t_widget.stateChanged.connect(lambda state: advanced_container.setVisible(bool(state)))
+                        def on_advanced_check_changed(state, fname=t_fname):
+                            new_val = bool(state)
+                            setattr(self.model, fname, new_val)  # Update the model!
+                            advanced_container.setVisible(new_val)
+
+                        t_widget.stateChanged.connect(on_advanced_check_changed)
                 
                 # Process nested groups within the advanced container
                 for (parent_group, nested_name), nested_fields in nested_group_fields.items():
@@ -1483,19 +1451,30 @@ class TraceEditorModel:
                                 nested_title = meta["nested_group_title"]
                                 break
                         
-                        # Create the nested groupbox
-                        nested_group_box = QGroupBox(nested_title)
-                        nested_layout = QFormLayout(nested_group_box)
+                        # Create the nested groupbox - IMPORTANT CHANGE: Set parent explicitly
+                        nested_group_box = QGroupBox(nested_title, advanced_container)  # Set parent to advanced_container
+                        nested_layout = QFormLayout()  # Create layout separately
+                        nested_group_box.setLayout(nested_layout)  # Set layout explicitly
                         
                         # Add fields to the nested groupbox
                         for fname, label_text, widget, meta in nested_fields:
                             nested_layout.addRow(label_text, widget)
                         
+                        # DEBUG: Force some minimum size to ensure it's visible
+                        nested_group_box.setMinimumHeight(100)  # Force minimum height
+                        
                         # Add the nested groupbox to the advanced container
                         advanced_form.addRow(nested_group_box)
                         
+                        # VERY IMPORTANT: Don't manually set visibility here - remove this!
+                        # heatmap_on = getattr(self.model, "heatmap_on", False)
+                        # heatmap_advanced = getattr(self.model, "heatmap_use_advanced", False)
+                        # nested_group_box.setVisible(heatmap_on and heatmap_advanced)
+                        
                         # Store reference to the nested groupbox
                         self.nested_group_boxes[(parent_group, nested_name)] = nested_group_box
+                        
+                        print(f"Created nested groupbox '{nested_title}' with {len(nested_fields)} fields")
                 
                 # Add the advanced container last
                 vlayout.addWidget(advanced_container)
@@ -1609,6 +1588,7 @@ class TraceEditorModel:
                 # Update the color scale button
                 widget.setColorScale(value)
         
+        # Also update visibility of nested groupboxes
         if hasattr(self, "nested_group_boxes"):
             for (parent_group, nested_name), nested_box in self.nested_group_boxes.items():
                 if parent_group == "heatmap":
