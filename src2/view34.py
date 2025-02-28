@@ -108,158 +108,7 @@ def get_all_columns_from_file(file_path):
     except Exception as e:
         print(f"Error getting columns from file {file_path}: {str(e)}")
         return []
-    
-class ColorScaleButton(QWidget):
-    """
-    Custom widget displaying a preview of the color scale and a button to select from standard Plotly color scales.
-    """
-    colorScaleChanged = Signal(str)  # Signal emitted when color scale changes
-    
-    # List of standard Plotly color scales
-    PLOTLY_COLOR_SCALES = [
-        "Plotly3", "Viridis", "Cividis", "Inferno", "Magma", "Plasma", 'Turbo',
-        'Blackbody', 'Bluered', 'Electric', 'Hot', 'Jet', 'Rainbow', 'Blues',
-        'BuGn', 'BuPu', 'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PuBu',
-        'PuBuGn', 'PuRd', 'Purples', 'RdBu', 'RdPu', 'Reds', 'YlGn', 'YlGnBu',
-        'YlOrBr', 'YlOrRd', 'turbid', 'thermal', 'haline', 'solar', 'ice',
-        'gray', 'deep', 'dense', 'algae', 'matter', 'speed', 'amp', 'tempo',
-        'Burg', 'Burgyl', 'Redor', 'Oryel', 'Peach', 'Pinkyl', 'Mint', 'Blugrn',
-        'Darkmint', 'Emrld', 'Aggrnyl', 'Bluyl', 'Teal', 'Tealgrn', 'Purp',
-        'Purpor', 'Sunset', 'Magenta', 'Sunsetdark', 'Agsunset', 'Brwnyl'
-    ]
-    
-    def __init__(self, colorscale="Viridis", parent=None):
-        super().__init__(parent)
-        
-        # Create the layout
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Create the color scale preview widget
-        self.preview = QLabel()
-        self.preview.setMinimumSize(80, 20)
-        self.preview.setMaximumSize(80, 20)
-        self.preview.setScaledContents(True)
-        
-        # Create the button to open the menu
-        self.button = QPushButton("Select ColorScale")
-        
-        # Add widgets to layout
-        layout.addWidget(self.preview)
-        layout.addWidget(self.button)
-        
-        # Create the menu but don't show it yet
-        self.createMenu()
-        
-        # Set the initial color scale
-        self.setColorScale(colorscale)
-        
-        # Connect button click to show menu
-        self.button.clicked.connect(self.showMenu)
-    
-    def createMenu(self):
-        """Create the popup menu with all color scale options"""
-        self.menu = QMenu(self)
-        
-        # Create a scroll area for long lists
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        
-        # Create an action for each color scale with an icon
-        # Arrange in columns to make the menu manageable
-        num_columns = 3
-        color_scales_chunks = [self.PLOTLY_COLOR_SCALES[i:i+num_columns] 
-                              for i in range(0, len(self.PLOTLY_COLOR_SCALES), num_columns)]
-        
-        for chunk in color_scales_chunks:
-            submenu = QMenu(self.menu)
-            for cs_name in chunk:
-                icon = self.create_colorscale_icon(cs_name)
-                action = QAction(icon, cs_name, self)
-                action.triggered.connect(lambda checked=False, name=cs_name: self.onColorScaleSelected(name))
-                submenu.addAction(action)
-            self.menu.addMenu(submenu)
-    
-    def showMenu(self):
-        """Show the popup menu when the button is clicked"""
-        # Position the menu below the button
-        pos = self.button.mapToGlobal(self.button.rect().bottomLeft())
-        self.menu.popup(pos)
-    
-    def setColorScale(self, colorscale_name):
-        """Set the color scale from its name"""
-        try:
-            # Validate the color scale name is in our list
-            if colorscale_name not in self.PLOTLY_COLOR_SCALES:
-                colorscale_name = "Viridis"  # Default to Viridis if invalid
-                
-            # Update the preview
-            pixmap = self.create_colorscale_icon(colorscale_name).pixmap(80, 20)
-            self.preview.setPixmap(pixmap)
-            
-            # Store the current color scale
-            self.current_colorscale = colorscale_name
-        except Exception as e:
-            print(f"Error setting color scale: {e}")
-            # Default to Viridis if there's an issue
-            self.current_colorscale = "Viridis"
-            try:
-                icon = self.create_colorscale_icon("Viridis")
-                if not icon.isNull():
-                    self.preview.setPixmap(icon.pixmap(80, 20))
-            except Exception:
-                pass  # Silently fail if we can't even create the default icon
-    
-    def onColorScaleSelected(self, colorscale_name):
-        """Handle selection of a color scale from the menu"""
-        self.setColorScale(colorscale_name)
-        self.colorScaleChanged.emit(colorscale_name)
-    
-    def getColorScale(self):
-        """Return the current color scale name"""
-        return self.current_colorscale
-    
-    def create_colorscale_icon(self, colorscale_name, width=150, height=20):
-        """Create a QIcon for a Plotly color scale"""
-        try:
-            # Try to get the colorscale
-            colorscale = None
-            try:
-                colorscale = get_colorscale(colorscale_name)
-            except:
-                # If get_colorscale fails, create a simple gradient
-                colorscale = [(0, "lightblue"), (0.5, "blue"), (1, "darkblue")]
-            
-            # Create a subplot with a single cell
-            fig = make_subplots(rows=1, cols=1)
-
-            # Create a heatmap trace
-            heatmap_data = np.array([list(range(width))])
-            fig.add_trace(go.Heatmap(z=heatmap_data, colorscale=colorscale, showscale=False))
-
-            # Update the layout
-            fig.update_layout(
-                width=width, height=height,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False),
-                showlegend=False
-            )
-
-            # Convert to image
-            img_bytes = fig.to_image(format="png")
-
-            # Create QIcon
-            pixmap = QPixmap()
-            pixmap.loadFromData(img_bytes)
-            return QIcon(pixmap)
-        except Exception as e:
-            # Return an empty icon if there's an error
-            print(f"Error generating color scale icon: {e}")
-            return QIcon()
-        
+      
 class ColorScaleDropdown(QWidget):
     """
     Alternative implementation using a combobox dropdown for color scale selection
@@ -382,116 +231,6 @@ class ColorScaleDropdown(QWidget):
             # Return an empty icon if there's an error
             print(f"Error generating color scale icon: {e}")
             return QIcon()
-    
-class ShapeButton(QWidget):
-    """
-    Custom widget displaying the current shape icon and a button to select from standard Plotly shapes.
-    """
-    shapeChanged = Signal(str)  # Signal emitted when shape changes
-    
-    # List of standard Plotly marker shapes
-    PLOTLY_SHAPES = [
-        "circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down", 
-        "triangle-left", "triangle-right", "pentagon", "hexagon", "star", "hexagram",
-        "star-triangle-up", "star-triangle-down", "star-square", "star-diamond",
-        "diamond-tall", "diamond-wide", "hourglass", "bowtie"
-    ]
-    
-    def __init__(self, shape="circle", parent=None):
-        super().__init__(parent)
-        
-        # Create the layout
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Create the shape preview widget
-        self.shapePreview = QLabel()
-        self.shapePreview.setMinimumSize(24, 24)
-        self.shapePreview.setMaximumSize(24, 24)
-        self.shapePreview.setAlignment(Qt.AlignCenter)
-        
-        # Create the button or combobox
-        self.shapeCombo = QComboBox()
-        for shape_name in self.PLOTLY_SHAPES:
-            # Generate icon for the shape
-            icon = self.create_plotly_marker_icon(shape_name)
-            self.shapeCombo.addItem(icon, shape_name)
-        
-        # Add widgets to layout
-        layout.addWidget(self.shapePreview)
-        layout.addWidget(self.shapeCombo)
-        
-        # Set the initial shape
-        self.setShape(shape)
-        
-        # Connect signals
-        self.shapeCombo.currentTextChanged.connect(self.onShapeSelected)
-    
-    def setShape(self, shape_name):
-        """Set the shape from its name"""
-        try:
-            # Find the index of the shape in the combobox
-            index = self.PLOTLY_SHAPES.index(shape_name)
-            self.shapeCombo.setCurrentIndex(index)
-            
-            # Update the preview
-            icon = self.create_plotly_marker_icon(shape_name)
-            self.shapePreview.setPixmap(icon.pixmap(24, 24))
-            
-            # Store the current shape
-            self.current_shape = shape_name
-        except (ValueError, IndexError):
-            # Default to circle if there's an issue
-            if len(self.PLOTLY_SHAPES) > 0:
-                self.setShape(self.PLOTLY_SHAPES[0])
-            else:
-                self.current_shape = "circle"
-    
-    def onShapeSelected(self, shape_name):
-        """Handle selection of a shape from the combobox"""
-        self.setShape(shape_name)
-        self.shapeChanged.emit(shape_name)
-    
-    def getShape(self):
-        """Return the current shape name"""
-        return self.current_shape
-    
-    def create_plotly_marker_icon(self, shape, size=32):
-        """Create a QIcon for a Plotly marker shape"""
-        try:
-            # Create a subplot with a single cell
-            fig = make_subplots(rows=1, cols=1)
-
-            # Add a scatter trace with the desired marker
-            fig.add_trace(go.Scatter(
-                x=[0], y=[0],
-                mode='markers',
-                marker=dict(symbol=shape, size=size*0.8, color='black')
-            ))
-
-            # Update the layout to remove axes and set a fixed range
-            fig.update_layout(
-                width=size, height=size,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(visible=False, range=[-1, 1]),
-                yaxis=dict(visible=False, range=[-1, 1]),
-                showlegend=False
-            )
-
-            # Convert to image
-            img_bytes = fig.to_image(format="png")
-
-            # Create QIcon
-            pixmap = QPixmap()
-            pixmap.loadFromData(img_bytes)
-            return QIcon(pixmap)
-        except Exception as e:
-            # Return an empty icon if there's an error
-            print(f"Error generating shape icon: {e}")
-            return QIcon()
-        
 
 class ShapeButtonWithMenu(QWidget):
     """
@@ -1257,8 +996,6 @@ class FilterEditorView(QWidget):
         self.filter_model = new_filter_model
         self.update_from_model()
 
-
-
 @dataclass
 class TraceEditorModel:
     trace_name: str = field(
@@ -1610,7 +1347,7 @@ class TraceEditorView(QWidget):
                 # Handle our custom ColorScaleDropdown
                 widget.setColorScale(value)
                 widget.colorScaleChanged.connect(lambda scale_str, fname=f.name: setattr(self.model, fname, scale_str))
-            elif isinstance(widget, ShapeButton) or isinstance(widget, ShapeButtonWithMenu):
+            elif isinstance(widget, ShapeButtonWithMenu):
                 # Special handling for our custom shape buttons
                 widget.setShape(value)
                 widget.shapeChanged.connect(lambda shape_str, fname=f.name: setattr(self.model, fname, shape_str))
@@ -1857,7 +1594,7 @@ class TraceEditorView(QWidget):
             elif isinstance(widget, ColorButton):
                 # Update the color button
                 widget.setColor(value)
-            elif isinstance(widget, ShapeButton) or isinstance(widget, ShapeButtonWithMenu):
+            elif isinstance(widget, ShapeButtonWithMenu):
                 # Update the shape button
                 widget.setShape(value)
             elif isinstance(widget, ColorScaleDropdown):
@@ -2814,32 +2551,6 @@ class MainWindow(QMainWindow):
         shape_button = self.traceEditorView.widgets.get("point_shape")
         if shape_button and hasattr(trace_model, "point_shape") and trace_model.point_shape:
             shape_button.setShape(trace_model.point_shape)
-        
-        # # Get access to the widgets
-        # heatmap_combo = self.traceEditorView.widgets.get("heatmap_column")
-        # if heatmap_combo and trace_model.heatmap_column:
-        #     print(f"  Current combobox items: {[heatmap_combo.itemText(i) for i in range(heatmap_combo.count())]}")
-        #     print(f"  Current selected text: '{heatmap_combo.currentText()}'")
-            
-        #     # Add the value if it's not there
-        #     if heatmap_combo.findText(trace_model.heatmap_column) == -1:
-        #         print(f"  Adding missing item: '{trace_model.heatmap_column}'")
-        #         heatmap_combo.addItem(trace_model.heatmap_column)
-            
-        #     # Directly set the value
-        #     heatmap_combo.setCurrentText(trace_model.heatmap_column)
-        #     print(f"  After set: '{heatmap_combo.currentText()}'")
-            
-        #     # Force the model to have the correct value
-        #     self.traceEditorView.model.heatmap_column = trace_model.heatmap_column
-        
-        # # Same for sizemap column
-        # sizemap_combo = self.traceEditorView.widgets.get("sizemap_column")
-        # if sizemap_combo and trace_model.sizemap_column:
-        #     if sizemap_combo.findText(trace_model.sizemap_column) == -1:
-        #         sizemap_combo.addItem(trace_model.sizemap_column)
-        #     sizemap_combo.setCurrentText(trace_model.sizemap_column)
-        #     self.traceEditorView.model.sizemap_column = trace_model.sizemap_column
         
         # Fix filter columns if any filters exist
         if hasattr(trace_model, 'filters') and trace_model.filters:
