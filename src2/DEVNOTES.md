@@ -25,3 +25,4 @@
 - view33c.py introduces more advanced heatmap options but has a datafile column selection bug
 - view34.py fixes the datafile selection bug
 - view35.py: Somehow heatmap col was not preserved after load; commenting part of post_load_fix helped
+- view36.py reimplemented sheet and header selection on loading datafiles, and updated all column-getting function calls to respect new datafilemetadata object, as well as to/from dict method modifications
