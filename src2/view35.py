@@ -2528,48 +2528,6 @@ class MainWindow(QMainWindow):
         if datafile:
             numeric_cols = get_numeric_columns_from_file(datafile)
             print(f"Numeric columns in {datafile}: {numeric_cols}")
-        
-        # Get access to the widgets
-        # heatmap_combo = self.traceEditorView.widgets.get("heatmap_column")
-        # if heatmap_combo and trace_model.heatmap_column:
-        #     # For workspace loading, we'll preserve the column selection exactly as saved,
-        #     # even if it's not in the current file
-        #     print(f"  Current heatmap combobox items: {[heatmap_combo.itemText(i) for i in range(heatmap_combo.count())]}")
-            
-        #     # First, ensure there are numeric columns from the datafile
-        #     heatmap_combo.clear()
-        #     if numeric_cols:
-        #         heatmap_combo.addItems(numeric_cols)
-            
-        #     # Now add the saved value if it's not already in the list
-        #     if trace_model.heatmap_column and heatmap_combo.findText(trace_model.heatmap_column) == -1:
-        #         print(f"  Adding missing heatmap column: '{trace_model.heatmap_column}'")
-        #         heatmap_combo.blockSignals(True)
-        #         heatmap_combo.addItem(trace_model.heatmap_column)
-        #         heatmap_combo.blockSignals(False)
-            
-        #     # Set the combobox to the saved value
-        #     heatmap_combo.setCurrentText(trace_model.heatmap_column)
-        #     print(f"  After set: '{heatmap_combo.currentText()}'")
-        #     QApplication.processEvents()
-
-            
-        #     # Update the model to ensure it matches
-        #     self.traceEditorView.model.heatmap_column = trace_model.heatmap_column
-        
-        # # Same for sizemap column
-        # sizemap_combo = self.traceEditorView.widgets.get("sizemap_column")
-        # if sizemap_combo and trace_model.sizemap_column:
-        #     # Similar pattern for sizemap
-        #     sizemap_combo.clear()
-        #     if numeric_cols:
-        #         sizemap_combo.addItems(numeric_cols)
-            
-        #     if trace_model.sizemap_column and sizemap_combo.findText(trace_model.sizemap_column) == -1:
-        #         sizemap_combo.addItem(trace_model.sizemap_column)
-            
-        #     sizemap_combo.setCurrentText(trace_model.sizemap_column)
-        #     self.traceEditorView.model.sizemap_column = trace_model.sizemap_column
 
         colorscale_button = self.traceEditorView.widgets.get("heatmap_colorscale")
         if colorscale_button and hasattr(trace_model, "heatmap_colorscale") and trace_model.heatmap_colorscale:
@@ -2669,6 +2627,11 @@ class MainWindow(QMainWindow):
                 for uid, trace_model in trace_ids:
                     self._post_load_fix_trace_values(uid, trace_model)
                 
+                # Little bit redundant...
+                self.tabPanel.listWidget.setCurrentRow(0)
+                self.tabPanel.select_tab_by_id('setup-menu-id')
+                self.tabPanel.tabSelectedCallback('setup-menu-id')
+                QApplication.processEvents()
                 print("Workspace loading complete.")
                 
             except Exception as e:
