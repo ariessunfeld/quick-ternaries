@@ -24,3 +24,4 @@
 - view32b.py fixes this with a better dropdown
 - view33c.py introduces more advanced heatmap options but has a datafile column selection bug
 - view34.py fixes the datafile selection bug
+- view35.py: Somehow heatmap col was not preserved after load; commenting part of post_load_fix helped
