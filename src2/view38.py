@@ -1,11 +1,13 @@
 import re
 import io
+import os
 import sys
 import uuid
 import json
 from typing import (
     Optional,
-    List
+    List,
+    Union
 )
 from dataclasses import (
     dataclass, 
@@ -63,10 +65,8 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogBu
 
 
 # If available, use QWebEngineView; otherwise fall back.
-try:
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-except ImportError:
-    QWebEngineView = QLabel
+
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 # --------------------------------------------------------------------
 # Constants / Pinned Item Labels
@@ -92,70 +92,58 @@ def get_columns_from_file(file_path, header=None, sheet=None):
     If a header row index is provided, it is used as the header.
     For Excel files, if a sheet is provided, that sheet is read.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=0)
-            else:
-                df = pd.read_csv(file_path, nrows=0)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=0)
         else:
-            return set()
-        return set(df.columns)
-    except Exception as e:
-        print(f"Error in get_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=0)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    else:
         return set()
+    return set(df.columns)
     
 def get_numeric_columns_from_file(file_path, header=None, sheet=None):
     """
     Returns a list of numeric column names from the file.
     Reads up to 10 rows and uses the provided header row (if any) and sheet (if applicable).
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=10)
-            else:
-                df = pd.read_csv(file_path, nrows=10)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=10)
         else:
-            return []
-        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-        return numeric_columns
-    except Exception as e:
-        print(f"Error in get_numeric_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=10)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    else:
         return []
-    
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    return numeric_columns
+
 def get_all_columns_from_file(file_path, header=None, sheet=None):
     """
     Returns all column names from the file as a list.
     Considers the header row and sheet parameters if provided.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=0)
-            else:
-                df = pd.read_csv(file_path, nrows=0)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=0)
         else:
-            return []
-        return df.columns.tolist()
-    except Exception as e:
-        print(f"Error in get_all_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=0)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    else:
         return []
+    return df.columns.tolist()
 
 def get_preview_data(file_path, sheet=None, n_rows=24):
     """
@@ -163,18 +151,14 @@ def get_preview_data(file_path, sheet=None, n_rows=24):
     For CSVs, no header is assumed (so that the raw data is shown).
     For Excel files, if sheet is provided, it will be used.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            # Use header=None so all rows are treated as data.
-            df = pd.read_csv(file_path, header=None, nrows=n_rows)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
-        else:
-            return []
-        return df.values.tolist()
-    except Exception as e:
-        print(f"Error in get_preview_data: {str(e)}")
+    if file_path.lower().endswith('.csv'):
+        # Use header=None so all rows are treated as data.
+        df = pd.read_csv(file_path, header=None, nrows=n_rows)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
+    else:
         return []
+    return df.values.tolist()
 
 def find_header_row_excel(file, max_rows_scan, sheet_name):
     """Returns the 'best' header row for an Excel file."""
@@ -373,6 +357,44 @@ class SheetSelectionDialog(QDialog):
             return dialog.combo.currentText(), True
         return None, False
     
+def validate_data_library(data_library: DataLibraryModel, parent: QWidget):
+    """
+    Iterates over each DataFileMetadata in the library. If the file does not exist,
+    prompts the user to locate the file. Updates the metadata in place.
+    
+    Returns:
+        dict: A mapping from old file paths to new file paths for any files that were updated.
+    """
+    file_path_mapping = {}  # Map from old paths to new paths
+    
+    for idx, meta in enumerate(data_library.loaded_files):
+        if not os.path.exists(meta.file_path):
+            msg = f"File not found: {meta.file_path}\nPlease locate the missing file."
+            QMessageBox.warning(parent, "Missing Data File", msg)
+            new_path, _ = QFileDialog.getOpenFileName(
+                parent,
+                "Locate Missing Data File",
+                "",
+                "Data Files (*.csv *.xlsx)"
+            )
+            if new_path:
+                # Create a new metadata object preserving the header and sheet settings.
+                old_path = meta.file_path
+                new_meta = DataFileMetadata(
+                    file_path=new_path,
+                    header_row=meta.header_row,
+                    sheet=meta.sheet
+                )
+                data_library.loaded_files[idx] = new_meta
+                file_path_mapping[old_path] = new_path
+            else:
+                # Optionally, you might want to remove the missing file from the library.
+                # For now, we leave it unchanged.
+                pass
+    
+    return file_path_mapping
+       
+
 class ColorScaleDropdown(QWidget):
     """
     Alternative implementation using a combobox dropdown for color scale selection
@@ -2000,14 +2022,23 @@ class TraceEditorController:
         if datafile_combo:
             datafile_combo.currentTextChanged.connect(self.on_datafile_changed)
 
-    def on_datafile_changed(self, new_file: str):
+    def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and sizemap."""
         print(f"Datafile changed to: {new_file}")
-        matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        if isinstance(new_file, str):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        elif isinstance(new_file, DataFileMetadata):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file.file_path]
         if matching:
             self.model.datafile = matching[0]
         else:
-            self.model.datafile = DataFileMetadata(file_path=new_file)
+            if isinstance(new_file, str):
+                self.model.datafile = DataFileMetadata(file_path=new_file)
+            elif isinstance(new_file, DataFileMetadata):
+                self.model.datafile = DataFileMetadata(
+                    file_path=new_file.file_path, 
+                    header_row=new_file.header_row, 
+                    sheet=new_file.sheet)
         print(f"Datafile changed to: {self.model.datafile}")
         
         # Get numeric columns from the new datafile
@@ -2019,7 +2050,7 @@ class TraceEditorController:
         print(f"Numeric columns in new file: {numeric_cols}")
         
         # Get ALL columns from the new datafile (for filters)
-        all_cols = get_all_columns_from_file(new_file)
+        # all_cols = get_all_columns_from_file(new_file)
         all_cols = get_all_columns_from_file(
             self.model.datafile.file_path,
             header=self.model.datafile.header_row,
@@ -2218,6 +2249,9 @@ class SetupMenuController:
 
     def update_axis_options(self):
         """Recompute the intersection of column names from loaded data files and update selectors."""
+
+        validate_data_library(self.model.data_library, self.view)
+
         loaded_files = self.model.data_library.loaded_files
         print(f"Loaded files: {loaded_files}")
         
@@ -2822,75 +2856,6 @@ class MainWindow(QMainWindow):
         if filename:
             workspace.save_to_file(filename)
 
-    def _post_load_fix_trace_values(self, uid, trace_model):
-        """Apply trace model values directly to the UI widgets after loading a workspace."""
-        print(f"Fixing values for trace {trace_model.trace_name}, heatmap column = '{trace_model.heatmap_column}'")
-        
-        # Store the current tab to restore it later
-        current_item = self.tabPanel.listWidget.currentItem()
-        
-        # Select the tab we want to fix
-        self.tabPanel.select_tab_by_id(uid)
-        
-        # Wait for the UI to update
-        QApplication.processEvents()
-        
-        # Get datafile and its columns
-        datafile = trace_model.datafile
-        numeric_cols = []
-        if datafile and datafile.file_path:
-            numeric_cols = get_numeric_columns_from_file(
-                datafile.file_path,
-                header=datafile.header_row,
-                sheet=datafile.sheet
-            )
-            print(f"Numeric columns in {datafile}: {numeric_cols}")
-
-        colorscale_button = self.traceEditorView.widgets.get("heatmap_colorscale")
-        if colorscale_button and hasattr(trace_model, "heatmap_colorscale") and trace_model.heatmap_colorscale:
-            colorscale_button.setColorScale(trace_model.heatmap_colorscale)
-
-        # Fix the color button
-        color_button = self.traceEditorView.widgets.get("trace_color")
-        if color_button and hasattr(trace_model, "trace_color") and trace_model.trace_color:
-            color_button.setColor(trace_model.trace_color)
-
-        shape_button = self.traceEditorView.widgets.get("point_shape")
-        if shape_button and hasattr(trace_model, "point_shape") and trace_model.point_shape:
-            shape_button.setShape(trace_model.point_shape)
-        
-        # Fix filter columns if any filters exist
-        if hasattr(trace_model, 'filters') and trace_model.filters:
-            # This gets complex - need to select filter tab, then update its combo
-            try:
-                # Get filter tab widget
-                filter_tab_widget = self.traceEditorView.findChild(FilterTabWidget)
-                if filter_tab_widget:
-                    for i, filter_model in enumerate(trace_model.filters):
-                        # Select this filter tab
-                        filter_tab_widget.setCurrentRow(i)
-                        QApplication.processEvents()
-                        
-                        # Find the filter editor that's currently shown
-                        for child in self.traceEditorView.findChildren(FilterEditorView):
-                            if hasattr(child, 'filter_model') and child.filter_model == filter_model:
-                                filter_combo = child.widgets.get('filter_column')
-                                if filter_combo and filter_model.filter_column:
-                                    # Add the saved value if not in list
-                                    if filter_combo.findText(filter_model.filter_column) == -1:
-                                        filter_combo.addItem(filter_model.filter_column)
-                                    # Set the value
-                                    filter_combo.setCurrentText(filter_model.filter_column)
-                                    break
-            except Exception as e:
-                print(f"Error fixing filter columns: {str(e)}")
-        
-        # Restore the previously selected tab
-        # if current_item:
-        #     self.tabPanel.listWidget.setCurrentItem(current_item)
-        
-        print(f"Fix completed, final heatmap column value: '{trace_model.heatmap_column}'")
-
     def load_workspace(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Load Workspace", "", "JSON Files (*.json)")
         if filename:
@@ -2898,6 +2863,21 @@ class MainWindow(QMainWindow):
                 print(f"Loading workspace from {filename}")
                 
                 workspace = WorkspaceManager.load_from_file(filename)
+
+                file_path_mapping = validate_data_library(workspace.setup_model.data_library, self)
+            
+                # Update all trace models with the new file paths
+                for trace_model in workspace.traces:
+                    if hasattr(trace_model, "datafile") and isinstance(trace_model.datafile, DataFileMetadata):
+                        old_path = trace_model.datafile.file_path
+                        if old_path in file_path_mapping:
+                            # Update the datafile with the new path
+                            new_path = file_path_mapping[old_path]
+                            trace_model.datafile = DataFileMetadata(
+                                file_path=new_path,
+                                header_row=trace_model.datafile.header_row,
+                                sheet=trace_model.datafile.sheet
+                            )
                 
                 # Debug: check values in the loaded workspace
                 for i, trace in enumerate(workspace.traces):
@@ -2939,10 +2919,6 @@ class MainWindow(QMainWindow):
                 
                 # Process events to ensure UI is fully updated
                 QApplication.processEvents()
-                
-                # Now directly fix each trace's field values
-                for uid, trace_model in trace_ids:
-                    self._post_load_fix_trace_values(uid, trace_model)
                 
                 # Little bit redundant...
                 self.tabPanel.listWidget.setCurrentRow(0)

@@ -5,7 +5,8 @@ import uuid
 import json
 from typing import (
     Optional,
-    List
+    List,
+    Union
 )
 from dataclasses import (
     dataclass, 
@@ -63,10 +64,8 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogBu
 
 
 # If available, use QWebEngineView; otherwise fall back.
-try:
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-except ImportError:
-    QWebEngineView = QLabel
+
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 # --------------------------------------------------------------------
 # Constants / Pinned Item Labels
@@ -92,70 +91,58 @@ def get_columns_from_file(file_path, header=None, sheet=None):
     If a header row index is provided, it is used as the header.
     For Excel files, if a sheet is provided, that sheet is read.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=0)
-            else:
-                df = pd.read_csv(file_path, nrows=0)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=0)
         else:
-            return set()
-        return set(df.columns)
-    except Exception as e:
-        print(f"Error in get_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=0)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    else:
         return set()
+    return set(df.columns)
     
 def get_numeric_columns_from_file(file_path, header=None, sheet=None):
     """
     Returns a list of numeric column names from the file.
     Reads up to 10 rows and uses the provided header row (if any) and sheet (if applicable).
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=10)
-            else:
-                df = pd.read_csv(file_path, nrows=10)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=10)
         else:
-            return []
-        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-        return numeric_columns
-    except Exception as e:
-        print(f"Error in get_numeric_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=10)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    else:
         return []
-    
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    return numeric_columns
+
 def get_all_columns_from_file(file_path, header=None, sheet=None):
     """
     Returns all column names from the file as a list.
     Considers the header row and sheet parameters if provided.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=0)
-            else:
-                df = pd.read_csv(file_path, nrows=0)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=0)
         else:
-            return []
-        return df.columns.tolist()
-    except Exception as e:
-        print(f"Error in get_all_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=0)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    else:
         return []
+    return df.columns.tolist()
 
 def get_preview_data(file_path, sheet=None, n_rows=24):
     """
@@ -163,18 +150,14 @@ def get_preview_data(file_path, sheet=None, n_rows=24):
     For CSVs, no header is assumed (so that the raw data is shown).
     For Excel files, if sheet is provided, it will be used.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            # Use header=None so all rows are treated as data.
-            df = pd.read_csv(file_path, header=None, nrows=n_rows)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
-        else:
-            return []
-        return df.values.tolist()
-    except Exception as e:
-        print(f"Error in get_preview_data: {str(e)}")
+    if file_path.lower().endswith('.csv'):
+        # Use header=None so all rows are treated as data.
+        df = pd.read_csv(file_path, header=None, nrows=n_rows)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
+    else:
         return []
+    return df.values.tolist()
 
 def find_header_row_excel(file, max_rows_scan, sheet_name):
     """Returns the 'best' header row for an Excel file."""
@@ -2000,14 +1983,23 @@ class TraceEditorController:
         if datafile_combo:
             datafile_combo.currentTextChanged.connect(self.on_datafile_changed)
 
-    def on_datafile_changed(self, new_file: str):
+    def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and sizemap."""
         print(f"Datafile changed to: {new_file}")
-        matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        if isinstance(new_file, str):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        elif isinstance(new_file, DataFileMetadata):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file.file_path]
         if matching:
             self.model.datafile = matching[0]
         else:
-            self.model.datafile = DataFileMetadata(file_path=new_file)
+            if isinstance(new_file, str):
+                self.model.datafile = DataFileMetadata(file_path=new_file)
+            elif isinstance(new_file, DataFileMetadata):
+                self.model.datafile = DataFileMetadata(
+                    file_path=new_file.file_path, 
+                    header_row=new_file.header_row, 
+                    sheet=new_file.sheet)
         print(f"Datafile changed to: {self.model.datafile}")
         
         # Get numeric columns from the new datafile
@@ -2019,7 +2011,7 @@ class TraceEditorController:
         print(f"Numeric columns in new file: {numeric_cols}")
         
         # Get ALL columns from the new datafile (for filters)
-        all_cols = get_all_columns_from_file(new_file)
+        # all_cols = get_all_columns_from_file(new_file)
         all_cols = get_all_columns_from_file(
             self.model.datafile.file_path,
             header=self.model.datafile.header_row,

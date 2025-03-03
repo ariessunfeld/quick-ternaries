@@ -5,7 +5,8 @@ import uuid
 import json
 from typing import (
     Optional,
-    List
+    List,
+    Union
 )
 from dataclasses import (
     dataclass, 
@@ -92,47 +93,47 @@ def get_columns_from_file(file_path, header=None, sheet=None):
     If a header row index is provided, it is used as the header.
     For Excel files, if a sheet is provided, that sheet is read.
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=0)
-            else:
-                df = pd.read_csv(file_path, nrows=0)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    # try:
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=0)
         else:
-            return set()
-        return set(df.columns)
-    except Exception as e:
-        print(f"Error in get_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=0)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+    else:
         return set()
+    return set(df.columns)
+    # except Exception as e:
+    #     print(f"Error in get_columns_from_file with metadata: {str(e)}")
+    #     return set()
     
 def get_numeric_columns_from_file(file_path, header=None, sheet=None):
     """
     Returns a list of numeric column names from the file.
     Reads up to 10 rows and uses the provided header row (if any) and sheet (if applicable).
     """
-    try:
-        if file_path.lower().endswith('.csv'):
-            if header is not None:
-                df = pd.read_csv(file_path, header=header, nrows=10)
-            else:
-                df = pd.read_csv(file_path, nrows=10)
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            if header is not None:
-                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
-            else:
-                df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    # try:
+    if file_path.lower().endswith('.csv'):
+        if header is not None:
+            df = pd.read_csv(file_path, header=header, nrows=10)
         else:
-            return []
-        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-        return numeric_columns
-    except Exception as e:
-        print(f"Error in get_numeric_columns_from_file with metadata: {str(e)}")
+            df = pd.read_csv(file_path, nrows=10)
+    elif file_path.lower().endswith(('.xls', '.xlsx')):
+        if header is not None:
+            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
+        else:
+            df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+    else:
         return []
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    return numeric_columns
+    # except Exception as e:
+    #     print(f"Error in get_numeric_columns_from_file with metadata: {str(e)}")
+    #     return []
     
 def get_all_columns_from_file(file_path, header=None, sheet=None):
     """
@@ -1644,7 +1645,11 @@ class TraceEditorView(QWidget):
             elif isinstance(widget, QCheckBox):
                 widget.setChecked(bool(value))
                 widget.stateChanged.connect(lambda state, fname=f.name: setattr(self.model, fname, bool(state)))
-                if f.name in ("heatmap_on", "sizemap_on"):
+                # if f.name in ("heatmap_on", "sizemap_on"):
+                #     widget.stateChanged.connect(lambda _: self.set_plot_type(self.current_plot_type))
+                if f.name == "heatmap_on":
+                    widget.stateChanged.connect(lambda state: self._on_heatmap_toggled(bool(state)))
+                elif f.name == "sizemap_on":  # TODO better handling of sizemap_on repopulation
                     widget.stateChanged.connect(lambda _: self.set_plot_type(self.current_plot_type))
                 if f.name == "filters_on":
                     widget.stateChanged.connect(lambda _: self._update_filters_visibility())
@@ -1775,6 +1780,41 @@ class TraceEditorView(QWidget):
                 self.group_boxes[group_name] = (group_box, group_layout)
                 self.form_layout.addRow(group_box)
         self._build_filters_ui()
+
+    def _on_heatmap_toggled(self, is_on):
+        """Handle heatmap checkbox toggle."""
+        # Update visibility
+        self.set_plot_type(self.current_plot_type)
+        
+        # If turned on, update combobox options
+        if is_on:
+            datafile = self.model.datafile
+            print('INSIDE _on_heatmap_toggled')
+            print(f'{type(datafile)=}')
+            print(f'{type(datafile.file_path)=}')
+            if datafile and datafile.file_path:
+                numeric_cols = get_numeric_columns_from_file(
+                    datafile.file_path,
+                    header=datafile.header_row,
+                    sheet=datafile.sheet
+                )
+                
+                # Update the heatmap column combobox
+                heatmap_combo = self.widgets.get("heatmap_column")
+                if heatmap_combo:
+                    # Save current value
+                    current_value = self.model.heatmap_column
+                    
+                    # Update options
+                    heatmap_combo.clear()
+                    heatmap_combo.addItems(numeric_cols)
+                    
+                    # Restore current value if possible, otherwise set to first option
+                    if current_value and current_value in numeric_cols:
+                        heatmap_combo.setCurrentText(current_value)
+                    elif numeric_cols:
+                        self.model.heatmap_column = numeric_cols[0]
+                        heatmap_combo.setCurrentText(numeric_cols[0])
 
     def _update_advanced_visibility(self, show_advanced):
         """Update visibility of all advanced components when the toggle changes"""
@@ -2000,14 +2040,23 @@ class TraceEditorController:
         if datafile_combo:
             datafile_combo.currentTextChanged.connect(self.on_datafile_changed)
 
-    def on_datafile_changed(self, new_file: str):
+    def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and sizemap."""
         print(f"Datafile changed to: {new_file}")
-        matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        if isinstance(new_file, str):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+        elif isinstance(new_file, DataFileMetadata):
+            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file.file_path]
         if matching:
             self.model.datafile = matching[0]
         else:
-            self.model.datafile = DataFileMetadata(file_path=new_file)
+            if isinstance(new_file, str):
+                self.model.datafile = DataFileMetadata(file_path=new_file)
+            elif isinstance(new_file, DataFileMetadata):
+                self.model.datafile = DataFileMetadata(
+                    file_path=new_file.file_path, 
+                    header_row=new_file.header_row, 
+                    sheet=new_file.sheet)
         print(f"Datafile changed to: {self.model.datafile}")
         
         # Get numeric columns from the new datafile

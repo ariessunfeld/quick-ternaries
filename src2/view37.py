@@ -1,5 +1,6 @@
 import re
 import io
+import os
 import sys
 import uuid
 import json
@@ -372,7 +373,35 @@ class SheetSelectionDialog(QDialog):
         if result == QDialog.DialogCode.Accepted:
             return dialog.combo.currentText(), True
         return None, False
-    
+
+def validate_data_library(data_library: DataLibraryModel, parent: QWidget):
+    """
+    Iterates over each DataFileMetadata in the library. If the file does not exist,
+    prompts the user to locate the file. Updates the metadata in place.
+    """
+    for idx, meta in enumerate(data_library.loaded_files):
+        if not os.path.exists(meta.file_path):
+            msg = f"File not found: {meta.file_path}\nPlease locate the missing file."
+            QMessageBox.warning(parent, "Missing Data File", msg)
+            new_path, _ = QFileDialog.getOpenFileName(
+                parent,
+                "Locate Missing Data File",
+                "",
+                "Data Files (*.csv *.xlsx)"
+            )
+            if new_path:
+                # Create a new metadata object preserving the header and sheet settings.
+                new_meta = DataFileMetadata(
+                    file_path=new_path,
+                    header_row=meta.header_row,
+                    sheet=meta.sheet
+                )
+                data_library.loaded_files[idx] = new_meta
+            else:
+                # Optionally, you might want to remove the missing file from the library.
+                # For now, we leave it unchanged.
+                pass
+       
 class ColorScaleDropdown(QWidget):
     """
     Alternative implementation using a combobox dropdown for color scale selection
@@ -2217,19 +2246,20 @@ class SetupMenuController:
         self.view = view
 
     def update_axis_options(self):
-        """Recompute the intersection of column names from loaded data files and update selectors."""
+        # Validate before processing
+        validate_data_library(self.model.data_library, self.view)
+        
         loaded_files = self.model.data_library.loaded_files
         print(f"Loaded files: {loaded_files}")
         
         common_columns = None
-        for file_meta in loaded_files:
-            # Assuming get_columns_from_file accepts header and sheet parameters
+        for meta in loaded_files:
             cols = get_columns_from_file(
-                file_meta.file_path,
-                header=file_meta.header_row,
-                sheet=file_meta.sheet
+                meta.file_path,
+                header=meta.header_row,
+                sheet=meta.sheet
             )
-            print(f"Columns in {file_meta.file_path}: {cols}")
+            print(f"Columns in {meta.file_path}: {cols}")
             if common_columns is None:
                 common_columns = set(cols)
             else:
@@ -2247,9 +2277,7 @@ class SetupMenuController:
                 print(f"Updating MultiFieldSelector for {field_name} with options: {common_list}")
                 widget.set_available_options(common_list)
                 selected = widget.get_selected_fields()
-                print(f"Current selected fields: {selected}")
                 valid = [s for s in selected if s in common_list]
-                print(f"Valid selections: {valid}")
                 widget.set_selected_fields(valid)
 
 # --------------------------------------------------------------------
@@ -2826,6 +2854,9 @@ class MainWindow(QMainWindow):
         """Apply trace model values directly to the UI widgets after loading a workspace."""
         print(f"Fixing values for trace {trace_model.trace_name}, heatmap column = '{trace_model.heatmap_column}'")
         
+        # Validate the datafile: if missing, prompt the user to locate it.
+        # trace_model.datafile = validate_file_location(trace_model.datafile, self)
+        
         # Store the current tab to restore it later
         current_item = self.tabPanel.listWidget.currentItem()
         
@@ -2835,7 +2866,7 @@ class MainWindow(QMainWindow):
         # Wait for the UI to update
         QApplication.processEvents()
         
-        # Get datafile and its columns
+        # Get datafile and its columns using updated metadata.
         datafile = trace_model.datafile
         numeric_cols = []
         if datafile and datafile.file_path:
@@ -2844,7 +2875,7 @@ class MainWindow(QMainWindow):
                 header=datafile.header_row,
                 sheet=datafile.sheet
             )
-            print(f"Numeric columns in {datafile}: {numeric_cols}")
+            print(f"Numeric columns in {datafile.file_path}: {numeric_cols}")
 
         colorscale_button = self.traceEditorView.widgets.get("heatmap_colorscale")
         if colorscale_button and hasattr(trace_model, "heatmap_colorscale") and trace_model.heatmap_colorscale:
@@ -2861,33 +2892,22 @@ class MainWindow(QMainWindow):
         
         # Fix filter columns if any filters exist
         if hasattr(trace_model, 'filters') and trace_model.filters:
-            # This gets complex - need to select filter tab, then update its combo
             try:
-                # Get filter tab widget
                 filter_tab_widget = self.traceEditorView.findChild(FilterTabWidget)
                 if filter_tab_widget:
                     for i, filter_model in enumerate(trace_model.filters):
-                        # Select this filter tab
                         filter_tab_widget.setCurrentRow(i)
                         QApplication.processEvents()
-                        
-                        # Find the filter editor that's currently shown
                         for child in self.traceEditorView.findChildren(FilterEditorView):
                             if hasattr(child, 'filter_model') and child.filter_model == filter_model:
                                 filter_combo = child.widgets.get('filter_column')
                                 if filter_combo and filter_model.filter_column:
-                                    # Add the saved value if not in list
                                     if filter_combo.findText(filter_model.filter_column) == -1:
                                         filter_combo.addItem(filter_model.filter_column)
-                                    # Set the value
                                     filter_combo.setCurrentText(filter_model.filter_column)
                                     break
             except Exception as e:
                 print(f"Error fixing filter columns: {str(e)}")
-        
-        # Restore the previously selected tab
-        # if current_item:
-        #     self.tabPanel.listWidget.setCurrentItem(current_item)
         
         print(f"Fix completed, final heatmap column value: '{trace_model.heatmap_column}'")
 
@@ -2898,10 +2918,13 @@ class MainWindow(QMainWindow):
                 print(f"Loading workspace from {filename}")
                 
                 workspace = WorkspaceManager.load_from_file(filename)
+
+                # Validate all data files in the loaded setup model.
+                validate_data_library(workspace.setup_model.data_library, self)
                 
-                # Debug: check values in the loaded workspace
-                for i, trace in enumerate(workspace.traces):
-                    print(f"Trace {i}: {trace.trace_name}, heatmap column = '{trace.heatmap_column}'")
+                # # Debug: check values in the loaded workspace
+                # for i, trace in enumerate(workspace.traces):
+                #     print(f"Trace {i}: {trace.trace_name}, heatmap column = '{trace.heatmap_column}'")
                     
                 # Clear existing trace tabs (except the setup-menu)
                 keys_to_remove = [uid for uid in self.tabPanel.id_to_widget if uid != "setup-menu-id"]
