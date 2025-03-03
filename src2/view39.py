@@ -1076,6 +1076,9 @@ class TabPanel(QWidget):
 # --------------------------------------------------------------------
 @dataclass
 class FilterModel:
+    # Centralize the allowed filter operations
+    ALLOWED_OPERATIONS = ["<", ">", "<=", ">=", "==", "a < x < b", "a <= x < b", "a < x <= b", "a <= x <= b"]
+
     filter_name: str = field(
         default="Filter",
         metadata={"label": "Filter Name:", "widget": QLineEdit}
@@ -1086,7 +1089,11 @@ class FilterModel:
     )
     filter_operation: str = field(
         default="<",
-        metadata={"label": "Filter Operation:", "widget": QComboBox}
+        metadata={
+            "label": "Filter Operation:", 
+            "widget": QComboBox,
+            "allowed_values": ALLOWED_OPERATIONS  # standard allowed operations
+        }
     )
     filter_value1: float = field(
         default=0.0,
@@ -1098,9 +1105,11 @@ class FilterModel:
             "label": "Value B:",
             "widget": QDoubleSpinBox,
             "depends_on": "filter_operation",
-            "visible_if": "a < x < b"  # custom marker used by the view
+            # extended list of operations that require a second value
+            "visible_if": ["a < x < b", "a <= x < b", "a < x <= b", "a <= x <= b"]
         }
     )
+
 
 class FilterTabWidget(QListWidget):
     filterSelectedCallback = Signal(int)
@@ -1109,25 +1118,22 @@ class FilterTabWidget(QListWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setDragDropMode(QAbstractItemView.NoDragDrop)
-        self.setEditTriggers(QAbstractItemView.DoubleClicked)
+        self.setDragDropMode(QListWidget.NoDragDrop)
+        self.setEditTriggers(QListWidget.DoubleClicked)
         self.viewport().installEventFilter(self)
         self.itemClicked.connect(self._on_item_clicked)
         self.itemChanged.connect(self._on_item_changed)
-        # Maintain an internal list of filter names (not including the add button)
         self.filters = []
         self._refresh_tabs()
     
     def _refresh_tabs(self):
         self.clear()
-        # Add each filter tab from our internal list.
         for name in self.filters:
             item = QListWidgetItem(name)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
             self.addItem(item)
-        # Always append the "Add Filter (+)" item as the last entry.
         add_item = QListWidgetItem("Add Filter (+)")
-        add_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+        add_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
         self.addItem(add_item)
     
     def set_filters(self, filter_names: list):
@@ -1139,10 +1145,8 @@ class FilterTabWidget(QListWidget):
     def add_filter_tab(self, filter_name: str):
         self.filters.append(filter_name)
         self._refresh_tabs()
-        # Automatically select the newly added filter (last filter in the list)
         self.setCurrentRow(len(self.filters) - 1)
 
-    
     def update_filter_tab(self, index: int, new_name: str):
         if 0 <= index < len(self.filters):
             self.filters[index] = new_name
@@ -1151,7 +1155,6 @@ class FilterTabWidget(QListWidget):
                 item.setText(new_name)
     
     def _on_item_clicked(self, item: QListWidgetItem):
-        # If the "Add Filter (+)" item is clicked (always the last item), emit the add-request signal.
         if item.text() == "Add Filter (+)":
             self.filterAddRequestedCallback.emit()
         else:
@@ -1159,12 +1162,12 @@ class FilterTabWidget(QListWidget):
             self.filterSelectedCallback.emit(index)
     
     def _on_item_changed(self, item: QListWidgetItem):
-        # Do not allow changes to the "Add Filter (+)" item.
         if item.text() == "Add Filter (+)":
             return
         index = self.row(item)
         self.filters[index] = item.text()
         self.filterRenamedCallback.emit(index, item.text())
+
 
 class FilterEditorView(QWidget):
     def __init__(self, filter_model: FilterModel, parent=None):
@@ -1177,6 +1180,8 @@ class FilterEditorView(QWidget):
         self.update_from_model()
     
     def _build_ui(self):
+        # Save metadata for later use (for conditional visibility, etc.)
+        self.field_metadata = {f.name: f.metadata for f in fields(self.filter_model)}
         for f in fields(self.filter_model):
             metadata = f.metadata
             if "label" not in metadata or "widget" not in metadata:
@@ -1190,22 +1195,20 @@ class FilterEditorView(QWidget):
             value = getattr(self.filter_model, f.name)
             if isinstance(widget, QLineEdit):
                 widget.setText(str(value))
-                # When the filter name changes, update both the model and the corresponding tab.
                 widget.textChanged.connect(lambda text, fname=f.name: self._on_field_changed(fname, text))
             elif isinstance(widget, QDoubleSpinBox):
                 widget.setValue(float(value))
                 widget.valueChanged.connect(lambda val, fname=f.name: self._on_field_changed(fname, val))
             elif isinstance(widget, QComboBox):
                 if f.name == "filter_operation":
-                    widget.addItems(["<", ">", "==", "a < x < b"])
+                    # Use the standardized allowed values from the metadata
+                    allowed = metadata.get("allowed_values", FilterModel.ALLOWED_OPERATIONS)
+                    widget.addItems(allowed)
                 elif f.name == "filter_column":
-                    # For filter columns, get the most current datafile columns
-                    # Find the main window and get the current model's datafile
                     main_window = self.window()
                     datafile = None
                     if hasattr(main_window, 'traceEditorView') and hasattr(main_window.traceEditorView, 'model'):
                         datafile = main_window.traceEditorView.model.datafile
-                    
                     if datafile and datafile.file_path:
                         all_cols = get_all_columns_from_file(
                             datafile.file_path,
@@ -1214,25 +1217,17 @@ class FilterEditorView(QWidget):
                         )
                         widget.clear()
                         widget.addItems(all_cols)
-                        
-                        # If we have a saved value, try to use it
                         if value and value.strip():
                             if value in all_cols:
                                 widget.setCurrentText(value)
                             else:
-                                # Add the saved value if it's not in the list
                                 widget.addItem(value)
                                 widget.setCurrentText(value)
-                        # If no saved value or it was empty, set a default
                         elif all_cols:
                             widget.setCurrentText(all_cols[0])
-                            # Update the model to match the UI
                             self.filter_model.filter_column = all_cols[0]
-                
-                # For non-filter_column comboboxes, just set the value
                 if f.name != "filter_column":
                     widget.setCurrentText(str(value))
-                    
                 widget.currentTextChanged.connect(lambda text, fname=f.name: self._on_field_changed(fname, text))
             self.form_layout.addRow(label_text, widget)
         if "filter_operation" in self.widgets:
@@ -1241,7 +1236,6 @@ class FilterEditorView(QWidget):
     def _on_field_changed(self, field_name, value):
         setattr(self.filter_model, field_name, value)
         if field_name == "filter_name":
-            # Propagate this change to the FilterTabWidget.
             parent_widget = self.parent()
             while parent_widget is not None:
                 ftw = parent_widget.findChild(FilterTabWidget)
@@ -1256,15 +1250,18 @@ class FilterEditorView(QWidget):
     
     def update_visibility(self):
         op = self.widgets["filter_operation"].currentText()
-        if "filter_value2" in self.widgets:
-            if op == "a < x < b":
-                self.widgets["filter_value2"].show()
-                label = self.form_layout.labelForField(self.widgets["filter_value2"])
-                if label: label.show()
-            else:
-                self.widgets["filter_value2"].hide()
-                label = self.form_layout.labelForField(self.widgets["filter_value2"])
-                if label: label.hide()
+        # Get the list of operations from the metadata that require the second value.
+        visible_conditions = self.field_metadata.get("filter_value2", {}).get("visible_if", [])
+        if op in visible_conditions:
+            self.widgets["filter_value2"].show()
+            label = self.form_layout.labelForField(self.widgets["filter_value2"])
+            if label:
+                label.show()
+        else:
+            self.widgets["filter_value2"].hide()
+            label = self.form_layout.labelForField(self.widgets["filter_value2"])
+            if label:
+                label.hide()
     
     def update_from_model(self):
         for f in fields(self.filter_model):
@@ -1282,6 +1279,7 @@ class FilterEditorView(QWidget):
     
     def set_filter_model(self, new_filter_model: FilterModel):
         self.filter_model = new_filter_model
+        self.field_metadata = {f.name: f.metadata for f in fields(self.filter_model)}
         self.update_from_model()
 
 @dataclass
