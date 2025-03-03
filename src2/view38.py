@@ -421,12 +421,6 @@ class ColorScaleDropdown(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Create the color scale preview widget
-        self.preview = QLabel()
-        self.preview.setMinimumSize(80, 20)
-        self.preview.setMaximumSize(80, 20)
-        self.preview.setScaledContents(True)
-        
         # Create the combobox for selection
         self.comboBox = QComboBox()
         self.comboBox.setIconSize(QPixmap(60, 15).size())
@@ -437,8 +431,6 @@ class ColorScaleDropdown(QWidget):
             self.comboBox.addItem(icon, cs_name)
         
         # Add widgets to layout
-        # SKIP ADDING THE PREVIEW (unecessary width in widget)
-        # layout.addWidget(self.preview)
         layout.addWidget(self.comboBox)
         
         # Set the initial color scale
@@ -485,6 +477,7 @@ class ColorScaleDropdown(QWidget):
             try:
                 colorscale = get_colorscale(colorscale_name)
             except:
+                print(f'Failed to get colorscale for scale name {colorscale_name}')
                 # If get_colorscale fails, create a simple gradient
                 colorscale = [(0, "lightblue"), (0.5, "blue"), (1, "darkblue")]
             
@@ -1297,10 +1290,6 @@ class TraceEditorModel:
         default="Default Trace",
         metadata={"label": "Trace Name:", "widget": QLineEdit, "plot_types": ["ternary", "cartesian"]}
     )
-    # datafile: DataFileMetadata = field(
-    #     default="",
-    #     metadata={"label": "Datafile:", "widget": QComboBox, "plot_types": ["ternary", "cartesian"]}
-    # )
     datafile: DataFileMetadata = field(
         default_factory=lambda: DataFileMetadata(file_path=""),
         metadata={"label": "Datafile:", "widget": QComboBox, "plot_types": ["ternary", "cartesian"]}
