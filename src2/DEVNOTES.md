@@ -26,5 +26,7 @@
 - view34.py fixes the datafile selection bug
 - view35.py: Somehow heatmap col was not preserved after load; commenting part of post_load_fix helped
 - view36.py reimplemented sheet and header selection on loading datafiles, and updated all column-getting function calls to respect new datafilemetadata object, as well as to/from dict method modifications
-- view36b.py: Realized that heatmap options werent populating when adding a file normally and creating a trace; needed to make modifications
-- view38.py: Fixed bugs that had been introduced for adding files normally; missing data will now prompt user to select new location for file. validation method now returns a mapping of filenames. No known bugs.
+- view36b.py Realized that heatmap options werent populating when adding a file normally and creating a trace; needed to make modifications
+- view38.py Fixed bugs that had been introduced for adding files normally; missing data will now prompt user to select new location for file. validation method now returns a mapping of filenames. No known bugs.
+- view39.py revamps the filter logic to better handle val1 val2 visibility
+- view40.py improves filter logic by considering colun dtype when determining operation options, and other enhancements. Also adds multi field selector support and fixed filter loading with a dedicated from_dict method.
