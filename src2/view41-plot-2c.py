@@ -2,12 +2,14 @@ import re
 import io
 import os
 import sys
+import copy
 import uuid
 import json
 from typing import (
     Optional,
     List,
-    Union
+    Union,
+    Dict
 )
 from dataclasses import (
     dataclass, 
@@ -30,10 +32,11 @@ from PySide6.QtWidgets import (QLineEdit, QDoubleSpinBox, QComboBox, QListWidget
                              QWidget, QFormLayout, QHBoxLayout, QPushButton, QListWidget,
                              QVBoxLayout, QMessageBox, QInputDialog, QCompleter)
 from PySide6.QtGui import QDoubleValidator
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 
 from PySide6.QtWidgets import (
     QApplication, 
+    QFrame,
     QMainWindow, 
     QWidget, 
     QMessageBox,
@@ -75,61 +78,33 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogBu
 
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
+from filters import (
+    EqualsFilterStrategy, 
+    OneOfFilterStrategy, 
+    ExcludeOneFilterStrategy, 
+    ExcludeMultipleFilterStrategy,
+    LessEqualFilterStrategy, 
+    LessThanFilterStrategy, 
+    GreaterEqualFilterStrategy, 
+    GreaterThanFilterStrategy,
+    LELTFilterStrategy, 
+    LELEFilterStrategy, 
+    LTLEFilterStrategy, 
+    LTLTFilterStrategy
+)
+
+from src.services.utils.contour_utils import (
+    transform_to_cartesian, 
+    compute_kde_contours, 
+    convert_contour_to_ternary
+)
+
 # --------------------------------------------------------------------
 # Constants / Pinned Item Labels
 # --------------------------------------------------------------------
 SETUP_MENU_LABEL = "Setup Menu"
 ADD_TRACE_LABEL = "Add Trace (+)"
 
-def is_numeric_column(file_path, header=None, sheet=None, column=None):
-    """
-    Determines whether the specified column in the file is numeric.
-    
-    Reads up to 10 rows using the provided header (if any) and sheet (if applicable).
-    Returns True if the column appears in the list of numeric columns, otherwise False.
-    """
-    if not column:
-        return False
-    # get_numeric_columns_from_file is assumed to be available per your utility functions.
-    numeric_columns = get_numeric_columns_from_file(file_path, header, sheet)
-    return column in numeric_columns
-
-def get_sorted_unique_values(file_path, header=None, sheet=None, column=None):
-    """
-    Returns a sorted list of unique (non-null) values from the specified column in the file.
-    
-    Uses the provided header row index and sheet (if applicable). Sorting is done numerically
-    if the values appear numeric; otherwise, lexicographically.
-    """
-    if not column:
-        return []
-    try:
-        if file_path.lower().endswith('.csv'):
-            df = pd.read_csv(file_path, header=header, usecols=[column])
-        elif file_path.lower().endswith(('.xls', '.xlsx')):
-            df = pd.read_excel(file_path, header=header, sheet_name=sheet, usecols=[column])
-        else:
-            return []
-    except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
-        return []
-    
-    # Drop missing values and get unique values.
-    unique_values = df[column].dropna().unique().tolist()
-    
-    # Try numeric sort if possible.
-    try:
-        if unique_values:
-            # Attempt to convert first value to float as a proxy.
-            float(unique_values[0])
-            unique_values.sort(key=lambda x: float(x))
-        else:
-            unique_values.sort()
-    except Exception:
-        # Otherwise, sort as strings.
-        unique_values.sort(key=lambda x: str(x))
-    
-    return unique_values
 
 def recursive_to_dict(obj):
     """Recursively convert dataclass objects (or lists/dicts) to dictionaries."""
@@ -141,80 +116,6 @@ def recursive_to_dict(obj):
         return {k: recursive_to_dict(v) for k, v in obj.items()}
     else:
         return obj
-    
-def get_columns_from_file(file_path, header=None, sheet=None):
-    """
-    Returns a set of column names from the file.
-    If a header row index is provided, it is used as the header.
-    For Excel files, if a sheet is provided, that sheet is read.
-    """
-    if file_path.lower().endswith('.csv'):
-        if header is not None:
-            df = pd.read_csv(file_path, header=header, nrows=0)
-        else:
-            df = pd.read_csv(file_path, nrows=0)
-    elif file_path.lower().endswith(('.xls', '.xlsx')):
-        if header is not None:
-            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-        else:
-            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
-    else:
-        return set()
-    return set(df.columns)
-    
-def get_numeric_columns_from_file(file_path, header=None, sheet=None):
-    """
-    Returns a list of numeric column names from the file.
-    Reads up to 10 rows and uses the provided header row (if any) and sheet (if applicable).
-    """
-    if file_path.lower().endswith('.csv'):
-        if header is not None:
-            df = pd.read_csv(file_path, header=header, nrows=10)
-        else:
-            df = pd.read_csv(file_path, nrows=10)
-    elif file_path.lower().endswith(('.xls', '.xlsx')):
-        if header is not None:
-            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
-        else:
-            df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
-    else:
-        return []
-    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-    return numeric_columns
-
-def get_all_columns_from_file(file_path, header=None, sheet=None):
-    """
-    Returns all column names from the file as a list.
-    Considers the header row and sheet parameters if provided.
-    """
-    if file_path.lower().endswith('.csv'):
-        if header is not None:
-            df = pd.read_csv(file_path, header=header, nrows=0)
-        else:
-            df = pd.read_csv(file_path, nrows=0)
-    elif file_path.lower().endswith(('.xls', '.xlsx')):
-        if header is not None:
-            df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
-        else:
-            df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
-    else:
-        return []
-    return df.columns.tolist()
-
-def get_preview_data(file_path, sheet=None, n_rows=24):
-    """
-    Returns a list of lists containing the first n_rows of the file.
-    For CSVs, no header is assumed (so that the raw data is shown).
-    For Excel files, if sheet is provided, it will be used.
-    """
-    if file_path.lower().endswith('.csv'):
-        # Use header=None so all rows are treated as data.
-        df = pd.read_csv(file_path, header=None, nrows=n_rows)
-    elif file_path.lower().endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
-    else:
-        return []
-    return df.values.tolist()
 
 def find_header_row_excel(file, max_rows_scan, sheet_name):
     """Returns the 'best' header row for an Excel file."""
@@ -319,31 +220,577 @@ def get_suggested_header(file_path, sheet=None, max_rows_scan=24):
         return find_header_row_excel(file_path, max_rows_scan, sheet)
     else:
         return None  
+    
+
+def get_columns_from_dataframe(df):
+    """
+    Returns a set of column names from a dataframe.
+    
+    Args:
+        df: pandas DataFrame
+        
+    Returns:
+        set: Column names
+    """
+    if df is None:
+        return set()
+    return set(df.columns)
+
+def get_numeric_columns_from_dataframe(df):
+    """
+    Returns a list of numeric column names from a dataframe.
+    
+    Args:
+        df: pandas DataFrame
+        
+    Returns:
+        list: Numeric column names
+    """
+    if df is None:
+        return []
+    return df.select_dtypes(include=['number']).columns.tolist()
+
+def get_all_columns_from_dataframe(df):
+    """
+    Returns all column names from a dataframe as a list.
+    
+    Args:
+        df: pandas DataFrame
+        
+    Returns:
+        list: Column names
+    """
+    if df is None:
+        return []
+    return df.columns.tolist()
+
+def get_sorted_unique_values_from_dataframe(df, column=None):
+    """
+    Returns a sorted list of unique (non-null) values from the specified column.
+    
+    Args:
+        df: pandas DataFrame
+        column: Column name to get unique values from
+        
+    Returns:
+        list: Sorted unique values
+    """
+    if df is None or column is None or column not in df.columns:
+        return []
+    
+    # Drop missing values and get unique values
+    unique_values = df[column].dropna().unique().tolist()
+    
+    # Try numeric sort if possible
+    try:
+        if unique_values:
+            # Attempt to convert first value to float as a proxy
+            float(unique_values[0])
+            unique_values.sort(key=lambda x: float(x))
+        else:
+            unique_values.sort()
+    except Exception:
+        # Otherwise, sort as strings
+        unique_values.sort(key=lambda x: str(x))
+    
+    return unique_values
+
+def is_numeric_column_in_dataframe(df, column=None):
+    """
+    Determines whether the specified column in the dataframe is numeric.
+    
+    Args:
+        df: pandas DataFrame
+        column: Column name to check
+        
+    Returns:
+        bool: True if the column is numeric, False otherwise
+    """
+    if df is None or column is None:
+        return False
+    
+    numeric_columns = get_numeric_columns_from_dataframe(df)
+    return column in numeric_columns
+
+def get_preview_data_from_dataframe(df, n_rows=24):
+    """
+    Returns a list of lists containing the first n_rows of the dataframe.
+    
+    Args:
+        df: pandas DataFrame
+        n_rows: Number of rows to return
+        
+    Returns:
+        list: Preview data as a list of lists
+    """
+    if df is None:
+        return []
+    
+    # Limit to first n_rows
+    preview_df = df.head(n_rows)
+    return preview_df.values.tolist()
+
+# Create wrapper functions that work with either DataFileMetadata (preferred) or raw file paths
+def get_columns_from_file(data_source, header=None, sheet=None, dataframe_manager=None):
+    """
+    Returns a set of column names from the file or metadata.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return get_columns_from_dataframe(df)
+    
+    # Fall back to original implementation for backwards compatibility
+    if isinstance(data_source, str):
+        file_path = data_source
+        if file_path.lower().endswith('.csv'):
+            if header is not None:
+                df = pd.read_csv(file_path, header=header, nrows=0)
+            else:
+                df = pd.read_csv(file_path, nrows=0)
+        elif file_path.lower().endswith(('.xls', '.xlsx')):
+            if header is not None:
+                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+            else:
+                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+        else:
+            return set()
+        return set(df.columns)
+    return set()
+
+def get_numeric_columns_from_file(data_source, header=None, sheet=None, dataframe_manager=None):
+    """
+    Returns a list of numeric column names.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return get_numeric_columns_from_dataframe(df)
+    
+    # Fall back to original implementation for backwards compatibility
+    if isinstance(data_source, str):
+        file_path = data_source
+        if file_path.lower().endswith('.csv'):
+            if header is not None:
+                df = pd.read_csv(file_path, header=header, nrows=10)
+            else:
+                df = pd.read_csv(file_path, nrows=10)
+        elif file_path.lower().endswith(('.xls', '.xlsx')):
+            if header is not None:
+                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=10)
+            else:
+                df = pd.read_excel(file_path, sheet_name=sheet, nrows=10)
+        else:
+            return []
+        return df.select_dtypes(include=['number']).columns.tolist()
+    return []
+
+def get_all_columns_from_file(data_source, header=None, sheet=None, dataframe_manager=None):
+    """
+    Returns all column names as a list.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return get_all_columns_from_dataframe(df)
+    
+    # Fall back to original implementation for backwards compatibility
+    if isinstance(data_source, str):
+        file_path = data_source
+        if file_path.lower().endswith('.csv'):
+            if header is not None:
+                df = pd.read_csv(file_path, header=header, nrows=0)
+            else:
+                df = pd.read_csv(file_path, nrows=0)
+        elif file_path.lower().endswith(('.xls', '.xlsx')):
+            if header is not None:
+                df = pd.read_excel(file_path, header=header, sheet_name=sheet, nrows=0)
+            else:
+                df = pd.read_excel(file_path, sheet_name=sheet, nrows=0)
+        else:
+            return []
+        return df.columns.tolist()
+    return []
+
+def get_sorted_unique_values(data_source, header=None, sheet=None, column=None, dataframe_manager=None):
+    """
+    Returns a sorted list of unique values from the specified column.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return get_sorted_unique_values_from_dataframe(df, column)
+    
+    # Fall back to original implementation for backwards compatibility
+    if isinstance(data_source, str) and column:
+        file_path = data_source
+        try:
+            if file_path.lower().endswith('.csv'):
+                df = pd.read_csv(file_path, header=header, usecols=[column])
+            elif file_path.lower().endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(file_path, header=header, sheet_name=sheet, usecols=[column])
+            else:
+                return []
+        except Exception as e:
+            print(f"Error reading file {file_path}: {e}")
+            return []
+        
+        # Drop missing values and get unique values
+        unique_values = df[column].dropna().unique().tolist()
+        
+        # Try numeric sort if possible
+        try:
+            if unique_values:
+                # Attempt to convert first value to float as a proxy
+                float(unique_values[0])
+                unique_values.sort(key=lambda x: float(x))
+            else:
+                unique_values.sort()
+        except Exception:
+            # Otherwise, sort as strings
+            unique_values.sort(key=lambda x: str(x))
+        
+        return unique_values
+    return []
+
+def is_numeric_column(data_source, header=None, sheet=None, column=None, dataframe_manager=None):
+    """
+    Determines whether the specified column is numeric.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return is_numeric_column_in_dataframe(df, column)
+    
+    # Fall back to original implementation
+    if not column:
+        return False
+    # get_numeric_columns_from_file is assumed to be available per your utility functions.
+    numeric_columns = get_numeric_columns_from_file(data_source, header, sheet)
+    return column in numeric_columns
+
+def get_preview_data(data_source, sheet=None, n_rows=24, dataframe_manager=None):
+    """
+    Returns a list of lists containing the first n_rows of the file.
+    Compatible with old API but prefers using dataframe_manager if available.
+    """
+    # If data_source is DataFileMetadata and dataframe_manager is provided, use cached DataFrame
+    if hasattr(data_source, 'file_path') and dataframe_manager is not None:
+        df = dataframe_manager.get_dataframe_by_metadata(data_source)
+        return get_preview_data_from_dataframe(df, n_rows)
+    
+    # Fall back to original implementation for backwards compatibility
+    if isinstance(data_source, str):
+        file_path = data_source
+        if file_path.lower().endswith('.csv'):
+            # Use header=None so all rows are treated as data
+            df = pd.read_csv(file_path, header=None, nrows=n_rows)
+        elif file_path.lower().endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(file_path, header=None, sheet_name=sheet, nrows=n_rows)
+        else:
+            return []
+        return df.values.tolist()
+    return []
 
 @dataclass
 class DataFileMetadata:
     file_path: str
     header_row: Optional[int] = None
     sheet: Optional[str] = None
+    # This will store an identifier to retrieve the dataframe from DataframeManager
+    df_id: Optional[str] = None
 
     def to_dict(self):
-        return asdict(self)
+        # Exclude df_id from serialization
+        result = {
+            "file_path": self.file_path,
+            "header_row": self.header_row,
+            "sheet": self.sheet
+        }
+        return result
 
     @classmethod
     def from_dict(cls, d: dict):
         return cls(**d)
+    
+
+class DataframeManager:
+    """
+    Manages loading and caching of dataframes to avoid repetitive disk reads.
+    """
+    def __init__(self):
+        self._dataframes: Dict[str, pd.DataFrame] = {}
+        
+    def load_dataframe(self, metadata: DataFileMetadata) -> str:
+        """
+        Loads a dataframe based on metadata and returns an identifier.
+        
+        Args:
+            metadata: DataFileMetadata containing file path, header row, and sheet name
+            
+        Returns:
+            str: The identifier for the loaded dataframe
+        """
+        df_id = f"{metadata.file_path}:{metadata.sheet}:{metadata.header_row}"
+        
+        try:
+            if metadata.file_path.lower().endswith('.csv'):
+                df = pd.read_csv(metadata.file_path, header=metadata.header_row)
+            elif metadata.file_path.lower().endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(metadata.file_path, header=metadata.header_row, sheet_name=metadata.sheet)
+            else:
+                raise ValueError(f"Unsupported file format: {metadata.file_path}")
+                
+            self._dataframes[df_id] = df
+            return df_id
+            
+        except Exception as e:
+            print(f"Error loading dataframe: {e}")
+            return None
+            
+    def get_dataframe(self, df_id: str) -> Optional[pd.DataFrame]:
+        """
+        Retrieves a dataframe by its identifier.
+        
+        Args:
+            df_id: The dataframe identifier
+            
+        Returns:
+            Optional[pd.DataFrame]: The requested dataframe or None if not found
+        """
+        return self._dataframes.get(df_id)
+        
+    def get_dataframe_by_metadata(self, metadata: DataFileMetadata) -> Optional[pd.DataFrame]:
+        """
+        Gets a dataframe for the given metadata. If not already loaded, loads it.
+        
+        Args:
+            metadata: DataFileMetadata containing file path, header row, and sheet name
+            
+        Returns:
+            Optional[pd.DataFrame]: The requested dataframe or None if loading failed
+        """
+        # Check if metadata has a df_id and if it's valid
+        if metadata.df_id and metadata.df_id in self._dataframes:
+            return self._dataframes[metadata.df_id]
+            
+        # Load the dataframe if needed
+        df_id = self.load_dataframe(metadata)
+        if df_id:
+            # Update the metadata with the df_id
+            metadata.df_id = df_id
+            return self._dataframes[df_id]
+        return None
+        
+    def remove_dataframe(self, df_id: str) -> bool:
+        """
+        Removes a dataframe from the cache.
+        
+        Args:
+            df_id: The dataframe identifier
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if df_id in self._dataframes:
+            del self._dataframes[df_id]
+            return True
+        return False
+        
+    def clear_cache(self):
+        """Clears all cached dataframes."""
+        self._dataframes.clear()
+        
+    def reload_dataframe(self, metadata: DataFileMetadata) -> bool:
+        """
+        Forces a reload of the dataframe from disk.
+        
+        Args:
+            metadata: DataFileMetadata containing file path, header row, and sheet name
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        # Remove existing dataframe if there's a df_id
+        if metadata.df_id:
+            self.remove_dataframe(metadata.df_id)
+            
+        # Load fresh dataframe
+        df_id = self.load_dataframe(metadata)
+        if df_id:
+            metadata.df_id = df_id
+            return True
+        return False
 
 @dataclass
 class DataLibraryModel:
     loaded_files: List[DataFileMetadata] = field(default_factory=list)
-
+    # The dataframe_manager is a transient property (not serialized)
+    # This special field metadata ensures it's excluded from serialization
+    _dataframe_manager: Optional[DataframeManager] = field(default=None, repr=False, compare=False, hash=False, metadata={"exclude_from_dict": True})
+    
+    def __post_init__(self):
+        # Initialize the dataframe manager if needed
+        if self._dataframe_manager is None:
+            self._dataframe_manager = DataframeManager()
+    
+    @property
+    def dataframe_manager(self):
+        # Ensure dataframe_manager is always available
+        if self._dataframe_manager is None:
+            self._dataframe_manager = DataframeManager()
+        return self._dataframe_manager
+    
     def to_dict(self):
+        """
+        Custom to_dict method that explicitly excludes the dataframe_manager
+        """
         return {"loaded_files": [file.to_dict() for file in self.loaded_files]}
-
+    
     @classmethod
     def from_dict(cls, d: dict):
+        # Create a new instance with loaded files from dict
         files = [DataFileMetadata.from_dict(fd) for fd in d.get("loaded_files", [])]
         return cls(loaded_files=files)
+    
+    def add_file(self, metadata: DataFileMetadata) -> bool:
+        """
+        Add a new file to the data library and load its dataframe.
+        
+        Args:
+            metadata: DataFileMetadata object with file path, header, and sheet
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        # Load the dataframe
+        df_id = self.dataframe_manager.load_dataframe(metadata)
+        if df_id:
+            # Set the df_id on the metadata
+            metadata.df_id = df_id
+            # Add to loaded files
+            self.loaded_files.append(metadata)
+            return True
+        return False
+    
+    def remove_file(self, file_path: str) -> bool:
+        """
+        Remove a file from the data library and its dataframe from the cache.
+        
+        Args:
+            file_path: Path to the file to remove
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        for i, metadata in enumerate(self.loaded_files):
+            if metadata.file_path == file_path:
+                # Remove the dataframe from the cache if it has a df_id
+                if metadata.df_id:
+                    self.dataframe_manager.remove_dataframe(metadata.df_id)
+                # Remove the metadata from loaded_files
+                self.loaded_files.pop(i)
+                return True
+        return False
+    
+    def get_dataframe(self, file_path: str) -> Optional[pd.DataFrame]:
+        """
+        Get the dataframe for a file by its path.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Optional[pd.DataFrame]: The dataframe or None if not found
+        """
+        for metadata in self.loaded_files:
+            if metadata.file_path == file_path:
+                return self.dataframe_manager.get_dataframe_by_metadata(metadata)
+        return None
+    
+    def reload_all_dataframes(self) -> bool:
+        """
+        Reload all dataframes from disk.
+        Useful after loading a workspace.
+        
+        Returns:
+            bool: True if all reloads were successful, False otherwise
+        """
+        success = True
+        for metadata in self.loaded_files:
+            # Skip if file doesn't exist - handle this separately
+            if not os.path.exists(metadata.file_path):
+                success = False
+                continue
+                
+            result = self.dataframe_manager.reload_dataframe(metadata)
+            if not result:
+                success = False
+        return success
+    
+    def reload_dataframe(self, file_path: str) -> bool:
+        """
+        Reload a specific dataframe from disk.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        for metadata in self.loaded_files:
+            if metadata.file_path == file_path:
+                return self.dataframe_manager.reload_dataframe(metadata)
+        return False
+    
+    def get_metadata_by_path(self, file_path: str) -> Optional[DataFileMetadata]:
+        """
+        Get metadata for a file by its path.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Optional[DataFileMetadata]: The metadata or None if not found
+        """
+        for metadata in self.loaded_files:
+            if metadata.file_path == file_path:
+                return metadata
+        return None
+    
+    def clear(self):
+        """Clear all loaded files and dataframes."""
+        self.loaded_files.clear()
+        self.dataframe_manager.clear_cache()
+    
+    def update_file_paths(self, path_mapping: dict) -> bool:
+        """
+        Update file paths in the data library based on a mapping.
+        Useful after loading a workspace when files have moved.
+        
+        Args:
+            path_mapping: Dict mapping old paths to new paths
+            
+        Returns:
+            bool: True if all updates were successful, False otherwise
+        """
+        success = True
+        for metadata in self.loaded_files:
+            if metadata.file_path in path_mapping:
+                old_path = metadata.file_path
+                new_path = path_mapping[old_path]
+                metadata.file_path = new_path
+                # Clear any existing df_id
+                metadata.df_id = None
+                # Try to load the dataframe with the new path
+                if not self.dataframe_manager.load_dataframe(metadata):
+                    success = False
+        return success
     
 class HeaderSelectionDialog(QDialog):
     def __init__(self, file_path, sheet=None, parent=None):
@@ -1311,18 +1758,23 @@ class FilterEditorView(QWidget):
                 widget.textChanged.connect(lambda text, fname=f.name: self._on_field_changed(fname, text))
             elif isinstance(widget, QComboBox):
                 if f.name == "filter_column":
-                    # Instead of using get_sorted_unique_values with column=None,
-                    # use get_all_columns_from_file to get the list of columns.
+                    # Get columns from the current dataframe
                     main_window = self.window()
                     datafile = None
+                    df = None  # Initialize dataframe variable
+                    
+                    # Get the current datafile metadata from the trace editor view
                     if hasattr(main_window, 'traceEditorView') and hasattr(main_window.traceEditorView, 'model'):
                         datafile = main_window.traceEditorView.model.datafile
-                    if datafile and datafile.file_path:
-                        all_cols = get_all_columns_from_file(
-                            datafile.file_path,
-                            datafile.header_row,
-                            datafile.sheet
-                        )
+                        
+                    # Get the dataframe from the dataframe manager
+                    if datafile and hasattr(main_window, 'setupMenuModel') and hasattr(main_window.setupMenuModel, 'data_library'):
+                        data_library = main_window.setupMenuModel.data_library
+                        df = data_library.dataframe_manager.get_dataframe_by_metadata(datafile)
+                    
+                    # If we have a dataframe, get its columns
+                    if df is not None:
+                        all_cols = df.columns.tolist()
                         widget.clear()
                         widget.addItems(all_cols)
                         if value and value.strip():
@@ -1371,15 +1823,34 @@ class FilterEditorView(QWidget):
         Rebuild the input widget(s) for filter_value1 (and filter_value2, if needed)
         based on the selected column's type and the chosen filter operation.
         """
-        # Determine column and its type.
+        # Determine column and get the dataframe
         col = self.widgets["filter_column"].currentText()
         main_window = self.window()
         datafile = None
+        df = None
+        
+        # Get the current datafile metadata from the trace editor view
         if hasattr(main_window, 'traceEditorView') and hasattr(main_window.traceEditorView, 'model'):
             datafile = main_window.traceEditorView.model.datafile
-        if datafile and datafile.file_path:
-            numeric = is_numeric_column(datafile.file_path, datafile.header_row, datafile.sheet, col)
-            suggestions = get_sorted_unique_values(datafile.file_path, datafile.header_row, datafile.sheet, col)
+            
+        # Get the dataframe from the dataframe manager
+        if datafile and hasattr(main_window, 'setupMenuModel') and hasattr(main_window.setupMenuModel, 'data_library'):
+            data_library = main_window.setupMenuModel.data_library
+            df = data_library.dataframe_manager.get_dataframe_by_metadata(datafile)
+        
+        # Determine if column is numeric and get unique values
+        if df is not None and col in df.columns:
+            numeric = col in df.select_dtypes(include=['number']).columns
+            suggestions = df[col].dropna().unique().tolist()
+            
+            # Sort suggestions
+            try:
+                if suggestions and numeric:
+                    suggestions.sort(key=lambda x: float(x))
+                else:
+                    suggestions.sort(key=lambda x: str(x))
+            except Exception:
+                suggestions.sort(key=lambda x: str(x))
         else:
             numeric = True  # default assumption
             suggestions = []
@@ -1418,6 +1889,9 @@ class FilterEditorView(QWidget):
         op = op_widget.currentText()
         # Save back the op to the model (if it changed).
         self.filter_model.filter_operation = op
+        
+        # Create new widgets for filter_value1 and filter_value2...
+        # (Rest of the method remains the same as in the original code)
         
         # ---- Rebuild filter_value1 ----
         # Remove previous row (both label and widget) if they exist.
@@ -1473,7 +1947,6 @@ class FilterEditorView(QWidget):
         self.widgets["filter_value1"] = new_w
         self.form_layout.addRow(label1, new_w)
         
-        # Rest of method for filter_value2 remains the same...
         # ---- Rebuild filter_value2 (only for range operations on numeric data) ----
         if "filter_value2_label" in self.widgets:
             old_label2 = self.widgets.pop("filter_value2_label")
@@ -1571,15 +2044,26 @@ class TraceEditorModel:
         default_factory=lambda: DataFileMetadata(file_path=""),
         metadata={"label": "Datafile:", "widget": QComboBox, "plot_types": ["ternary", "cartesian"]}
     )
-
+    is_contour: bool = field(
+        default=False,
+        metadata={"label": None, "widget": None, "plot_types": ["ternary", "cartesian"]}
+    )
     trace_color: str = field(
         default="blue",
-        metadata={"label": "Trace Color:", "widget": ColorButton, "plot_types": ["ternary", "cartesian"]}
+        metadata={"label": "Point Color:", "widget": ColorButton, "plot_types": ["ternary", "cartesian"]}
     )
     point_shape: str = field(
         default="circle",
         metadata={"label": "Point Shape:", "widget": ShapeButtonWithMenu, "plot_types": ["ternary", "cartesian"]}
     ) 
+    convert_from_wt_to_molar: bool = field(
+        default=False,
+        metadata={
+            "label": "Convert from wt% to molar:",
+            "widget": QCheckBox,
+            "plot_types": ["ternary", "cartesian"],
+        }
+    )
     point_size: float = field(
         default=5.0,
         metadata={"label": "Point Size:", "widget": QDoubleSpinBox, "plot_types": ["ternary", "cartesian"]}
@@ -1809,6 +2293,26 @@ class TraceEditorModel:
         default_factory=list,
         metadata={"label": "Filters:", "widget": None, "plot_types": ["ternary", "cartesian"]}
     )
+    # Contour confidence level - updated to use self-describing options
+    contour_level: str = field(
+        default="Contour: 1-sigma",
+        metadata={
+            "label": "", # No separate label needed
+            "widget": QComboBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "is_contour",
+        }
+    )
+    # Custom percentile (only visible when contour_level is "Contour: Custom percentile")
+    contour_percentile: float = field(
+        default=95.0,
+        metadata={
+            "label": "Percentile:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": ["is_contour", ("contour_level", "Contour: Custom percentile")]
+        }
+    )
 
     def to_dict(self):
         return asdict(self)
@@ -1965,6 +2469,9 @@ class TraceEditorView(QWidget):
                     widget.addItems(["linear", "log"])
                 elif f.name == "heatmap_bar_orientation":
                     widget.addItems(["vertical", "horizontal"])
+                elif f.name == "contour_level":
+                    widget.addItems(["Contour: 1-sigma", "Contour: 2-sigma"]) # Removing custom percentile option until view handling is working
+                    # widget.currentTextChanged.connect(lambda _: QTimer.singleShot(100, self.set_plot_type(self.current_plot_type)))
                 else:
                     widget.addItems([])
                 widget.setCurrentText(str(value))
@@ -2119,7 +2626,11 @@ class TraceEditorView(QWidget):
                 dep = metadata["depends_on"]
                 if isinstance(dep, list):
                     for d in dep:
-                        visible = visible and bool(getattr(self.model, d))
+                        if isinstance(d, str):
+                            visible = visible and bool(getattr(self.model, d))
+                        elif isinstance(d, tuple) and len(d) == 2:
+                            # If tuple, check that dependent field equals necessary value
+                            visible = visible and getattr(self.model, d[0]) == d[1]
                 else:
                     visible = visible and bool(getattr(self.model, dep))
             if visible:
@@ -2307,37 +2818,35 @@ class TraceEditorController:
     def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and sizemap."""
         print(f"Datafile changed to: {new_file}")
+        
+        # Get the appropriate metadata
         if isinstance(new_file, str):
-            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file]
+            metadata = self.data_library.get_metadata_by_path(new_file)
+            if not metadata:
+                # If the path isn't in our library, create a basic metadata object
+                metadata = DataFileMetadata(file_path=new_file)
         elif isinstance(new_file, DataFileMetadata):
-            matching = [meta for meta in self.data_library.loaded_files if meta.file_path == new_file.file_path]
-        if matching:
-            self.model.datafile = matching[0]
+            metadata = new_file
         else:
-            if isinstance(new_file, str):
-                self.model.datafile = DataFileMetadata(file_path=new_file)
-            elif isinstance(new_file, DataFileMetadata):
-                self.model.datafile = DataFileMetadata(
-                    file_path=new_file.file_path, 
-                    header_row=new_file.header_row, 
-                    sheet=new_file.sheet)
+            print(f"Unexpected datafile type: {type(new_file)}")
+            return
+            
+        # Update the model's datafile
+        self.model.datafile = metadata
         print(f"Datafile changed to: {self.model.datafile}")
         
-        # Get numeric columns from the new datafile
-        numeric_cols = get_numeric_columns_from_file(
-            self.model.datafile.file_path,
-            header=self.model.datafile.header_row,
-            sheet=self.model.datafile.sheet
-        )
+        # Get the dataframe
+        df = self.data_library.dataframe_manager.get_dataframe_by_metadata(metadata)
+        if df is None:
+            print(f"Warning: Could not get dataframe for {metadata.file_path}")
+            return
+            
+        # Get numeric columns from the dataframe
+        numeric_cols = get_numeric_columns_from_dataframe(df)
         print(f"Numeric columns in new file: {numeric_cols}")
         
-        # Get ALL columns from the new datafile (for filters)
-        # all_cols = get_all_columns_from_file(new_file)
-        all_cols = get_all_columns_from_file(
-            self.model.datafile.file_path,
-            header=self.model.datafile.header_row,
-            sheet=self.model.datafile.sheet
-        )
+        # Get ALL columns from the dataframe (for filters)
+        all_cols = get_all_columns_from_dataframe(df)
         
         # --- Update heatmap column options ---
         heatmap_combo = self.view.widgets.get("heatmap_column")
@@ -2466,7 +2975,20 @@ class AxisMembersModel:
     left_axis: list = field(default_factory=list, metadata={"label": "Left Axis:", "widget": MultiFieldSelector, "plot_types": ["ternary"]})
     right_axis: list = field(default_factory=list, metadata={"label": "Right Axis:", "widget": MultiFieldSelector, "plot_types": ["ternary"]})
     top_axis: list = field(default_factory=list, metadata={"label": "Top Axis:", "widget": MultiFieldSelector, "plot_types": ["ternary"]})
-
+    # New fields for hover data customization
+    customize_hover_data: bool = field(
+        default=False,
+        metadata={"label": "Customize hover data", "widget": QCheckBox, "plot_types": ["cartesian", "histogram", "ternary"]}
+    )
+    hover_data: list = field(
+        default_factory=list,
+        metadata={
+            "label": "Hover data", 
+            "widget": MultiFieldSelector, 
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": "customize_hover_data"  # Only visible when customize_hover_data is True
+        }
+    )
 @dataclass
 class AdvancedPlotSettingsModel:
     background_color: str = field(
@@ -2524,6 +3046,7 @@ class SetupMenuController:
     """
     Controller for the Setup Menu. Recomputes the intersection of column names
     from loaded data files and updates the available options for axis member selectors.
+    Uses DataframeManager to avoid repeated disk reads.
     """
     def __init__(self, model: SetupMenuModel, view: 'SetupMenuView'):
         self.model = model
@@ -2531,21 +3054,28 @@ class SetupMenuController:
 
     def update_axis_options(self):
         """Recompute the intersection of column names from loaded data files and update selectors."""
-
-        validate_data_library(self.model.data_library, self.view)
+        # Handle missing files
+        file_path_mapping = validate_data_library(self.model.data_library, self.view)
+        
+        # If any file paths were updated, update the dataframes
+        if file_path_mapping:
+            self.model.data_library.update_file_paths(file_path_mapping)
 
         loaded_files = self.model.data_library.loaded_files
         print(f"Loaded files: {loaded_files}")
         
         common_columns = None
         for file_meta in loaded_files:
-            # Assuming get_columns_from_file accepts header and sheet parameters
-            cols = get_columns_from_file(
-                file_meta.file_path,
-                header=file_meta.header_row,
-                sheet=file_meta.sheet
-            )
+            # Get the dataframe using the dataframe manager
+            df = self.model.data_library.dataframe_manager.get_dataframe_by_metadata(file_meta)
+            if df is None:
+                print(f"Warning: Could not get dataframe for {file_meta.file_path}")
+                continue
+                
+            # Get columns from the dataframe
+            cols = set(df.columns)
             print(f"Columns in {file_meta.file_path}: {cols}")
+            
             if common_columns is None:
                 common_columns = set(cols)
             else:
@@ -2557,6 +3087,7 @@ class SetupMenuController:
         common_list = sorted(common_columns)
         print(f"Common columns across all files: {common_list}")
         
+        # Update all axis selectors in axis_members section
         axis_widgets = self.view.section_widgets.get("axis_members", {})
         for field_name, widget in axis_widgets.items():
             if isinstance(widget, MultiFieldSelector):
@@ -2578,6 +3109,9 @@ class SetupMenuView(QWidget):
         self.current_plot_type = "ternary"  # Default plot type; will be updated by the controller.
         self.controller = None  # Will be set later by the main window.
         self.section_widgets = {}  # To hold per‑section widget mappings keyed by model attribute name.
+        
+        # Store form layouts for later access
+        self.section_form_layouts = {}
         
         # Wrap all contents in a scroll area for vertical scrolling.
         self.scroll = QScrollArea(self)
@@ -2605,15 +3139,15 @@ class SetupMenuView(QWidget):
         self.removeDataButton.clicked.connect(self.remove_data_file)
         self.content_layout.addWidget(self.dataLibraryWidget)
         
-        # Plot Labels Section
+        # Plot Labels Section - use standard builder
         self.plotLabelsWidget = self.build_form_section(self.model.plot_labels, "plot_labels")
         self.content_layout.addWidget(self.plotLabelsWidget)
         
-        # Axis Members Section
-        self.axisMembersWidget = self.build_form_section(self.model.axis_members, "axis_members")
+        # Axis Members Section - use specialized builder for container-based toggling
+        self.axisMembersWidget = self.build_axis_members_widget()
         self.content_layout.addWidget(self.axisMembersWidget)
         
-        # Advanced Settings Section
+        # Advanced Settings Section - use standard builder
         self.advancedSettingsWidget = self.build_form_section(self.model.advanced_settings, "advanced_settings")
         self.content_layout.addWidget(self.advancedSettingsWidget)
         
@@ -2626,6 +3160,142 @@ class SetupMenuView(QWidget):
 
     def set_controller(self, controller: SetupMenuController):
         self.controller = controller
+
+    def build_axis_members_widget(self):
+        """
+        Custom builder for the axis members section that handles hover data toggle properly.
+        This follows the TraceEditorView's pattern of toggling containers, not individual widgets.
+        """
+        widget = QWidget(self)
+        main_layout = QVBoxLayout(widget)
+        widget.setLayout(main_layout)
+        
+        # Create the standard form layout for regular axis fields
+        axis_form = QFormLayout()
+        main_layout.addLayout(axis_form)
+        
+        # Store the form layout
+        self.section_form_layouts["axis_members"] = axis_form
+        self.section_widgets["axis_members"] = {}
+        
+        # Process standard axis fields first
+        standard_fields = []
+        hover_fields = []
+        
+        # Categorize fields
+        for f in fields(self.model.axis_members):
+            if f.name == "customize_hover_data" or f.name == "hover_data":
+                hover_fields.append(f)
+            else:
+                standard_fields.append(f)
+        
+        # Add standard axis fields to the form
+        for f in standard_fields:
+            metadata = f.metadata
+            if "label" not in metadata or "widget" not in metadata or metadata["widget"] is None:
+                continue
+                
+            widget_cls = metadata["widget"]
+            label_text = metadata["label"]
+            field_widget = widget_cls(self)
+            value = getattr(self.model.axis_members, f.name)
+            
+            if isinstance(field_widget, QLineEdit):
+                field_widget.setText(str(value))
+                field_widget.textChanged.connect(lambda text, fname=f.name, m=self.model.axis_members: setattr(m, fname, text))
+            elif isinstance(field_widget, QDoubleSpinBox):
+                field_widget.setValue(float(value))
+                field_widget.valueChanged.connect(lambda val, fname=f.name, m=self.model.axis_members: setattr(m, fname, val))
+            elif isinstance(field_widget, QCheckBox):
+                field_widget.setChecked(bool(value))
+                field_widget.stateChanged.connect(lambda state, fname=f.name, m=self.model.axis_members: setattr(m, fname, bool(state)))
+            elif isinstance(field_widget, QComboBox):
+                field_widget.addItems([])
+                field_widget.setCurrentText(str(value))
+                field_widget.currentTextChanged.connect(lambda text, fname=f.name, m=self.model.axis_members: setattr(m, fname, text))
+            elif isinstance(field_widget, MultiFieldSelector):
+                field_widget.set_selected_fields(value)
+                field_widget.selectionChanged.connect(lambda sel, fname=f.name, m=self.model.axis_members: setattr(m, fname, sel))
+                
+            axis_form.addRow(label_text, field_widget)
+            self.section_widgets["axis_members"][f.name] = field_widget
+        
+        # Create a divider line
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setFrameShadow(QFrame.Shadow.Sunken)
+        main_layout.addWidget(divider)
+        
+        # Now handle hover data with special container-based toggling
+        
+        # 1. Create and add the checkbox first
+        hover_check = None
+        for f in hover_fields:
+            if f.name == "customize_hover_data":
+                metadata = f.metadata
+                if "label" in metadata and "widget" in metadata and metadata["widget"] is not None:
+                    widget_cls = metadata["widget"]
+                    label_text = metadata["label"]
+                    hover_check = widget_cls(self)
+                    hover_check.setChecked(bool(getattr(self.model.axis_members, f.name)))
+                    
+                    # Create a horizontal layout for the checkbox
+                    check_layout = QHBoxLayout()
+                    check_layout.addWidget(QLabel(label_text))
+                    check_layout.addWidget(hover_check)
+                    check_layout.addStretch()
+                    main_layout.addLayout(check_layout)
+                    
+                    # Store the widget reference
+                    self.section_widgets["axis_members"][f.name] = hover_check
+                    
+                    # Connect the change handler
+                    hover_check.stateChanged.connect(
+                        lambda state, fname=f.name, m=self.model.axis_members: 
+                        setattr(m, fname, bool(state))
+                    )
+                    break
+        
+        # 2. Create the hover data container that will be toggled
+        hover_container = QWidget()
+        hover_layout = QFormLayout(hover_container)
+        hover_container.setLayout(hover_layout)
+        main_layout.addWidget(hover_container)
+        
+        # Store reference to the container for visibility toggling
+        self.hover_data_container = hover_container
+        
+        # 3. Add hover data fields to the container
+        for f in hover_fields:
+            if f.name == "hover_data":
+                metadata = f.metadata
+                if "label" in metadata and "widget" in metadata and metadata["widget"] is not None:
+                    widget_cls = metadata["widget"]
+                    label_text = metadata["label"]
+                    hover_selector = widget_cls(self)
+                    hover_selector.set_selected_fields(getattr(self.model.axis_members, f.name))
+                    
+                    hover_layout.addRow(label_text, hover_selector)
+                    self.section_widgets["axis_members"][f.name] = hover_selector
+                    
+                    # Connect the change handler
+                    hover_selector.selectionChanged.connect(
+                        lambda sel, fname=f.name, m=self.model.axis_members: 
+                        setattr(m, fname, sel)
+                    )
+                    break
+        
+        # 4. Connect checkbox to toggle container visibility
+        if hover_check:
+            # Initial visibility state
+            hover_container.setVisible(hover_check.isChecked())
+            
+            # Connect toggle action
+            hover_check.stateChanged.connect(
+                lambda state: hover_container.setVisible(bool(state))
+            )
+        
+        return widget
 
     def build_form_section(self, section_model, model_attr_name):
         widget = QWidget(self)
@@ -2653,6 +3323,10 @@ class SetupMenuView(QWidget):
             elif isinstance(field_widget, QCheckBox):
                 field_widget.setChecked(bool(value))
                 field_widget.stateChanged.connect(lambda state, fname=f.name, m=section_model: setattr(m, fname, bool(state)))
+                # Connect checkboxes that may control other widgets' visibility
+                # Using the more efficient update_dependent_widgets method
+                field_widget.stateChanged.connect(lambda state, section=model_attr_name, fname=f.name: 
+                                                self.update_dependent_widgets(section, fname))
             elif isinstance(field_widget, QComboBox):
                 field_widget.addItems([])
                 field_widget.setCurrentText(str(value))
@@ -2666,36 +3340,154 @@ class SetupMenuView(QWidget):
         return widget
 
     def set_plot_type(self, plot_type: str):
+        """
+        Update widgets visibility based on plot type.
+        With the new container-based approach for hover data, this only needs to handle plot type changes.
+        """
         self.current_plot_type = plot_type
+        
+        # Special handling for hover data container and checkbox
+        if hasattr(self, "hover_data_container"):
+            customize_hover = self.section_widgets.get("axis_members", {}).get("customize_hover_data")
+            hover_data = self.section_widgets.get("axis_members", {}).get("hover_data")
+            
+            # Check if hover data is applicable for this plot type
+            hover_applies = True
+            if hover_data:
+                for f in fields(self.model.axis_members):
+                    if f.name == "hover_data":
+                        metadata = f.metadata
+                        if "plot_types" in metadata:
+                            hover_applies = plot_type in metadata["plot_types"]
+                        break
+            
+            # Update checkbox visibility based on plot type
+            if customize_hover:
+                # First check the checkbox's plot type applicability
+                checkbox_applies = True
+                for f in fields(self.model.axis_members):
+                    if f.name == "customize_hover_data":
+                        metadata = f.metadata
+                        if "plot_types" in metadata:
+                            checkbox_applies = plot_type in metadata["plot_types"]
+                        break
+                
+                # Update visibility and container state
+                customize_hover.setVisible(checkbox_applies)
+                self.hover_data_container.setVisible(checkbox_applies and customize_hover.isChecked())
+        
+        # Handle standard widgets for plot types
         for section, widgets in self.section_widgets.items():
             section_model = getattr(self.model, section, None)
             if section_model is None:
                 continue
+                
             form_layout = self.section_form_layouts.get(section)
             for fname, field_widget in widgets.items():
-                # Retrieve metadata for this field.
+                # Skip hover data fields which are handled specially
+                if section == "axis_members" and (fname == "customize_hover_data" or fname == "hover_data"):
+                    continue
+                    
+                # Retrieve metadata for this field
                 metadata = None
                 for f in fields(section_model):
                     if f.name == fname:
                         metadata = f.metadata
                         break
+                        
                 if metadata is None:
                     continue
-                show_field = "plot_types" in metadata and self.current_plot_type in metadata["plot_types"]
-                if show_field:
-                    field_widget.show()
-                    if form_layout:
-                        label = form_layout.labelForField(field_widget)
-                        if label:
-                            label.show()
-                else:
-                    field_widget.hide()
-                    if form_layout:
-                        label = form_layout.labelForField(field_widget)
-                        if label:
-                            label.hide()
+                    
+                # Check if field should be visible for this plot type
+                visible = "plot_types" in metadata and self.current_plot_type in metadata["plot_types"]
+                
+                # Update visibility
+                field_widget.setVisible(visible)
+                if form_layout:
+                    label = form_layout.labelForField(field_widget)
+                    if label:
+                        label.setVisible(visible)
+
+    def update_dependent_widgets(self, section_name, field_name):
+        """
+        Update visibility of widgets that depend on the specified field.
+        This is more efficient than calling set_plot_type which updates everything.
+        
+        Args:
+            section_name: The section containing the field (e.g., "axis_members")
+            field_name: The field that changed (e.g., "customize_hover_data")
+        """
+        section_model = getattr(self.model, section_name, None)
+        if section_model is None:
+            return
+            
+        # Get the current value of the field
+        controlling_value = getattr(section_model, field_name, None)
+        print(f"Field {field_name} changed to {controlling_value}, updating dependent widgets")
+        
+        # Find widgets that depend on this field
+        form_layout = self.section_form_layouts.get(section_name)
+        if not form_layout:
+            return
+            
+        # Check each widget in this section to see if it depends on the changed field
+        for f_name, field_widget in self.section_widgets.get(section_name, {}).items():
+            # Skip the controlling field itself
+            if f_name == field_name:
+                continue
+                
+            # Get metadata for this field
+            metadata = None
+            for f in fields(section_model):
+                if f.name == f_name:
+                    metadata = f.metadata
+                    break
+                    
+            if metadata is None:
+                continue
+                
+            # Check if this widget depends on the changed field
+            depends_on = metadata.get("depends_on", None)
+            should_update = False
+            
+            if depends_on == field_name:
+                # Direct dependency
+                should_update = True
+                visible = bool(controlling_value)
+            elif isinstance(depends_on, list) and field_name in depends_on:
+                # Part of a list of dependencies
+                should_update = True
+                # Need to check all dependencies
+                visible = True
+                for dep in depends_on:
+                    if isinstance(dep, str):
+                        visible = visible and bool(getattr(section_model, dep, False))
+                    elif isinstance(dep, tuple) and len(dep) == 2:
+                        # Tuple case: (field_name, required_value)
+                        field_value = getattr(section_model, dep[0], None)
+                        visible = visible and (field_value == dep[1])
+            elif isinstance(depends_on, tuple) and len(depends_on) == 2 and depends_on[0] == field_name:
+                # Tuple dependency (field_name, required_value)
+                should_update = True
+                visible = controlling_value == depends_on[1]
+                
+            # If this widget depends on the changed field, update its visibility
+            if should_update:
+                # Also check if it should be visible for current plot type
+                plot_type_visible = True
+                if "plot_types" in metadata:
+                    plot_type_visible = self.current_plot_type in metadata["plot_types"]
+                    
+                final_visible = visible and plot_type_visible
+                
+                # Update widget and its label visibility
+                field_widget.setVisible(final_visible)
+                label = form_layout.labelForField(field_widget)
+                if label:
+                    label.setVisible(final_visible)
 
     def add_data_file(self):
+        """Modified add_data_file method to use DataframeManager"""
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Data File", "", "Data Files (*.csv *.xlsx)")
         if file_path:
             metadata = None
@@ -2706,7 +3498,7 @@ class SetupMenuView(QWidget):
                 metadata = DataFileMetadata(file_path=file_path, header_row=header)
             elif file_path.endswith(".xlsx"):
                 # Assume get_sheet_names returns a list of sheet names
-                sheets = get_sheet_names(file_path)  # You will need to implement this
+                sheets = get_sheet_names(file_path)
                 if len(sheets) > 1:
                     sheet, ok = SheetSelectionDialog.getSheet(self, file_path, sheets)
                     if not ok:
@@ -2721,27 +3513,30 @@ class SetupMenuView(QWidget):
                 # If not CSV or XLSX, simply create a metadata object with file_path
                 metadata = DataFileMetadata(file_path=file_path)
             
-            # Add the new metadata object to the data library model
-            self.model.data_library.loaded_files.append(metadata)
-            self.dataLibraryList.addItem(file_path)
-            if self.controller:
-                self.controller.update_axis_options()
+            # Add the file to the data library using the new method
+            if self.model.data_library.add_file(metadata):
+                self.dataLibraryList.addItem(file_path)
+                if self.controller:
+                    self.controller.update_axis_options()
+            else:
+                QMessageBox.warning(self, "Error", f"Failed to load data from {file_path}")
 
     def remove_data_file(self):
+        """Modified remove_data_file method to use DataframeManager"""
         current_item = self.dataLibraryList.currentItem()
         if current_item:
             file_path = current_item.text()
             
-            # Check for dependent traces.
-            main_window = self.window()  # Retrieve the main window.
+            # Check for dependent traces
+            main_window = self.window()  # Retrieve the main window
             dependent_traces = []
             if hasattr(main_window, 'tabPanel'):
-                # Iterate over all trace models stored in the tab panel.
+                # Iterate over all trace models stored in the tab panel
                 for uid, model in main_window.tabPanel.id_to_widget.items():
-                    if model is not None and isinstance(model, TraceEditorModel) and model.datafile == file_path:
+                    if model is not None and isinstance(model, TraceEditorModel) and model.datafile.file_path == file_path:
                         dependent_traces.append((uid, model.trace_name))
             
-            # If there are dependent traces, warn the user.
+            # If there are dependent traces, warn the user
             if dependent_traces:
                 trace_names = ", ".join(name for uid, name in dependent_traces)
                 msg = (f"The following traces depend on this datafile: {trace_names}.\n"
@@ -2752,17 +3547,15 @@ class SetupMenuView(QWidget):
                 if reply == QMessageBox.StandardButton.No:
                     return
                 else:
-                    # Remove each dependent trace silently.
+                    # Remove each dependent trace silently
                     for uid, _ in dependent_traces:
                         main_window.tabPanel.remove_tab_by_id(uid)
             
-            # Now remove the data file from the list widget and the model.
+            # Now remove the data file using the new method
             row = self.dataLibraryList.row(current_item)
             self.dataLibraryList.takeItem(row)
-            for meta in self.model.data_library.loaded_files:
-                if meta.file_path == file_path:
-                    self.model.data_library.loaded_files.remove(meta)
-                    break
+            self.model.remove_file(file_path)
+            
             if self.controller:
                 self.controller.update_axis_options()
 
@@ -2771,11 +3564,13 @@ class SetupMenuView(QWidget):
         self.dataLibraryList.clear()
         for meta in self.model.data_library.loaded_files:
             self.dataLibraryList.addItem(meta.file_path)
+            
         # Update each section built by build_form_section.
         for section, widgets in self.section_widgets.items():
             section_model = getattr(self.model, section, None)
             if section_model is None:
                 continue
+                
             for fname, field_widget in widgets.items():
                 for f in fields(section_model):
                     if f.name == fname:
@@ -2786,6 +3581,9 @@ class SetupMenuView(QWidget):
                             field_widget.setValue(float(value))
                         elif isinstance(field_widget, QCheckBox):
                             field_widget.setChecked(bool(value))
+                            # Special handling for the hover data checkbox
+                            if fname == "customize_hover_data" and hasattr(self, "hover_data_container"):
+                                self.hover_data_container.setVisible(bool(value))
                         elif isinstance(field_widget, QComboBox):
                             field_widget.setCurrentText(str(value))
                         elif isinstance(field_widget, MultiFieldSelector):
@@ -2802,11 +3600,27 @@ class WorkspaceManager:
         self.order = order if order is not None else [str(i) for i in range(len(traces))]
     
     def to_dict(self) -> dict:
+        """
+        Convert workspace to a dictionary, ensuring DataframeManager is not included.
+        """
+        # Make a clean copy of the setup model
+        setup_dict = self.setup_model.to_dict()
+        
+        # Process traces: convert each trace model to dict and ensure datafiles are clean
+        traces_dicts = []
+        for trace in self.traces:
+            trace_dict = trace.to_dict()
+            # Ensure datafile in trace doesn't contain df_id
+            if "datafile" in trace_dict and isinstance(trace_dict["datafile"], dict):
+                if "df_id" in trace_dict["datafile"]:
+                    trace_dict["datafile"].pop("df_id")
+            traces_dicts.append(trace_dict)
+        
         return {
             "version": self.VERSION,
             "order": self.order,
-            "traces": [trace.to_dict() for trace in self.traces],
-            "setup": self.setup_model.to_dict()
+            "traces": traces_dicts,
+            "setup": setup_dict
         }
     
     def save_to_file(self, filename: str):
@@ -2866,6 +3680,7 @@ class MainWindow(QMainWindow):
         
         # Instantiate the setup menu view.
         self.setupMenuModel = SetupMenuModel()
+        self.setupMenuModel.data_library._dataframe_manager = DataframeManager()
         self.setupMenuView = SetupMenuView(self.setupMenuModel)
         self.centerStack.addWidget(self.setupMenuView)
         self.h_splitter.addWidget(self.centerStack)
@@ -2941,7 +3756,31 @@ class MainWindow(QMainWindow):
         # Connect button signals
         self.saveButton.clicked.connect(self.save_workspace)
         self.loadButton.clicked.connect(self.load_workspace)
+        self.bootstrapButton.clicked.connect(self.on_bootstrap_clicked)
         return container
+    
+    def on_bootstrap_clicked(self):
+
+        new_label = 'Contour Test'
+        model = TraceEditorModel(trace_name=new_label, is_contour=True)
+
+        # Assign the first datafile from the library to the new trace
+        if self.setupMenuModel.data_library.loaded_files:
+            model.datafile = self.setupMenuModel.data_library.loaded_files[0]
+        
+        uid = self.tabPanel.add_tab(new_label, model)
+        self._save_current_tab_data()
+        self.current_tab_id = uid
+        
+        # Set the model
+        self.traceEditorView.set_model(model)
+        self.traceEditorController.model = model
+        self._show_trace_editor()
+        
+        # Make sure datafile change handler is triggered to populate columns
+        datafile = model.datafile
+        if datafile:
+            self.traceEditorController.on_datafile_changed(datafile)
 
     def on_tab_selected(self, unique_id: str):
         self._save_current_tab_data()
@@ -3123,8 +3962,15 @@ class MainWindow(QMainWindow):
         self.setupMenuView.set_plot_type(plot_type_lower)
 
     def save_workspace(self):
-        traces = []
+        """
+        Create a serializable representation of the workspace without using deep copying,
+        which can preserve references to DataframeManager.
+        """
+        # Create new, clean dictionaries instead of copying objects
+        traces_data = []
         order = []
+        
+        # Gather trace information
         for i in range(self.tabPanel.listWidget.count()):
             item = self.tabPanel.listWidget.item(i)
             if item and item.text() not in (SETUP_MENU_LABEL, ADD_TRACE_LABEL):
@@ -3132,11 +3978,69 @@ class MainWindow(QMainWindow):
                 order.append(uid)
                 model = self.tabPanel.id_to_widget.get(uid)
                 if isinstance(model, TraceEditorModel):
-                    traces.append(model)
-        workspace = WorkspaceManager(traces, self.setupMenuModel, order=order)
+                    # Manually create a clean representation of the trace
+                    trace_data = {}
+                    for f in fields(model):
+                        if f.name == 'datafile':
+                            # Manually extract datafile metadata without df_id
+                            datafile = getattr(model, f.name)
+                            trace_data['datafile'] = {
+                                'file_path': datafile.file_path,
+                                'header_row': datafile.header_row,
+                                'sheet': datafile.sheet
+                            }
+                        elif f.name == 'filters':
+                            # Handle filters list
+                            filters = getattr(model, f.name)
+                            filters_data = []
+                            for filter_model in filters:
+                                filter_data = {}
+                                for filter_field in fields(filter_model):
+                                    filter_data[filter_field.name] = getattr(filter_model, filter_field.name)
+                                filters_data.append(filter_data)
+                            trace_data[f.name] = filters_data
+                        else:
+                            # Copy other fields directly
+                            trace_data[f.name] = getattr(model, f.name)
+                    traces_data.append(trace_data)
+        
+        # Create the setup model data manually
+        setup_data = {'data_library': {}, 'plot_labels': {}, 'axis_members': {}, 'advanced_settings': {}}
+        
+        # Process data_library
+        setup_data['data_library']['loaded_files'] = []
+        for metadata in self.setupMenuModel.data_library.loaded_files:
+            # Only include essentials, no df_id
+            setup_data['data_library']['loaded_files'].append({
+                'file_path': metadata.file_path,
+                'header_row': metadata.header_row,
+                'sheet': metadata.sheet
+            })
+        
+        # Process other setup sections
+        for section_name in ['plot_labels', 'axis_members', 'advanced_settings']:
+            section = getattr(self.setupMenuModel, section_name)
+            for f in fields(section):
+                setup_data[section_name][f.name] = getattr(section, f.name)
+        
+        # Build the complete workspace data
+        workspace_data = {
+            'version': WorkspaceManager.VERSION,
+            'order': order,
+            'traces': traces_data,
+            'setup': setup_data
+        }
+        
+        # Save to file
         filename, _ = QFileDialog.getSaveFileName(self, "Save Workspace", "", "JSON Files (*.json)")
         if filename:
-            workspace.save_to_file(filename)
+            try:
+                with open(filename, "w") as f:
+                    json.dump(workspace_data, f, indent=2)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                QMessageBox.critical(self, "Error", f"Failed to save workspace: {str(e)}")
 
     def load_workspace(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Load Workspace", "", "JSON Files (*.json)")
@@ -3146,8 +4050,9 @@ class MainWindow(QMainWindow):
                 
                 workspace = WorkspaceManager.load_from_file(filename)
 
+                # Validate data files and get mapping for any relocated files
                 file_path_mapping = validate_data_library(workspace.setup_model.data_library, self)
-            
+                
                 # Update all trace models with the new file paths
                 for trace_model in workspace.traces:
                     if hasattr(trace_model, "datafile") and isinstance(trace_model.datafile, DataFileMetadata):
@@ -3161,17 +4066,21 @@ class MainWindow(QMainWindow):
                                 sheet=trace_model.datafile.sheet
                             )
                 
-                # Debug: check values in the loaded workspace
-                for i, trace in enumerate(workspace.traces):
-                    print(f"Trace {i}: {trace.trace_name}, heatmap column = '{trace.heatmap_column}'")
-                    
-                # Clear existing trace tabs (except the setup-menu)
-                keys_to_remove = [uid for uid in self.tabPanel.id_to_widget if uid != "setup-menu-id"]
-                for uid in keys_to_remove:
-                    self.tabPanel.remove_tab_by_id(uid)
-                    
-                # Update the SetupMenu model and refresh its view
+                # Update the SetupMenu model and ensure it has a DataframeManager
                 self.setupMenuModel = workspace.setup_model
+                if not hasattr(self.setupMenuModel.data_library, '_dataframe_manager') or self.setupMenuModel.data_library._dataframe_manager is None:
+                    self.setupMenuModel.data_library._dataframe_manager = DataframeManager()
+                    
+                # Load all dataframes into memory
+                for metadata in self.setupMenuModel.data_library.loaded_files:
+                    # Load the dataframe
+                    df_id = self.setupMenuModel.data_library.dataframe_manager.load_dataframe(metadata)
+                    if df_id:
+                        metadata.df_id = df_id
+                    else:
+                        print(f"Warning: Failed to load dataframe for {metadata.file_path}")
+                
+                # Refresh the setup menu view
                 self.setupMenuView.model = self.setupMenuModel
                 self.setupMenuView.update_from_model()
                 self.setupMenuView.set_plot_type(self.setupMenuView.current_plot_type)
@@ -3183,6 +4092,11 @@ class MainWindow(QMainWindow):
                 # IMPORTANT: Force update of the axis options after loading
                 self.setupController.update_axis_options()
                 
+                # Clear existing trace tabs (except the setup-menu)
+                keys_to_remove = [uid for uid in self.tabPanel.id_to_widget if uid != "setup-menu-id"]
+                for uid in keys_to_remove:
+                    self.tabPanel.remove_tab_by_id(uid)
+                    
                 # Add each loaded trace to the TabPanel
                 trace_ids = []
                 for trace_model in workspace.traces:

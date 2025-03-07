@@ -30,3 +30,17 @@
 - view38.py Fixed bugs that had been introduced for adding files normally; missing data will now prompt user to select new location for file. validation method now returns a mapping of filenames. No known bugs.
 - view39.py revamps the filter logic to better handle val1 val2 visibility
 - view40.py improves filter logic by considering colun dtype when determining operation options, and other enhancements. Also adds multi field selector support and fixed filter loading with a dedicated from_dict method.
+- view41.py improves datafile handling by creating local copy dataframe and only updating when load is pressed (THANK YOU CLAUDE 3.7 Thinking!!!)
+- view42.py adds bootstrap widget support to the trace editor model - first draft
+- view42a.py fixes the javascript integration - most advanced, but buggy beyond repair
+- view42b.py fixes bug where plot html is contantly being reset to placeholder text and contour widgets are not displaying
+- view43.py want to branch off of 41.py and rebuild plotting, then introduce bootstrapping, then contour trace widgets
+- view41-plot-2.py is the most stable version, going back to basics and implementing plotting etc manually
+- view41-plot-2a.py is trying to add hover data to the setup menu
+- view41-plot-2b.py moves the hover data below the axis selection, and fixes visibility connection
+- view41-plot-3.py ditches the goal of hiding the hover data and makes some improvements to other setup menu widgets. Is the most mature, stable version at the moment.
+- view41-plot-4.py improves on its predecessor by adding the option to scale apices in the setup menu with elegant widget handling
+- view41-plot-5.py INTEGRATES PLOTTING FOR THE FIRST TIME!!! Some bugs in the column scaling, and some things not propagating through to the plot or being handled together, but WOO!!
+- view41-plot-6.py fixes bug where scaling widgets break; there is still a bug where some things are not connected to the plot AND a weird one where after loading a workspace, axis label changes do not take effect
+- view41-plot-7.py fixes the bug about loading workspace
+
