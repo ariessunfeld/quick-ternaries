@@ -43,4 +43,5 @@
 - view41-plot-5.py INTEGRATES PLOTTING FOR THE FIRST TIME!!! Some bugs in the column scaling, and some things not propagating through to the plot or being handled together, but WOO!!
 - view41-plot-6.py fixes bug where scaling widgets break; there is still a bug where some things are not connected to the plot AND a weird one where after loading a workspace, axis label changes do not take effect
 - view41-plot-7.py fixes the bug about loading workspace
+- view41-plot-8b.py fixes bug where after switching plot type, column scaling widgets for old plot type still showed
 
