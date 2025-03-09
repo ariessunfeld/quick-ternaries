@@ -147,7 +147,7 @@ class LayoutCreator:
                 family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
                 size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 10
             ),
-            gridcolor=advanced_settings.font_color if hasattr(advanced_settings, 'font_color') else '#888',
+            gridcolor=advanced_settings.grid_color if hasattr(advanced_settings, 'grid_color') else '#888',
             showgrid=getattr(advanced_settings, 'show_grid', True),
             showticklabels=getattr(advanced_settings, 'show_tick_marks', True),
             ticks='outside' if getattr(advanced_settings, 'show_tick_marks', True) else '',

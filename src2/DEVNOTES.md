@@ -45,4 +45,5 @@
 - view41-plot-7.py fixes the bug about loading workspace
 - view41-plot-8b.py fixes bug where after switching plot type, column scaling widgets for old plot type still showed
 - view-A.py : naming had gotten messy; starting fresh with this version. Future versions will increment the letter. Fixed advanced setup menu connections.
-
+- view-B.py connects point selection with javascript and PlotlyInterface. Style changes to buttons in the bottom banner.
+- view-C.py uses isort and black to clean up code and imports, and docformatter to handle long docstrings and comments. Fixes bug where column scaling wasn't getting included in the save file.
