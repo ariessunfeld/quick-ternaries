@@ -6,7 +6,7 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
 
-from ternary_trace_maker_3 import TernaryTraceMaker
+from ternary_trace_maker_4 import TernaryTraceMaker
 
 
 class AxisFormatter:
@@ -46,7 +46,16 @@ class AxisFormatter:
         
         # If all columns have the same scale factor
         if len(unique_scale_vals) == 1 and unique_scale_vals[0] != 1:
-            return f"{unique_scale_vals[0]}&times;({'+'.join(map(AxisFormatter.format_subscripts, apex_columns))})"
+            num = round(unique_scale_vals[0],2)
+            if num == int(num):
+                fmt_num = f'{num:.0f}'
+            elif 10*num == int(10*num):
+                fmt_num = f'{num:.1f}'
+            elif 100*num == int(100*num):
+                fmt_num = f'{num:.2f}'
+            else:
+                fmt_num = num
+            return f"{fmt_num}&times;({'+'.join(map(AxisFormatter.format_subscripts, apex_columns))})"
 
         # If columns have different scale factors
         parts = []
@@ -56,7 +65,16 @@ class AxisFormatter:
                 continue
                 
             if val != 1:
-                parts.append(f"{val}&times;({'+'.join(map(AxisFormatter.format_subscripts, cols))})")
+                num = round(val,2)
+                if num == int(num):
+                    fmt_num = f'{num:.0f}'
+                elif 10*num == int(10*num):
+                    fmt_num = f'{num:.1f}'
+                elif 100*num == int(100*num):
+                    fmt_num = f'{num:.2f}'
+                else:
+                    fmt_num = val
+                parts.append(f"{fmt_num}&times;({'+'.join(map(AxisFormatter.format_subscripts, cols))})")
             else:
                 parts.extend(map(AxisFormatter.format_subscripts, cols))
                 
