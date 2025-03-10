@@ -48,5 +48,5 @@
 - view-B.py connects point selection with javascript and PlotlyInterface. Style changes to buttons in the bottom banner.
 - view-C.py uses isort and black to clean up code and imports, and docformatter to handle long docstrings and comments. Fixes bug where column scaling wasn't getting included in the save file. And fixed bug where scale factors were displaying with too much precision (tens of decimals) in plot
 - view-D.py - implements valid formula specification in the trace editor. Has bugs: Font color is not connected; molar conversion widget does nto repopulate after loading workspace; molar conversion widget not connected through to trace making process.
-- view-E.py fixed filters by incorporating dtype consideration; fixed color button opacity selection (storage and application)
+- view-E.py fixed filters by incorporating dtype consideration; fixed color button opacity selection (storage and application), molar conversion repopulation bug fixed (still not connected to trace maker)
 
