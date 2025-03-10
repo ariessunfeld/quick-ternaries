@@ -451,7 +451,7 @@ class TernaryTraceMaker:
             return molar_converter.molar_conversion()
     
     def _update_marker_with_heatmap(self, marker: dict, trace_model, 
-                                   data_df: pd.DataFrame, unique_str: str) -> Tuple[dict, pd.DataFrame]:
+                              data_df: pd.DataFrame, unique_str: str) -> Tuple[dict, pd.DataFrame]:
         """
         Updates the marker dictionary with heatmap configuration.
         
@@ -464,6 +464,7 @@ class TernaryTraceMaker:
         Returns:
             tuple: (updated marker, updated dataframe)
         """
+        # Original implementation remains the same...
         color_column = trace_model.heatmap_column
         heatmap_sorted_col = self.HEATMAP_PATTERN.format(col=color_column, us=unique_str)
         
@@ -493,6 +494,7 @@ class TernaryTraceMaker:
         if trace_model.heatmap_reverse_colorscale:
             colorscale += '_r'
         
+        # Set color values from dataframe - this doesn't need conversion as it's numeric data
         marker['color'] = data_df[heatmap_sorted_col]
         marker['colorscale'] = colorscale
         
@@ -581,7 +583,7 @@ class TernaryTraceMaker:
         return marker, data_df
     
     def _integrated_sort(self, marker: dict, data_df: pd.DataFrame, 
-                        trace_model, unique_str: str) -> Tuple[dict, pd.DataFrame]:
+                    trace_model, unique_str: str) -> Tuple[dict, pd.DataFrame]:
         """
         Performs integrated sorting considering both heatmap and sizemap.
         
@@ -594,6 +596,7 @@ class TernaryTraceMaker:
         Returns:
             tuple: (updated marker, sorted dataframe)
         """
+        # Original implementation remains mostly the same...
         heatmap_column = trace_model.heatmap_column
         sizemap_column = trace_model.sizemap_column
         
@@ -616,7 +619,7 @@ class TernaryTraceMaker:
         size_range = max_size - min_size
         
         size_normalized = ((data_df[sizemap_sorted_col] - data_df[sizemap_sorted_col].min()) /
-                         (data_df[sizemap_sorted_col].max() - data_df[sizemap_sorted_col].min())) * size_range + min_size
+                        (data_df[sizemap_sorted_col].max() - data_df[sizemap_sorted_col].min())) * size_range + min_size
         data_df[sizemap_sorted_col] = size_normalized
         data_df[sizemap_sorted_col].fillna(0.0, inplace=True)
         
@@ -774,12 +777,63 @@ class TernaryTraceMaker:
         Returns:
             Dictionary with marker properties
         """
+        # Get the color from trace_model
+        color = trace_model.trace_color
+        
+        # Convert hex color with alpha to rgba format if needed
+        if color.startswith('#'):
+            color = self._convert_hex_to_rgba(color)
+            
         marker = dict(
             size=float(trace_model.point_size),
             symbol=trace_model.point_shape,
-            color=trace_model.trace_color
+            color=color
         )
         return marker
+    
+    def _convert_hex_to_rgba(self, hex_color: str) -> str:
+        """
+        Convert a hex color string to rgba format.
+        Handles hex formats: #RGB, #RGBA, #RRGGBB, #AARRGGBB
+        
+        Args:
+            hex_color: Hex color string
+            
+        Returns:
+            rgba color string
+        """
+        # Remove # if present
+        hex_color = hex_color.lstrip('#')
+        
+        if len(hex_color) == 8:  # #AARRGGBB format from ColorButton
+            a = int(hex_color[0:2], 16) / 255
+            r = int(hex_color[2:4], 16)
+            g = int(hex_color[4:6], 16)
+            b = int(hex_color[6:8], 16)
+            return f"rgba({r}, {g}, {b}, {a})"
+        
+        elif len(hex_color) == 6:  # #RRGGBB format
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+            return f"rgba({r}, {g}, {b}, 1)"
+        
+        elif len(hex_color) == 4:  # #RGBA format
+            r = int(hex_color[0] + hex_color[0], 16)
+            g = int(hex_color[1] + hex_color[1], 16)
+            b = int(hex_color[2] + hex_color[2], 16)
+            a = int(hex_color[3] + hex_color[3], 16) / 255
+            return f"rgba({r}, {g}, {b}, {a})"
+        
+        elif len(hex_color) == 3:  # #RGB format
+            r = int(hex_color[0] + hex_color[0], 16)
+            g = int(hex_color[1] + hex_color[1], 16)
+            b = int(hex_color[2] + hex_color[2], 16)
+            return f"rgba({r}, {g}, {b}, 1)"
+        
+        else:
+            # If the format is not recognized, return the original color
+            return f"#{hex_color}"
     
     def _generate_unique_str(self) -> str:
         """

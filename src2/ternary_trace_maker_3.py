@@ -273,6 +273,7 @@ class TernaryTraceMaker:
                 continue
                 
             column = filter_obj.filter_column
+            column_dtype = data_df[column].dtype if column in list(data_df.columns) else None
             operation = filter_obj.filter_operation
             
             # Get values based on operation type
