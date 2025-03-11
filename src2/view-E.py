@@ -26,6 +26,9 @@ from PySide6.QtGui import (
     QPainter,
     QPalette,
     QPixmap,
+    QFontDatabase,
+    QDesktopServices,
+    QFont
 )
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -2270,6 +2273,14 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
         },
     )
+    outline_color: str = field(
+        default='#000000',
+        metadata={
+            "label": "Outline Color:",
+            "widget": ColorButton,
+            "plot_types": ["ternary", "cartesian"]
+        }
+    )
     point_shape: str = field(
         default="circle",
         metadata={
@@ -2325,6 +2336,14 @@ class TraceEditorModel:
             "widget": QDoubleSpinBox,
             "plot_types": ["cartesian"],
         },
+    )
+    outline_thickness: int = field(
+        default=1,
+        metadata={
+            "label": "Outline Thickness:",
+            "widget": QSpinBox,
+            "plot_types": ["ternary", "cartesian"]
+        }
     )
     heatmap_on: bool = field(
         default=False,
@@ -2727,6 +2746,11 @@ class TraceEditorView(QWidget):
                 )
             elif isinstance(widget, QDoubleSpinBox):
                 widget.setValue(float(value))
+                widget.valueChanged.connect(
+                    lambda val, fname=f.name: setattr(self.model, fname, val)
+                )
+            elif isinstance(widget, QSpinBox):
+                widget.setValue(int(value))
                 widget.valueChanged.connect(
                     lambda val, fname=f.name: setattr(self.model, fname, val)
                 )
@@ -3850,6 +3874,14 @@ class AdvancedPlotSettingsModel:
             "plot_types": ["ternary"],
         },
     )
+    show_tick_marks: bool = field(
+        default=True,
+        metadata={
+            "label": "Show Tick Marks:",
+            "widget": QCheckBox,
+            "plot_types": ["ternary", "cartesian"]
+        }
+    )
     legend_position: str = field(
         default="top-right",
         metadata={
@@ -4606,12 +4638,54 @@ class MainWindow(QMainWindow):
 
         self.ternary_plot_maker = TernaryPlotMaker()
 
+    def setup_title(self, title: str):
+        """
+        Load the 'Motter Tektura' font and use it to set up the application's title label.
+        The title label is configured to display the 'quick ternaries' logo which includes a
+        hyperlink to the project repository.
+        """
+        font_path = str(Path(__file__).parent / 'resources' / 'fonts' / 'Motter_Tektura_Normal.ttf')
+        print(font_path)
+        print(Path(font_path).is_file())
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        self.title_label = QLabel()
+        if font_id != -1:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                custom_font = QFont(font_families[0], pointSize=20)
+                self.title_label.setFont(custom_font)
+        self.update_title_view(title)
+        self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
+        self.title_label.setOpenExternalLinks(True)  # Allow the label to open links
+        return self.title_label
+
+    def update_title_view(self, title: str):
+        """
+        Update the title label hyperlink color based on the current theme.
+        """
+        self.title_label.setText(
+            '<a href=https://github.com/ariessunfeld/quick-ternaries ' +
+            f'style="color: {self.get_title_color()}; text-decoration:none;">' +
+            f'{title}' +
+            '</a>'
+        )
+
+    def get_title_color(self):
+        """
+        Determine the appropriate title color based on the current palette.
+        """
+        palette = self.palette()
+        background_color = palette.color(QPalette.Window)
+        is_dark_mode = background_color.value() < 128  # Assuming dark mode if background is dark
+        return 'white' if is_dark_mode else 'black'
+
     def _create_top_banner(self):
         container = QWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(8, 2, 8, 2)
-        logo_label = QLabel("Quick Ternaries")
-        logo_label.setStyleSheet("font-weight: bold; font-size: 16pt;")
+        # logo_label = QLabel("Quick Ternaries")
+        # logo_label.setStyleSheet("font-weight: bold; font-size: 16pt;")
+        logo_label = self.setup_title('Quick Ternaries')
         layout.addWidget(logo_label)
         layout.addStretch()
         self.plotTypeSelector = QComboBox()
@@ -4646,8 +4720,34 @@ class MainWindow(QMainWindow):
         self.saveButton.clicked.connect(self.save_workspace)
         self.loadButton.clicked.connect(self.load_workspace)
         self.bootstrapButton.clicked.connect(self.on_bootstrap_clicked)
+        self.exportButton.clicked.connect(self.on_export_clicked)
 
         return container
+
+    def on_export_clicked(self):
+        traces_data = []
+        order = []
+
+        # Gather trace information
+        for i in range(self.tabPanel.listWidget.count()):
+            item = self.tabPanel.listWidget.item(i)
+            if item and item.text() not in (SETUP_MENU_LABEL, ADD_TRACE_LABEL):
+                uid = item.data(Qt.ItemDataRole.UserRole)
+                order.append(uid)
+                model = self.tabPanel.id_to_widget.get(uid)
+                if isinstance(model, TraceEditorModel):
+                    if not getattr(model, "hide_on", False):
+                        traces_data.append(model)
+
+        fig = self.ternary_plot_maker.make_plot(self.setupMenuModel, traces_data)
+
+        # Save to file
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Export Plot", "", "Image Files (*.png *.jpeg *.svg *.jpg)"
+        )
+        if filename:
+            self.ternary_plot_maker.save_plot(fig, filename, dpi=600)
+
 
     def on_preview_clicked(self):
         # Create new, clean dictionaries instead of copying objects

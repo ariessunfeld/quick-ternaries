@@ -131,7 +131,8 @@ class LayoutCreator:
                 aaxis=axis_settings,
                 baxis=axis_settings,
                 caxis=axis_settings,
-                bgcolor=advanced_settings.background_color if hasattr(advanced_settings, 'background_color') else None,
+                # TODO refactor to make this a utility func
+                bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.background_color) if hasattr(advanced_settings, 'background_color') else None,
                 sum=ternary_sum
             ),
             title=dict(
@@ -140,7 +141,7 @@ class LayoutCreator:
                     size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 12
                 )
             ),
-            paper_bgcolor=advanced_settings.paper_color if hasattr(advanced_settings, 'paper_color') else "#FFFFFF"
+            paper_bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.paper_color) if hasattr(advanced_settings, 'paper_color') else "#FFFFFF"
         )
 
     @staticmethod
@@ -165,7 +166,7 @@ class LayoutCreator:
                 family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
                 size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 10
             ),
-            gridcolor=advanced_settings.grid_color if hasattr(advanced_settings, 'grid_color') else '#888',
+            gridcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.grid_color) if hasattr(advanced_settings, 'grid_color') else '#888',
             showgrid=getattr(advanced_settings, 'show_grid', True),
             showticklabels=getattr(advanced_settings, 'show_tick_marks', True),
             ticks='outside' if getattr(advanced_settings, 'show_tick_marks', True) else '',

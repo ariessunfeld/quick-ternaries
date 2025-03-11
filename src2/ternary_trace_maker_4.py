@@ -253,6 +253,17 @@ class TernaryTraceMaker:
                     trace_data_df,
                     unique_str
                 )
+
+        if not trace_model.sizemap_on:
+            # Add outline to markers
+            marker.update(
+                dict(
+                    line = dict(
+                        color = self._convert_hex_to_rgba(trace_model.outline_color),
+                        width = trace_model.outline_thickness / 10
+                    )
+                )
+            )
         
         return marker, trace_data_df
     
