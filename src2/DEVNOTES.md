@@ -49,4 +49,9 @@
 - view-C.py uses isort and black to clean up code and imports, and docformatter to handle long docstrings and comments. Fixes bug where column scaling wasn't getting included in the save file. And fixed bug where scale factors were displaying with too much precision (tens of decimals) in plot
 - view-D.py - implements valid formula specification in the trace editor. Has bugs: Font color is not connected; molar conversion widget does nto repopulate after loading workspace; molar conversion widget not connected through to trace making process.
 - view-E.py fixed filters by incorporating dtype consideration; fixed color button opacity selection (storage and application), molar conversion repopulation bug fixed (still not connected to trace maker)
-
+- still view-E.py added fancy window title font and link
+- view-F.py attempts to add contours using Claude. A lot of the integration is good, but the app becomes very laggy and the prompt neglected to request an implementation of error-entry
+- view-E-2 implements bootstrapping! Yay! Except adding a trace and clicking Bootstrap is laggy. Trying to do performance optimization in next version and defer havy workload to Render calls. Also need to do smoething better to auto-populate the error fields.
+- view-E-3 fixed it but then was accidentally overwritten by re-running the command cp view-E-2.py view-E-3.py :(
+- view-E-4 takes a different approach: Starting with view-E, trying to pad on the contour functionality by hand using the tips from Claude that were implemented in view-E-3 (before overwrite accident)
+- view-E-4.py fixed bugs it's awesome
