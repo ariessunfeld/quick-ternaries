@@ -3078,6 +3078,19 @@ class TraceEditorView(QWidget):
                 spinbox.setRange(1.0, 50.0)
                 spinbox.setSingleStep(1.0)
 
+        if "sizemap_min" in self.widgets:
+            spinbox = self.widget["sizemap_min"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(1.0, 50.0)
+                spinbox.setSingleStep(0.5)
+
+        if "sizemap_max" in self.widgets:
+            spinbox = self.widget["sizemap_max"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(1.5, 50.0)
+                spinbox.setSingleStep(0.5)
+
+
     def _on_trace_name_changed(self, text: str):
         self.model.trace_name = text
         if hasattr(self, "traceNameChangedCallback") and self.traceNameChangedCallback:

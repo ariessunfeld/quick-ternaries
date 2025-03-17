@@ -3940,7 +3940,11 @@ class FormulaInputWidget(QWidget):
                 
                 # Add to form layout
                 form_layout.addRow(column, input_container)
-                suggest_button.click()
+
+                # With this conditional version:
+                if not formula_value.strip():
+                    suggest_button.click()
+                # suggest_button.click()
 
             self.axis_sections[axis_name] = section
             self.layout().addWidget(section)
@@ -5201,6 +5205,78 @@ class MainWindow(QMainWindow):
         if filename:
             self.ternary_plot_maker.save_plot(fig, filename, dpi=600)
 
+    def validate_formulas_for_molar_conversion(self):
+        """
+        Validates that all necessary chemical formulas are provided for traces 
+        that have weight-to-molar conversion enabled.
+        
+        Returns:
+            bool: True if validation passes, False otherwise
+        """
+        # Get visible traces that have weight-to-molar conversion enabled
+        visible_traces = self._get_visible_traces()
+        traces_needing_validation = [(uid, model) for uid, model in visible_traces 
+                                    if getattr(model, "convert_from_wt_to_molar", False)]
+        
+        if not traces_needing_validation:
+            return True  # No traces need validation
+        
+        # Get valid apex/axis columns
+        apex_columns = {
+            'top_axis': getattr(self.setupMenuModel.axis_members, 'top_axis', []),
+            'left_axis': getattr(self.setupMenuModel.axis_members, 'left_axis', []),
+            'right_axis': getattr(self.setupMenuModel.axis_members, 'right_axis', []),
+            'x_axis': getattr(self.setupMenuModel.axis_members, 'x_axis', []),
+            'y_axis': getattr(self.setupMenuModel.axis_members, 'y_axis', []),
+        }
+        
+        # Get current formulas
+        formula_model = self.setupMenuModel.chemical_formulas
+        
+        # Track missing or invalid formulas
+        missing_formulas = []
+        invalid_formulas = []
+        
+        # Check each trace that needs validation
+        for uid, model in traces_needing_validation:
+            # Get the dataframe
+            df = self.setupMenuModel.data_library.dataframe_manager.get_dataframe_by_metadata(model.datafile)
+            if df is None:
+                continue
+                
+            # Check which columns need formulas
+            for axis_name, columns in apex_columns.items():
+                for column in columns:
+                    if column in df.columns:
+                        formula = formula_model.get_formula(axis_name, column)
+                        
+                        if not formula.strip():
+                            missing_formulas.append((model.trace_name, column, axis_name))
+                        elif not is_valid_formula(formula):
+                            invalid_formulas.append((model.trace_name, column, formula, axis_name))
+        
+        # If problems found, show a warning
+        if missing_formulas or invalid_formulas:
+            message = "Cannot render plot with weight-to-molar conversion due to formula issues:\n\n"
+            
+            if missing_formulas:
+                message += "Missing formulas:\n"
+                for trace, column, axis in missing_formulas:
+                    axis_display = axis.replace("_", " ").title()
+                    message += f"• Trace '{trace}' needs formula for '{column}' on {axis_display}\n"
+                message += "\n"
+                
+            if invalid_formulas:
+                message += "Invalid formulas:\n"
+                for trace, column, formula, axis in invalid_formulas:
+                    axis_display = axis.replace("_", " ").title()
+                    message += f"• Trace '{trace}': '{formula}' is not valid for '{column}' on {axis_display}\n"
+            
+            QMessageBox.warning(self, "Formula Validation Error", message)
+            return False
+            
+        return True
+
 
     # def on_preview_clicked(self):
     #     # Create new, clean dictionaries instead of copying objects
@@ -5247,6 +5323,11 @@ class MainWindow(QMainWindow):
 
     def on_preview_clicked(self):
         """Generate and display the current plot."""
+
+        if not self.validate_formulas_for_molar_conversion():
+            # TODO add a popup here
+            return  # Don't proceed with rendering if validation fails
+        
         # Get visible traces
         visible_traces = self._get_visible_traces()
         

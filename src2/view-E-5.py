@@ -4,12 +4,20 @@ import re
 import sys
 import traceback
 import uuid
+from time import time
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import (
+    Dict, 
+    List, 
+    Optional, 
+    Union, 
+    Tuple
+)
 
 import numpy as np
 import pandas as pd
+from molmass import Formula
 
 # Import plotly components (add these to your imports)
 import plotly.graph_objects as go
@@ -25,6 +33,9 @@ from PySide6.QtGui import (
     QPainter,
     QPalette,
     QPixmap,
+    QFontDatabase,
+    QDesktopServices,
+    QFont
 )
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -58,9 +69,27 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QVBoxLayout,
     QWidget,
+    QTableView,
+    QHeaderView
 )
 
 from ternary_plot_maker import TernaryPlotMaker
+from ternary_trace_maker_4 import TernaryContourTraceMaker
+from cartesian_plot_maker import CartesianPlotMaker
+from error_entry_model import ErrorEntryModel
+from pandas_series_model import PandasSeriesModel
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ErrorEntryModel):
+            return obj.to_dict()
+        elif isinstance(obj, pd.Series):
+            return obj.to_json()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.number):
+            return float(obj)
+        return super().default(obj)
 
 # If available, use QWebEngineView; otherwise fall back.
 
@@ -72,6 +101,24 @@ SETUP_MENU_LABEL = "Setup Menu"
 ADD_TRACE_LABEL = "Add Trace (+)"
 
 
+def is_valid_formula(formula: str) -> bool:
+    """
+    Checks if the provided chemical formula is valid by attempting to compute its molar mass using molmass.
+    
+    Parameters:
+        formula (str): The chemical formula to validate.
+    
+    Returns:
+        bool: True if the formula is valid and a molar mass can be computed, False otherwise.
+    """
+    try:
+        # Create a Formula object which computes properties including molar mass.
+        f = Formula(formula)
+        # Optionally, check that the computed molar mass is positive.
+        return f.mass > 0
+    except Exception:
+        return False
+    
 def recursive_to_dict(obj):
     """Recursively convert dataclass objects (or lists/dicts) to
     dictionaries."""
@@ -809,7 +856,7 @@ class HeaderSelectionDialog(QDialog):
         for i in range(n_rows):
             row_data = preview_data[i]
             displayed_columns = row_data[:8]  # Limit to first 8 columns
-            option_text = f"Row {i}: " + ", ".join(map(str, displayed_columns))
+            option_text = f"Row {i}: " + ", ".join(map(str, displayed_columns)) + " ..."
             self.combo.addItem(option_text, userData=i)
 
         # Use the new get_suggested_header with the sheet parameter
@@ -901,6 +948,7 @@ class ColorScaleDropdown(QWidget):
     selection."""
 
     colorScaleChanged = Signal(str)  # Signal emitted when color scale changes
+    _icon_cache = {}  # Cache mapping (colorscale_name, width, height) -> QIcon
 
     # List of standard Plotly color scales
     PLOTLY_COLOR_SCALES = [
@@ -974,12 +1022,8 @@ class ColorScaleDropdown(QWidget):
 
     def __init__(self, colorscale="Viridis", parent=None):
         super().__init__(parent)
-
-        # Create the layout
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create the combobox for selection
         self.comboBox = QComboBox()
         self.comboBox.setIconSize(QPixmap(60, 15).size())
 
@@ -988,13 +1032,8 @@ class ColorScaleDropdown(QWidget):
             icon = self.create_colorscale_icon(cs_name)
             self.comboBox.addItem(icon, cs_name)
 
-        # Add widgets to layout
         layout.addWidget(self.comboBox)
-
-        # Set the initial color scale
         self.setColorScale(colorscale)
-
-        # Connect signals
         self.comboBox.currentTextChanged.connect(self.onColorScaleSelected)
 
     def setColorScale(self, colorscale_name):
@@ -1028,27 +1067,21 @@ class ColorScaleDropdown(QWidget):
         return self.current_colorscale
 
     def create_colorscale_icon(self, colorscale_name, width=150, height=20):
-        """Create a QIcon for a Plotly color scale."""
+        cache_key = (colorscale_name, width, height)
+        if cache_key in self._icon_cache:
+            return self._icon_cache[cache_key]
         try:
-            # Try to get the colorscale
-            colorscale = None
             try:
                 colorscale = get_colorscale(colorscale_name)
-            except:
+            except Exception:
                 print(f"Failed to get colorscale for scale name {colorscale_name}")
-                # If get_colorscale fails, create a simple gradient
                 colorscale = [(0, "lightblue"), (0.5, "blue"), (1, "darkblue")]
 
-            # Create a subplot with a single cell
             fig = make_subplots(rows=1, cols=1)
-
-            # Create a heatmap trace
             heatmap_data = np.array([list(range(width))])
             fig.add_trace(
                 go.Heatmap(z=heatmap_data, colorscale=colorscale, showscale=False)
             )
-
-            # Update the layout
             fig.update_layout(
                 width=width,
                 height=height,
@@ -1059,16 +1092,13 @@ class ColorScaleDropdown(QWidget):
                 yaxis=dict(visible=False),
                 showlegend=False,
             )
-
-            # Convert to image
             img_bytes = fig.to_image(format="png")
-
-            # Create QIcon
             pixmap = QPixmap()
             pixmap.loadFromData(img_bytes)
-            return QIcon(pixmap)
+            icon = QIcon(pixmap)
+            self._icon_cache[cache_key] = icon
+            return icon
         except Exception as e:
-            # Return an empty icon if there's an error
             print(f"Error generating color scale icon: {e}")
             return QIcon()
 
@@ -1081,6 +1111,7 @@ class ShapeButtonWithMenu(QWidget):
     """
 
     shapeChanged = Signal(str)  # Signal emitted when shape changes
+    _icon_cache = {}  # Cache for shape icons
 
     # List of standard Plotly marker shapes
     PLOTLY_SHAPES = [
@@ -1186,12 +1217,11 @@ class ShapeButtonWithMenu(QWidget):
         return self.current_shape
 
     def create_plotly_marker_icon(self, shape, size=32):
-        """Create a QIcon for a Plotly marker shape."""
+        cache_key = (shape, size)
+        if cache_key in self._icon_cache:
+            return self._icon_cache[cache_key]
         try:
-            # Create a subplot with a single cell
             fig = make_subplots(rows=1, cols=1)
-
-            # Add a scatter trace with the desired marker
             fig.add_trace(
                 go.Scatter(
                     x=[0],
@@ -1200,8 +1230,6 @@ class ShapeButtonWithMenu(QWidget):
                     marker=dict(symbol=shape, size=size * 0.8, color="black"),
                 )
             )
-
-            # Update the layout to remove axes and set a fixed range
             fig.update_layout(
                 width=size,
                 height=size,
@@ -1212,16 +1240,13 @@ class ShapeButtonWithMenu(QWidget):
                 yaxis=dict(visible=False, range=[-1, 1]),
                 showlegend=False,
             )
-
-            # Convert to image
             img_bytes = fig.to_image(format="png")
-
-            # Create QIcon
             pixmap = QPixmap()
             pixmap.loadFromData(img_bytes)
-            return QIcon(pixmap)
+            icon = QIcon(pixmap)
+            self._icon_cache[cache_key] = icon
+            return icon
         except Exception as e:
-            # Return an empty icon if there's an error
             print(f"Error generating shape icon: {e}")
             return QIcon()
 
@@ -1265,8 +1290,16 @@ class ColorButton(QWidget):
         try:
             # Try to convert the string to a QColor
             if color_str.startswith("#"):
-                # Hex code
-                color = QColor(color_str)
+                # Check if it's a hex code with alpha
+                if len(color_str) == 9:  # Format: #AARRGGBB
+                    # Extract alpha and RGB components
+                    alpha_hex = color_str[1:3]
+                    rgb_hex = color_str[3:9]
+                    color = QColor("#" + rgb_hex)
+                    color.setAlpha(int(alpha_hex, 16))
+                else:
+                    # Regular hex code
+                    color = QColor(color_str)
             else:
                 # Color name (e.g., 'red', 'blue')
                 color = QColor(color_str)
@@ -1276,19 +1309,31 @@ class ColorButton(QWidget):
             palette.setColor(QPalette.Window, color)
             self.colorPreview.setPalette(palette)
 
-            # Store the current color
-            self.current_color = color_str
+            # Store the current color with alpha information
+            if color.alpha() < 255:
+                # Format with alpha: #AARRGGBB where AA is alpha in hex
+                alpha_hex = f"{color.alpha():02x}"
+                rgb_hex = color.name()[1:]  # Remove the # from the start
+                self.current_color = f"#{alpha_hex}{rgb_hex}"
+            else:
+                # No alpha needed, use regular hex
+                self.current_color = color.name()
+                
+            # Store QColor object for later use
+            self.qcolor = color
+            
         except:
             # Default to black if there's an issue
             palette = self.colorPreview.palette()
             palette.setColor(QPalette.Window, QColor("#000000"))
             self.colorPreview.setPalette(palette)
             self.current_color = "#000000"
+            self.qcolor = QColor("#000000")
 
     def openColorDialog(self):
         """Open the color picker dialog."""
         # Get the current color for the dialog
-        initial_color = QColor(self.current_color)
+        initial_color = self.qcolor if hasattr(self, 'qcolor') else QColor(self.current_color)
 
         # Open Qt's color dialog
         color = QColorDialog.getColor(
@@ -1300,13 +1345,18 @@ class ColorButton(QWidget):
 
         # If a valid color was selected (not cancelled)
         if color.isValid():
-            # Get the hex code
-            hex_color = color.name()
+            # Format with alpha if needed
+            if color.alpha() < 255:
+                alpha_hex = f"{color.alpha():02x}"
+                rgb_hex = color.name()[1:]  # Remove the # from the start
+                hex_color = f"#{alpha_hex}{rgb_hex}"
+            else:
+                hex_color = color.name()
 
             # Update the button
             self.setColor(hex_color)
 
-            # Emit the signal with the new color
+            # Emit the signal with the new color (including alpha)
             self.colorChanged.emit(hex_color)
 
     def getColor(self):
@@ -1398,6 +1448,7 @@ class MultiFieldSelector(QWidget):
         layout = QHBoxLayout(self)
         self.setLayout(layout)
         self.listWidget = QListWidget(self)
+        self.listWidget.setMaximumHeight(100)
         layout.addWidget(self.listWidget)
         btn_layout = QVBoxLayout()
         layout.addLayout(btn_layout)
@@ -1459,7 +1510,6 @@ class MultiFieldSelector(QWidget):
             return
 
         if isinstance(fields_list, str):
-            print("\n\n\n\n\nLIST CASE")
             # Handle case where a string was passed instead of a list
             fields_list = [f.strip() for f in fields_list.split(",")]
 
@@ -1650,7 +1700,9 @@ class TabPanel(QWidget):
 
         insert_index = self.listWidget.count() - 1
         self.listWidget.insertItem(insert_index, new_item)
+        self.listWidget.blockSignals(True)
         self.listWidget.setCurrentItem(new_item)
+        self.listWidget.blockSignals(False)
         return unique_id
 
     def select_tab_by_id(self, unique_id: str):
@@ -1729,7 +1781,10 @@ class FilterModel:
         "<",
         ">",
         "<=",
-        ">=" "==",
+        ">=",
+        "==",
+        'is',
+        'is not',
         "a < x < b",
         "a <= x < b",
         "a < x <= b",
@@ -2189,6 +2244,190 @@ class FilterEditorView(QWidget):
         self.update_from_model()
 
 
+class ErrorEntryWidget(QWidget):
+    """
+    Widget for entering uncertainty values for each component in a contour trace.
+    Similar to the column scaling widget but specific to a trace.
+    """
+    errorChanged = Signal(str, float)  # component_name, error_value
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayout(QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.error_inputs = {}  # component_name -> QDoubleSpinBox
+        
+        # Add header
+        header = QLabel("<b>Component Uncertainties:</b>")
+        header.setAlignment(Qt.AlignLeft)
+        self.layout().addWidget(header)
+        
+        # Add help text
+        help_text = QLabel(
+            "Enter uncertainty values for each component. "
+            "These values will be used to generate the contour."
+        )
+        help_text.setWordWrap(True)
+        self.layout().addWidget(help_text)
+        
+        # Create a scroll area for the form
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        self.form_container = QWidget()
+        self.form_layout = QFormLayout(self.form_container)
+        scroll_area.setWidget(self.form_container)
+        self.layout().addWidget(scroll_area)
+    
+    def update_components(self, series: pd.Series, error_entry_model: ErrorEntryModel):
+        """
+        Update the widget to show input fields for each component in the series.
+        
+        Args:
+            series: The pandas Series containing the point data
+            error_entry_model: The model containing current error values
+        """
+        # Clear existing inputs
+        self.error_inputs.clear()
+        
+        # Clear the form layout
+        while self.form_layout.count():
+            item = self.form_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        if series is None or series.empty:
+            # No data - show a message
+            label = QLabel("No source point data available")
+            label.setAlignment(Qt.AlignCenter)
+            self.form_layout.addRow(label)
+            return
+        
+        # Get the column names for each apex from the main window
+        apex_columns = self._get_apex_columns()
+        
+        # Add inputs for each component in the series that's in an apex
+        added_components = set()
+        
+        # First, process columns that are in apexes
+        for component in series.index:
+            # Skip if not numeric - uncertainty only applies to numeric values
+            if not isinstance(series[component], (int, float, np.number)) or pd.isna(series[component]):
+                continue
+                
+            # Check if this component is in any apex
+            in_apex = False
+            for apex_cols in apex_columns.values():
+                if component in apex_cols:
+                    in_apex = True
+                    break
+            
+            if in_apex:
+                self._add_component_input(component, series[component], error_entry_model)
+                added_components.add(component)
+        
+        # If we have no components in apexes, add inputs for all numeric components
+        if not added_components:
+            for component in series.index:
+                if isinstance(series[component], (int, float, np.number)) and not pd.isna(series[component]):
+                    self._add_component_input(component, series[component], error_entry_model)
+    
+    def _add_component_input(self, component: str, value: float, error_entry_model: ErrorEntryModel):
+        """
+        Add an input field for a component.
+        
+        Args:
+            component: Component name
+            value: The component value
+            error_entry_model: The model containing current error values
+        """
+        # Create a container for the component with value display and input
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Show the component value
+        value_label = QLabel(f"{value:.4f}")
+        value_label.setMinimumWidth(60)
+        container_layout.addWidget(value_label)
+        
+        # Add ± symbol
+        container_layout.addWidget(QLabel("±"))
+        
+        # Create spin box for error input
+        spin_box = QDoubleSpinBox()
+        spin_box.setRange(0.0, 100.0)  # Reasonable range for error values
+        spin_box.setSingleStep(0.1)
+        spin_box.setDecimals(4)  # More precision for small values
+        
+        # Set current value from model
+        current_error = error_entry_model.get_error(component)
+        spin_box.setValue(current_error)
+        
+        # Connect value change
+        spin_box.valueChanged.connect(
+            lambda val, comp=component: self.errorChanged.emit(comp, val)
+        )
+        
+        container_layout.addWidget(spin_box)
+        container_layout.setStretchFactor(spin_box, 1)  # Give more space to the spin box
+        
+        # Add percentage label to make it clear we're working with absolute values
+        abs_label = QLabel("(absolute)")
+        container_layout.addWidget(abs_label)
+        
+        # Store reference to spin box
+        self.error_inputs[component] = spin_box
+        
+        # Add to form
+        self.form_layout.addRow(component, container)
+    
+    def _get_apex_columns(self):
+        """
+        Get column lists for each apex from the setup model.
+        
+        Returns:
+            Dict mapping apex names to column lists
+        """
+        main_window = self.window()
+        apex_columns = {
+            'top_axis': [],
+            'left_axis': [],
+            'right_axis': []
+        }
+        
+        if hasattr(main_window, 'setupMenuModel') and hasattr(main_window.setupMenuModel, 'axis_members'):
+            axis_members = main_window.setupMenuModel.axis_members
+            for apex, attr in apex_columns.items():
+                if hasattr(axis_members, apex):
+                    apex_columns[apex] = getattr(axis_members, apex)
+        
+        return apex_columns
+    
+    def get_error_value(self, component: str) -> float:
+        """
+        Get the current error value for a component.
+        
+        Args:
+            component: Component name
+            
+        Returns:
+            Current error value
+        """
+        if component in self.error_inputs:
+            return self.error_inputs[component].value()
+        return 0.0
+    
+    def set_error_value(self, component: str, value: float):
+        """
+        Set the error value for a component.
+        
+        Args:
+            component: Component name
+            value: Error value
+        """
+        if component in self.error_inputs:
+            self.error_inputs[component].setValue(value)
+
 @dataclass
 class TraceEditorModel:
     trace_name: str = field(
@@ -2223,6 +2462,14 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
         },
     )
+    outline_color: str = field(
+        default='#000000',
+        metadata={
+            "label": "Outline Color:",
+            "widget": ColorButton,
+            "plot_types": ["ternary", "cartesian"]
+        }
+    )
     point_shape: str = field(
         default="circle",
         metadata={
@@ -2230,6 +2477,22 @@ class TraceEditorModel:
             "widget": ShapeButtonWithMenu,
             "plot_types": ["ternary", "cartesian"],
         },
+    )
+    point_size: float = field(
+        default=6.0,
+        metadata={
+            "label": "Point Size:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["ternary", "cartesian"],
+        },
+    )
+    outline_thickness: int = field(
+        default=1,
+        metadata={
+            "label": "Outline Thickness:",
+            "widget": QSpinBox,
+            "plot_types": ["ternary", "cartesian"]
+        }
     )
     convert_from_wt_to_molar: bool = field(
         default=False,
@@ -2247,16 +2510,8 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
         },
     )
-    point_size: float = field(
-        default=5.0,
-        metadata={
-            "label": "Point Size:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-        },
-    )
     line_on: bool = field(
-        default=True,
+        default=False,
         metadata={
             "label": "Line On:",
             "widget": QCheckBox,
@@ -2469,7 +2724,7 @@ class TraceEditorModel:
         },
     )
     sizemap_min: float = field(
-        default=0.0,
+        default=2.0,
         metadata={
             "label": "Sizemap Min:",
             "widget": QDoubleSpinBox,
@@ -2479,7 +2734,7 @@ class TraceEditorModel:
         },
     )
     sizemap_max: float = field(
-        default=1.0,
+        default=6.0,
         metadata={
             "label": "Sizemap Max:",
             "widget": QDoubleSpinBox,
@@ -2528,8 +2783,38 @@ class TraceEditorModel:
         },
     )
 
+    # New fields for contour source data
+    source_point_data: Dict = field(
+        default_factory=dict,
+        metadata={
+            "label": None,
+            "widget": None,
+            "plot_types": ["ternary", "cartesian"],
+        },
+    )
+    
+    # Error entry model for component uncertainties
+    error_entry_model: ErrorEntryModel = field(
+        default_factory=ErrorEntryModel,
+        metadata={
+            "label": None,
+            "widget": None,
+            "plot_types": ["ternary", "cartesian"],
+        },
+    )
+
     def to_dict(self):
-        return asdict(self)
+        ret = asdict(self)
+        # Convert source point series if necessary.
+        series = ret['source_point_data'].get('series', {})
+        if series and isinstance(series, pd.Series):
+            ret['source_point_data']['series'] = series.to_json()
+        
+        # The key fix: manually convert error_entry_model using its to_dict method
+        # This replaces the ErrorEntryModel object with its dictionary representation
+        ret['error_entry_model'] = self.error_entry_model.to_dict()
+        
+        return ret
 
     @classmethod
     def from_dict(cls, d: dict):
@@ -2552,6 +2837,15 @@ class TraceEditorModel:
         else:
             d_copy["datafile"] = DataFileMetadata(file_path="")
 
+        if 'source_point_data' in d_copy and isinstance(d_copy['source_point_data'], dict):
+            if 'series' in d_copy['source_point_data']:
+                d_copy['source_point_data']['series'] = pd.read_json(
+                    d_copy['source_point_data']['series'], typ='series')
+        
+        # Add this block to handle error_entry_model conversion
+        if 'error_entry_model' in d_copy and isinstance(d_copy['error_entry_model'], dict):
+            d_copy['error_entry_model'] = ErrorEntryModel.from_dict(d_copy['error_entry_model'])
+
         return cls(**d_copy)
 
     @classmethod
@@ -2564,6 +2858,35 @@ class TraceEditorModel:
             if isinstance(val, str) and val:
                 d["filter_value1"] = [x.strip() for x in val.split(",")]
         return d
+    
+    def set_source_point(self, series: pd.Series, metadata: Dict = None):
+        """
+        Set the source point data for a contour trace.
+        
+        Args:
+            series: The pandas Series containing the point data
+            metadata: Optional additional metadata about the source point
+        """
+        if metadata is None:
+            metadata = {}
+            
+        self.source_point_data = {
+            "series": series,
+            **metadata
+        }
+        
+        # Initialize error entries for all columns in the series
+        for col in series.index:
+            if col not in self.error_entry_model.entries:
+                # Default to using the RMSEP column if available
+                err_col = f'{col} RMSEP'
+                if (
+                    err_col in series.index 
+                    and isinstance(series[err_col], (int, float, np.number)) 
+                    and not pd.isna(series[err_col])
+                ):
+                    default_error = series[err_col]
+                    self.error_entry_model.set_error(col, default_error)
 
 
 class TraceEditorView(QWidget):
@@ -2634,7 +2957,12 @@ class TraceEditorView(QWidget):
         subgroup_fields = {}  # Track fields that go in nested group boxes
 
         # Process each field in the model.
-        for f in fields(self.model):
+        t_0 = time()
+
+        fields_to_times = {}
+
+        for idx, f in enumerate(fields(self.model)):
+            t__0 = time()
             metadata = f.metadata
             if "label" not in metadata or "widget" not in metadata:
                 continue
@@ -2683,6 +3011,11 @@ class TraceEditorView(QWidget):
                 widget.valueChanged.connect(
                     lambda val, fname=f.name: setattr(self.model, fname, val)
                 )
+            elif isinstance(widget, QSpinBox):
+                widget.setValue(int(value))
+                widget.valueChanged.connect(
+                    lambda val, fname=f.name: setattr(self.model, fname, val)
+                )
             elif isinstance(widget, QCheckBox):
                 widget.setChecked(bool(value))
                 widget.stateChanged.connect(
@@ -2698,7 +3031,7 @@ class TraceEditorView(QWidget):
                     )
             elif isinstance(widget, QComboBox):
                 if f.name == "line_style":
-                    widget.addItems(["solid", "dashed", "dotted"])
+                    widget.addItems(['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'])
                 elif f.name == "heatmap_sort_mode":
                     widget.addItems(
                         ["no change", "high on top", "low on top", "shuffled"]
@@ -2743,13 +3076,22 @@ class TraceEditorView(QWidget):
             else:
                 # This field goes directly in the form
                 self.form_layout.addRow(label_text, widget)
+            t__1 = time()
+            fields_to_times[f.name] = round(t__1-t__0, 4)
 
-        print(f"Found subgroup fields: {list(subgroup_fields.keys())}")
+
+        # Add contour-specific sections if this is a contour trace
+        if getattr(self.model, "is_contour", False):
+            # Add source point data display widget
+
+            self.add_source_point_info()
+            # Add error entry widget
+            self.add_error_entry_widget()
+
 
         # Now handle group boxes and nested group boxes
         for group_name, field_tuples in group_fields.items():
             if group_name == "heatmap":
-                print(f"Building heatmap group with {len(field_tuples)} fields")
                 # Special handling for heatmap group
                 group_box = QGroupBox("Heatmap", self)
                 vlayout = QVBoxLayout(group_box)
@@ -2799,9 +3141,6 @@ class TraceEditorView(QWidget):
                 # Now handle any nested group boxes within the heatmap advanced section
                 for (group, subgroup), sub_field_tuples in subgroup_fields.items():
                     if group == "heatmap":
-                        print(
-                            f"Building nested groupbox for {subgroup} with {len(sub_field_tuples)} fields"
-                        )
                         # Create the nested group box with title from metadata
                         subgroup_title = sub_field_tuples[0][3].get(
                             "subgroup_title", subgroup.replace("_", " ").title()
@@ -2817,7 +3156,6 @@ class TraceEditorView(QWidget):
                             sub_widget,
                             sub_meta,
                         ) in sub_field_tuples:
-                            print(f"  Adding field {sub_fname} to nested groupbox")
                             nested_layout.addRow(sub_label, sub_widget)
 
                         # Store the nested group box for visibility control
@@ -2833,7 +3171,6 @@ class TraceEditorView(QWidget):
                 heatmap_use_advanced = getattr(
                     self.model, "heatmap_use_advanced", False
                 )
-                print(f"Initial heatmap_use_advanced state: {heatmap_use_advanced}")
                 advanced_container.setVisible(heatmap_use_advanced)
 
                 # Store the heatmap group box for later visibility control
@@ -2852,20 +3189,77 @@ class TraceEditorView(QWidget):
                 self.form_layout.addRow(group_box)
         self._build_filters_ui()
 
+    def add_source_point_info(self):
+        """Add a widget to display the source point data."""
+        if not hasattr(self.model, "source_point_data") or not self.model.source_point_data:
+            return
+            
+        # Get the series from the source point data
+        source_data = self.model.source_point_data
+        if "series" not in source_data or not isinstance(source_data["series"], pd.Series):
+            return
+            
+        series = source_data["series"]
+        
+        # Create a group box for the source point info
+        group_box = QGroupBox("Source Point Data")
+        group_layout = QVBoxLayout(group_box)
+        
+        # Create a table view for the data
+        table_view = QTableView()
+        table_view.setModel(PandasSeriesModel(series))
+        table_view.setMaximumHeight(150)
+        
+        # Adjust the table view
+        header = table_view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setStretchLastSection(False)
+        table_view.resizeRowsToContents()
+        
+        group_layout.addWidget(table_view)
+        self.form_layout.addRow(group_box)
+    
+    def add_error_entry_widget(self):
+        """Add the error entry widget for component uncertainties."""
+        if not hasattr(self.model, "source_point_data") or not self.model.source_point_data:
+            return
+            
+        # Get the series from the source point data
+        source_data = self.model.source_point_data
+        if "series" not in source_data or not isinstance(source_data["series"], pd.Series):
+            return
+            
+        series = source_data["series"]
+        
+        # Create group box for error entry
+        group_box = QGroupBox("Component Uncertainties")
+        group_layout = QVBoxLayout(group_box)
+        
+        # Create and configure the error entry widget
+        self.error_entry_widget = ErrorEntryWidget()
+        self.error_entry_widget.update_components(series, self.model.error_entry_model)
+        
+        # Connect signals to update the model
+        self.error_entry_widget.errorChanged.connect(self.on_error_changed)
+        
+        group_layout.addWidget(self.error_entry_widget)
+        self.form_layout.addRow(group_box)
+
+    def on_error_changed(self, component: str, value: float):
+        """Handle when an error value is changed."""
+        self.model.error_entry_model.set_error(component, value)
+
     def _update_advanced_visibility(self, show_advanced):
         """Update visibility of all advanced components when the toggle
         changes."""
-        print(f"Updating advanced visibility: {show_advanced}")
 
         # First, update the main advanced container
         if hasattr(self, "advanced_heatmap_container"):
             self.advanced_heatmap_container.setVisible(show_advanced)
-            print(f"Set advanced_heatmap_container visibility to {show_advanced}")
 
         # Then, update all nested groupboxes
         for (group, subgroup), nested_box in self.subgroup_boxes.items():
             if group == "heatmap":
-                print(f"Setting {group}/{subgroup} visibility to {show_advanced}")
                 nested_box.setVisible(show_advanced)
 
                 # Force visibility of all child widgets too
@@ -2950,6 +3344,14 @@ class TraceEditorView(QWidget):
                 group_box.setVisible(group_visible)
         self._update_filters_visibility()
 
+        # Update error entry widget visibility if it exists
+        if hasattr(self, 'error_entry_widget'):
+            # Only show for contour traces
+            try:
+                self.error_entry_widget.setVisible(getattr(self.model, "is_contour", False))
+            except RuntimeError as e:
+                print('Encountered a runtime error trying to update error entry widget visibility')
+
     def update_from_model(self):
         for f in fields(self.model):
             metadata = f.metadata
@@ -3007,15 +3409,55 @@ class TraceEditorView(QWidget):
                 spinbox.setRange(1.0, 50.0)
                 spinbox.setSingleStep(1.0)
 
+        if "sizemap_min" in self.widgets:
+            spinbox = self.widgets["sizemap_min"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(1.0, 50.0)
+                spinbox.setSingleStep(0.5)
+
+        if "sizemap_max" in self.widgets:
+            spinbox = self.widgets["sizemap_max"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(1.5, 50.0)
+                spinbox.setSingleStep(0.5)
+
+        # Update error entry widget if it exists
+        if hasattr(self, 'error_entry_widget') and hasattr(self.model, 'source_point_data'):
+            source_data = self.model.source_point_data
+            if "series" in source_data and isinstance(source_data["series"], pd.Series):
+                self.error_entry_widget.update_components(source_data["series"], self.model.error_entry_model)
+
     def _on_trace_name_changed(self, text: str):
         self.model.trace_name = text
         if hasattr(self, "traceNameChangedCallback") and self.traceNameChangedCallback:
             self.traceNameChangedCallback(text)
 
+    # def set_model(self, new_model: TraceEditorModel):
+    #     self.model = new_model
+    #     self.update_from_model()
+    #     self.set_plot_type(self.current_plot_type)
+    #     self._build_filters_ui()
+
     def set_model(self, new_model: TraceEditorModel):
+        """Set a new model for the editor view."""
         self.model = new_model
+        
+        # Remove all existing widgets
+        while self.form_layout.count():
+            item = self.form_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Rebuild UI with the new model
+        self._build_ui()
+
+        # Update widgets from the model
         self.update_from_model()
+        
+        # Set visibility based on plot type
         self.set_plot_type(self.current_plot_type)
+
+        # Rebuild filters UI
         self._build_filters_ui()
 
     # --- Filters UI Methods in TraceEditorView ---
@@ -3111,7 +3553,6 @@ class TraceEditorController:
     def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and
         sizemap."""
-        print(f"Datafile changed to: {new_file}")
 
         # Get the appropriate metadata
         if isinstance(new_file, str):
@@ -3127,7 +3568,6 @@ class TraceEditorController:
 
         # Update the model's datafile
         self.model.datafile = metadata
-        print(f"Datafile changed to: {self.model.datafile}")
 
         # Get the dataframe
         df = self.data_library.dataframe_manager.get_dataframe_by_metadata(metadata)
@@ -3137,7 +3577,6 @@ class TraceEditorController:
 
         # Get numeric columns from the dataframe
         numeric_cols = get_numeric_columns_from_dataframe(df)
-        print(f"Numeric columns in new file: {numeric_cols}")
 
         # Get ALL columns from the dataframe (for filters)
         all_cols = get_all_columns_from_dataframe(df)
@@ -3147,7 +3586,6 @@ class TraceEditorController:
         if heatmap_combo:
             heatmap_combo.blockSignals(True)
             current_value = self.model.heatmap_column
-            print(f"Current heatmap column: {current_value}")
 
             # Clear and add new columns
             heatmap_combo.clear()
@@ -3160,18 +3598,12 @@ class TraceEditorController:
             # and the current value is not in the new file, we must change it
             if not value_exists_in_new_file:
                 if numeric_cols:
-                    print(
-                        f"Heatmap column '{current_value}' not in new file, switching to '{numeric_cols[0]}'"
-                    )
                     self.model.heatmap_column = numeric_cols[0]
                     heatmap_combo.setCurrentText(numeric_cols[0])
                 else:
                     print("No numeric columns in new file, clearing heatmap column")
                     self.model.heatmap_column = ""
             else:
-                print(
-                    f"Keeping existing heatmap column '{current_value}' as it exists in new file"
-                )
                 heatmap_combo.setCurrentText(current_value)
 
             heatmap_combo.blockSignals(False)
@@ -3241,6 +3673,266 @@ class TraceEditorController:
 # --------------------------------------------------------------------
 # Setup Menu Models
 # --------------------------------------------------------------------
+
+
+@dataclass
+class ChemicalFormulaModel:
+    """Model for storing chemical formulas for each column in each axis."""
+    formulas: dict = field(
+        default_factory=dict,
+        metadata={"plot_types": ["ternary", "cartesian"]},
+    )
+
+    def __post_init__(self):
+        # Initialize with empty dictionaries for each axis
+        if not self.formulas:
+            self.formulas = {
+                "x_axis": {},
+                "y_axis": {},
+                "left_axis": {},
+                "right_axis": {},
+                "top_axis": {},
+                "hover_data": {},
+            }
+
+    def get_formula(self, axis_name, column_name):
+        """Get the formula for a column on an axis."""
+        return self.formulas.get(axis_name, {}).get(column_name, "")
+
+    def set_formula(self, axis_name, column_name, formula):
+        """Set the formula for a column on an axis."""
+        if axis_name not in self.formulas:
+            self.formulas[axis_name] = {}
+        self.formulas[axis_name][column_name] = formula
+
+    def clean_unused_formulas(self, axis_name, valid_columns):
+        """Remove formulas for columns that are no longer selected."""
+        if axis_name in self.formulas:
+            # Create a copy of keys to avoid modifying during iteration
+            column_keys = list(self.formulas[axis_name].keys())
+            for column in column_keys:
+                if column not in valid_columns:
+                    del self.formulas[axis_name][column]
+
+class FormulaInputWidget(QWidget):
+    """Widget that displays input fields for chemical formulas for each column in each axis."""
+
+    formulaChanged = Signal(str, str, str)  # axis_name, column_name, formula
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayout(QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.axis_sections = {}  # axis_name -> QGroupBox
+        self.formula_inputs = {}  # (axis_name, column_name) -> QLineEdit
+        self.validation_labels = {}  # (axis_name, column_name) -> QLabel
+
+        # Add heading label
+        heading = QLabel("<b>Chemical Formulas:</b>")
+        heading.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.layout().addWidget(heading)
+
+        # Add help text
+        help_text = QLabel(
+            "Enter the chemical formula for each column. These will be used for molar calculations."
+        )
+        help_text.setWordWrap(True)
+        self.layout().addWidget(help_text)
+
+        # Add a spacer
+        self.layout().addSpacing(10)
+
+    def update_columns(self, axis_name, columns, current_formulas=None):
+        """Update the widget to show the current columns for an axis.
+
+        Args:
+            axis_name: Name of the axis (x_axis, y_axis, etc.)
+            columns: List of column names selected for this axis
+            current_formulas: Dictionary of current formulas (column_name -> formula)
+        """
+        # Default formulas dictionary if none provided
+        if current_formulas is None:
+            current_formulas = {}
+
+        # Format the axis name for display
+        display_name = axis_name.replace("_", " ").title()
+
+        # Remove the old section if it exists
+        if axis_name in self.axis_sections:
+            section = self.axis_sections[axis_name]
+            self.layout().removeWidget(section)
+            section.deleteLater()
+            # Clean up formula_inputs and validation_labels references for this axis
+            keys_to_remove = [k for k in self.formula_inputs if k[0] == axis_name]
+            for key in keys_to_remove:
+                del self.formula_inputs[key]
+                if key in self.validation_labels:
+                    del self.validation_labels[key]
+            # Remove the entry from axis_sections to ensure proper tracking
+            del self.axis_sections[axis_name]
+
+        # Create a new section if there are columns
+        if columns:
+            section = QGroupBox(display_name)
+            form_layout = QFormLayout(section)
+            form_layout.setLabelAlignment(Qt.AlignLeft)
+            
+            for column in columns:
+                # Create a container for the formula input and validation
+                input_container = QWidget()
+                input_layout = QHBoxLayout(input_container)
+                input_layout.setContentsMargins(0, 0, 0, 0)
+                
+                # Formula input field
+                formula_input = QLineEdit()
+                formula_input.setPlaceholderText("Enter formula (e.g. Al2O3)")
+                
+                # Set current value from the model or default to empty string
+                formula_value = current_formulas.get(column, "")
+                formula_input.setText(formula_value)
+                
+                # Add input to layout
+                input_layout.addWidget(formula_input)
+                
+                # Create validation label
+                validation_label = QLabel()
+                validation_label.setFixedWidth(110)  # Fixed width for validation message
+                validation_label.setStyleSheet("font-size: 10px;")
+                input_layout.addWidget(validation_label)
+                
+                # Create a function to validate the formula
+                def make_validator(a=axis_name, c=column, input_field=formula_input, vlabel=validation_label):
+                    def validate_formula(text):
+                        if not text.strip():
+                            vlabel.clear()
+                        elif is_valid_formula(text):
+                            vlabel.setText("Valid formula")
+                            vlabel.setStyleSheet("font-size: 10px; color: green;")
+                        else:
+                            vlabel.setText("Not a valid formula")
+                            vlabel.setStyleSheet("font-size: 10px; color: red;")
+                        
+                        self.formulaChanged.emit(a, c, text)
+                    
+                    return validate_formula
+                
+                # Create validator function 
+                validator_func = make_validator()
+                
+                # Connect text changed signal
+                formula_input.textChanged.connect(validator_func)
+                
+                # Add a "Suggest" button to try auto-detecting formulas
+                suggest_button = QPushButton("Suggest")
+                suggest_button.setFixedWidth(70)
+                input_layout.addWidget(suggest_button)
+                
+                # Function to suggest formula based on column name
+                def make_suggester(c=column, input_field=formula_input):
+                    def suggest_formula():
+                        # Simple formula suggestion logic - customize as needed
+                        # This would try to extract a formula from the column name
+                        suggested = suggest_formula_from_column_name(c)
+                        if suggested:
+                            input_field.setText(suggested)
+                    return suggest_formula
+                
+                # Connect suggest button
+                suggest_button.clicked.connect(make_suggester())
+                
+                # Store references to the input field and validation label
+                self.formula_inputs[(axis_name, column)] = formula_input
+                self.validation_labels[(axis_name, column)] = validation_label
+                
+                # Validate initial text
+                if formula_value:
+                    validator_func(formula_value)
+                
+                # Add to form layout
+                form_layout.addRow(column, input_container)
+
+                # With this conditional version:
+                if not formula_value.strip():
+                    suggest_button.click()
+                # suggest_button.click()
+
+            self.axis_sections[axis_name] = section
+            self.layout().addWidget(section)
+
+            # Force layout update
+            self.layout().update()
+
+    def set_formula_value(self, axis_name, column_name, value):
+        """Set the formula value for a specific column in an axis."""
+        key = (axis_name, column_name)
+        if key in self.formula_inputs:
+            # Block signals to prevent triggering the textChanged signal
+            self.formula_inputs[key].blockSignals(True)
+            self.formula_inputs[key].setText(value)
+            self.formula_inputs[key].blockSignals(False)
+            
+            # Update validation label
+            if key in self.validation_labels:
+                if not value.strip():
+                    self.validation_labels[key].clear()
+                elif is_valid_formula(value):
+                    self.validation_labels[key].setText("Valid formula")
+                    self.validation_labels[key].setStyleSheet("font-size: 10px; color: green;")
+                else:
+                    self.validation_labels[key].setText("Not a valid formula")
+                    self.validation_labels[key].setStyleSheet("font-size: 10px; color: red;")
+
+    def clear(self):
+        """Clear all formula sections."""
+        for section in self.axis_sections.values():
+            self.layout().removeWidget(section)
+            section.deleteLater()
+        self.axis_sections.clear()
+        self.formula_inputs.clear()
+        self.validation_labels.clear()
+        self.layout().update()  # Force layout update after clearing
+
+
+def suggest_formula_from_column_name(column_name):
+    """Suggest a chemical formula based on a column name.
+    
+    This function tries to extract a chemical formula from a column name
+    using heuristics. Returns an empty string if no formula can be suggested.
+    """
+    # Strip common suffixes that might be in column names
+    suffixes = ["_wt", "_fixed", "_value", "_percent", "_pct", "_normalized", "_norm"]
+    cleaned_name = column_name
+    for suffix in suffixes:
+        if cleaned_name.lower().endswith(suffix.lower()):
+            cleaned_name = cleaned_name[:-len(suffix)]
+    
+    # Check if the cleaned name is already a valid formula
+    if is_valid_formula(cleaned_name):
+        return cleaned_name
+    
+    # Try to extract common oxide patterns
+    common_oxides = {
+        "al2o3": "Al2O3",
+        "sio2": "SiO2", 
+        "cao": "CaO",
+        "mgo": "MgO",
+        "na2o": "Na2O",
+        "k2o": "K2O",
+        "fe2o3": "Fe2O3",
+        "feo": "FeO",
+        "tio2": "TiO2",
+        "p2o5": "P2O5",
+        "mno": "MnO",
+        "cr2o3": "Cr2O3"
+    }
+    
+    # Check if cleaned_name matches any common oxide pattern (case insensitive)
+    for pattern, formula in common_oxides.items():
+        if pattern.lower() in cleaned_name.lower():
+            return formula
+    
+    # If no match found, return empty string
+    return ""
 
 
 # --------------------------------------------------------------------
@@ -3548,6 +4240,14 @@ class AdvancedPlotSettingsModel:
             "plot_types": ["ternary"],
         },
     )
+    show_tick_marks: bool = field(
+        default=True,
+        metadata={
+            "label": "Show Tick Marks:",
+            "widget": QCheckBox,
+            "plot_types": ["ternary", "cartesian"]
+        }
+    )
     legend_position: str = field(
         default="top-right",
         metadata={
@@ -3577,9 +4277,10 @@ class AdvancedPlotSettingsModel:
 @dataclass
 class SetupMenuModel:
     data_library: DataLibraryModel = field(default_factory=DataLibraryModel)
-    plot_labels: PlotLabelsModel = field(default_factory=PlotLabelsModel)
     axis_members: AxisMembersModel = field(default_factory=AxisMembersModel)
+    plot_labels: PlotLabelsModel = field(default_factory=PlotLabelsModel)
     column_scaling: ColumnScalingModel = field(default_factory=ColumnScalingModel)
+    chemical_formulas: ChemicalFormulaModel = field(default_factory=ChemicalFormulaModel)
     advanced_settings: AdvancedPlotSettingsModel = field(
         default_factory=AdvancedPlotSettingsModel
     )
@@ -3598,6 +4299,7 @@ class SetupMenuModel:
             plot_labels=PlotLabelsModel(**d.get("plot_labels", {})),
             axis_members=AxisMembersModel(**d.get("axis_members", {})),
             column_scaling=ColumnScalingModel(**d.get("column_scaling", {})),
+            chemical_formulas=ChemicalFormulaModel(**d.get("chemical_formulas", {})),
             advanced_settings=AdvancedPlotSettingsModel(
                 **d.get("advanced_settings", {})
             ),
@@ -3630,7 +4332,6 @@ class SetupMenuController:
             self.model.data_library.update_file_paths(file_path_mapping)
 
         loaded_files = self.model.data_library.loaded_files
-        print(f"Loaded files: {loaded_files}")
 
         common_columns = None
         for file_meta in loaded_files:
@@ -3644,7 +4345,6 @@ class SetupMenuController:
 
             # Get columns from the dataframe
             cols = set(df.columns)
-            print(f"Columns in {file_meta.file_path}: {cols}")
 
             if common_columns is None:
                 common_columns = set(cols)
@@ -3655,22 +4355,16 @@ class SetupMenuController:
             common_columns = set()
 
         common_list = sorted(common_columns)
-        print(f"Common columns across all files: {common_list}")
 
-        # Dictionary to track changes in each axis for later updating scaling widget
+        # Dictionary to track changes in each axis for later updating widgets
         axis_changes = {}
 
         axis_widgets = self.view.section_widgets.get("axis_members", {})
         for field_name, widget in axis_widgets.items():
             if isinstance(widget, MultiFieldSelector):
-                print(
-                    f"Updating MultiFieldSelector for {field_name} with options: {common_list}"
-                )
                 widget.set_available_options(common_list)
                 selected = widget.get_selected_fields()
-                print(f"Current selected fields: {selected}")
                 valid = [s for s in selected if s in common_list]
-                print(f"Valid selections: {valid}")
 
                 # Track if selections changed
                 axis_changes[field_name] = {"previous": selected, "current": valid}
@@ -3683,9 +4377,15 @@ class SetupMenuController:
 
                 # Clean up scaling factors for columns that are no longer valid
                 self.model.column_scaling.clean_unused_scales(field_name, valid)
+                
+                # Clean up formulas for columns that are no longer valid
+                self.model.chemical_formulas.clean_unused_formulas(field_name, valid)
 
         # Update the column scaling widget to reflect the changes
         self.view.update_scaling_widget()
+        
+        # Update the formula widget to reflect the changes
+        self.view.update_formula_widget()
 
 
 # --------------------------------------------------------------------
@@ -3695,15 +4395,11 @@ class SetupMenuView(QWidget):
     def __init__(self, model: SetupMenuModel, parent=None):
         super().__init__(parent)
         self.model = model
-        self.current_plot_type = (
-            "ternary"  # Default plot type; will be updated by the controller.
-        )
-        self.controller = None  # Will be set later by the main window.
-        self.section_widgets = (
-            {}
-        )  # To hold per‑section widget mappings keyed by model attribute name.
-
-        # Wrap all contents in a scroll area for vertical scrolling.
+        self.current_plot_type = "ternary"  # Default plot type
+        self.controller = None  # Will be set later by the main window
+        self.section_widgets = {}  # To hold per‑section widget mappings
+        
+        # Wrap all contents in a scroll area for vertical scrolling
         self.scroll = QScrollArea(self)
         self.scroll.setWidgetResizable(True)
         self.content = QWidget()
@@ -3718,6 +4414,7 @@ class SetupMenuView(QWidget):
         data_library_label = QLabel("Loaded Data:")
         data_library_layout.addWidget(data_library_label)
         self.dataLibraryList = QListWidget(self)
+        self.dataLibraryList.setMaximumHeight(150)
         data_library_layout.addWidget(self.dataLibraryList)
         btn_layout = QHBoxLayout()
         self.addDataButton = QPushButton("Add Data", self)
@@ -3729,19 +4426,19 @@ class SetupMenuView(QWidget):
         self.removeDataButton.clicked.connect(self.remove_data_file)
         self.content_layout.addWidget(self.dataLibraryWidget)
 
-        # Plot Labels Section
-        self.plotLabelsWidget = self.build_form_section(
-            self.model.plot_labels, "plot_labels"
-        )
-        self.content_layout.addWidget(self.plotLabelsWidget)
-
         # Axis Members Section
         self.axisMembersWidget = self.build_form_section(
             self.model.axis_members, "axis_members"
         )
         self.content_layout.addWidget(self.axisMembersWidget)
 
-        # Column Scaling Section - NEW
+        # Plot Labels Section
+        self.plotLabelsWidget = self.build_form_section(
+            self.model.plot_labels, "plot_labels"
+        )
+        self.content_layout.addWidget(self.plotLabelsWidget)
+
+        # Column Scaling Section
         self.columnScalingWidget = QWidget(self)
         column_scaling_layout = QVBoxLayout(self.columnScalingWidget)
         self.columnScalingWidget.setLayout(column_scaling_layout)
@@ -3751,6 +4448,17 @@ class SetupMenuView(QWidget):
 
         # Connect scaling widget signals
         self.scalingWidget.scaleChanged.connect(self.on_scale_changed)
+
+        # Chemical Formula Section - NEW
+        self.chemicalFormulaWidget = QWidget(self)
+        formula_layout = QVBoxLayout(self.chemicalFormulaWidget)
+        self.chemicalFormulaWidget.setLayout(formula_layout)
+        self.formulaWidget = FormulaInputWidget(self)
+        formula_layout.addWidget(self.formulaWidget)
+        self.content_layout.addWidget(self.chemicalFormulaWidget)
+
+        # Connect formula widget signals
+        self.formulaWidget.formulaChanged.connect(self.on_formula_changed)
 
         # Advanced Settings Section
         self.advancedSettingsWidget = self.build_form_section(
@@ -3765,8 +4473,42 @@ class SetupMenuView(QWidget):
         # Initialize to default plot type
         self.set_plot_type(self.current_plot_type)
 
-        # Update the column scaling widget with initial values
+        # Update the widgets with initial values
         self.update_scaling_widget()
+        self.update_formula_widget()
+
+    # Add this new method to handle formula changes
+    def on_formula_changed(self, axis_name, column_name, formula):
+        """Handle when a formula is changed in the formula widget."""
+        self.model.chemical_formulas.set_formula(axis_name, column_name, formula)
+
+    # Add methods to update the formula widget
+    def update_formula_widget(self):
+        """Update all axes in the formula widget."""
+        # Get valid axes for the current plot type
+        valid_axes = self.get_valid_axes_for_current_plot_type()
+
+        # First, clear the formula widget completely
+        self.formulaWidget.clear()
+
+        # Update only the valid axes
+        for axis_name in valid_axes:
+            self.update_formula_widget_for_axis(axis_name)
+
+    def update_formula_widget_for_axis(self, axis_name):
+        """Update a single axis in the formula widget."""
+        # Get the selected columns for this axis
+        axis_widget = self.section_widgets.get("axis_members", {}).get(axis_name)
+        if isinstance(axis_widget, MultiFieldSelector):
+            columns = axis_widget.get_selected_fields()
+
+            # Get the current formulas for this axis
+            current_formulas = self.model.chemical_formulas.formulas.get(
+                axis_name, {}
+            )
+
+            # Update the formula widget
+            self.formulaWidget.update_columns(axis_name, columns, current_formulas)
 
     def set_controller(self, controller: SetupMenuController):
         self.controller = controller
@@ -3831,6 +4573,7 @@ class SetupMenuView(QWidget):
             elif isinstance(field_widget, MultiFieldSelector):
                 field_widget.set_selected_fields(value)
                 # Connect selectionChanged to update the model and scaling widget
+                # field_widget.setMaximumHeight(100)
                 field_widget.selectionChanged.connect(
                     lambda sel, fname=f.name, m=section_model: self.on_field_selection_changed(
                         fname, sel, m
@@ -3840,6 +4583,7 @@ class SetupMenuView(QWidget):
             self.section_widgets[model_attr_name][f.name] = field_widget
         return widget
 
+    # Update the existing on_field_selection_changed method
     def on_field_selection_changed(self, field_name, selection, model):
         """Handle when a field selection changes in axis members."""
         # Update the model
@@ -3847,9 +4591,13 @@ class SetupMenuView(QWidget):
 
         # Clean up any scaling factors for columns no longer selected
         self.model.column_scaling.clean_unused_scales(field_name, selection)
+        
+        # Clean up any formulas for columns no longer selected
+        self.model.chemical_formulas.clean_unused_formulas(field_name, selection)
 
-        # Update the scaling widget for this axis
+        # Update the widgets for this axis
         self.update_scaling_widget_for_axis(field_name)
+        self.update_formula_widget_for_axis(field_name)
 
     def on_scale_changed(self, axis_name, column_name, scale_factor):
         """Handle when a scale factor is changed in the scaling widget."""
@@ -3906,8 +4654,10 @@ class SetupMenuView(QWidget):
             # Update the scaling widget
             self.scalingWidget.update_columns(axis_name, columns, current_scales)
 
+    # Update the set_plot_type method to handle formula widget visibility
     def set_plot_type(self, plot_type: str):
         self.current_plot_type = plot_type
+        # Update visibility of all form fields based on plot type
         for section, widgets in self.section_widgets.items():
             section_model = getattr(self.model, section, None)
             if section_model is None:
@@ -3947,6 +4697,15 @@ class SetupMenuView(QWidget):
             self.update_scaling_widget()
         else:
             self.columnScalingWidget.hide()
+
+        # Show/hide the chemical formula widget based on plot type
+        formula_plot_types = ["cartesian", "ternary"]
+        if self.current_plot_type in formula_plot_types:
+            self.chemicalFormulaWidget.show()
+            # Update with the correct axes for this plot type
+            self.update_formula_widget()
+        else:
+            self.chemicalFormulaWidget.hide()
 
     def add_data_file(self):
         """Modified add_data_file method to use DataframeManager."""
@@ -4040,11 +4799,12 @@ class SetupMenuView(QWidget):
                 self.controller.update_axis_options()
 
     def update_from_model(self):
-        # Update custom Data Library list.
+        # Update custom Data Library list
         self.dataLibraryList.clear()
         for meta in self.model.data_library.loaded_files:
             self.dataLibraryList.addItem(meta.file_path)
-        # Update each section built by build_form_section.
+            
+        # Update each section built by build_form_section
         for section, widgets in self.section_widgets.items():
             section_model = getattr(self.model, section, None)
             if section_model is None:
@@ -4071,6 +4831,9 @@ class SetupMenuView(QWidget):
 
         # Update the column scaling widget
         self.update_scaling_widget()
+        
+        # Update the chemical formula widget
+        self.update_formula_widget()
 
 
 class WorkspaceManager:
@@ -4234,13 +4997,56 @@ class MainWindow(QMainWindow):
         self.setupMenuView.set_controller(self.setupController)
 
         self.ternary_plot_maker = TernaryPlotMaker()
+        self.ternary_contour_maker = TernaryContourTraceMaker()
+        self.cartesian_plot_maker = CartesianPlotMaker()
+        
+
+    def setup_title(self, title: str):
+        """
+        Load the 'Motter Tektura' font and use it to set up the application's title label.
+        The title label is configured to display the 'quick ternaries' logo which includes a
+        hyperlink to the project repository.
+        """
+        font_path = str(Path(__file__).parent / 'resources' / 'fonts' / 'Motter_Tektura_Normal.ttf')
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        self.title_label = QLabel()
+        if font_id != -1:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                custom_font = QFont(font_families[0], pointSize=20)
+                self.title_label.setFont(custom_font)
+        self.update_title_view(title)
+        self.title_label.linkActivated.connect(lambda link: QDesktopServices.openUrl(QUrl(link)))
+        self.title_label.setOpenExternalLinks(True)  # Allow the label to open links
+        return self.title_label
+
+    def update_title_view(self, title: str):
+        """
+        Update the title label hyperlink color based on the current theme.
+        """
+        self.title_label.setText(
+            '<a href=https://github.com/ariessunfeld/quick-ternaries ' +
+            f'style="color: {self.get_title_color()}; text-decoration:none;">' +
+            f'{title}' +
+            '</a>'
+        )
+
+    def get_title_color(self):
+        """
+        Determine the appropriate title color based on the current palette.
+        """
+        palette = self.palette()
+        background_color = palette.color(QPalette.Window)
+        is_dark_mode = background_color.value() < 128  # Assuming dark mode if background is dark
+        return 'white' if is_dark_mode else 'black'
 
     def _create_top_banner(self):
         container = QWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(8, 2, 8, 2)
-        logo_label = QLabel("Quick Ternaries")
-        logo_label.setStyleSheet("font-weight: bold; font-size: 16pt;")
+        # logo_label = QLabel("Quick Ternaries")
+        # logo_label.setStyleSheet("font-weight: bold; font-size: 16pt;")
+        logo_label = self.setup_title('Quick Ternaries')
         layout.addWidget(logo_label)
         layout.addStretch()
         self.plotTypeSelector = QComboBox()
@@ -4275,11 +5081,11 @@ class MainWindow(QMainWindow):
         self.saveButton.clicked.connect(self.save_workspace)
         self.loadButton.clicked.connect(self.load_workspace)
         self.bootstrapButton.clicked.connect(self.on_bootstrap_clicked)
+        self.exportButton.clicked.connect(self.on_export_clicked)
 
         return container
 
-    def on_preview_clicked(self):
-        # Create new, clean dictionaries instead of copying objects
+    def on_export_clicked(self):
         traces_data = []
         order = []
 
@@ -4294,58 +5100,350 @@ class MainWindow(QMainWindow):
                     if not getattr(model, "hide_on", False):
                         traces_data.append(model)
 
-        fig = self.ternary_plot_maker.make_plot(self.setupMenuModel, traces_data)
+        # Get current plot type
+        current_plot_type = self.plotTypeSelector.currentText().lower()
+
+        # fig = self.ternary_plot_maker.make_plot(self.setupMenuModel, traces_data)
+
+        # Create figure using appropriate plot maker based on plot type
+        if current_plot_type == 'ternary':
+            fig = self.ternary_plot_maker.make_plot(self.setupMenuModel, traces_data)
+        elif current_plot_type == 'cartesian':
+            fig = self.cartesian_plot_maker.make_plot(self.setupMenuModel, traces_data)
+        else:
+            QMessageBox.warning(
+                self, 
+                "Plot Type Not Supported", 
+                f"The plot type '{current_plot_type}' is not supported yet."
+            )
+            return
+
+        # Save to file
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Export Plot", "", "Image Files (*.png *.jpeg *.svg *.jpg)"
+        )
+        # if filename:
+        #     self.ternary_plot_maker.save_plot(fig, filename, dpi=600)
+
+        if filename:
+            # Use the appropriate plot maker's save_plot method
+            if current_plot_type == 'ternary':
+                self.ternary_plot_maker.save_plot(fig, filename, dpi=600)
+            else:
+                self.cartesian_plot_maker.save_plot(fig, filename, dpi=600)
+
+    def validate_formulas_for_molar_conversion(self):
+        """
+        Validates that all necessary chemical formulas are provided for traces 
+        that have weight-to-molar conversion enabled.
+        
+        Returns:
+            bool: True if validation passes, False otherwise
+        """
+        # Get visible traces that have weight-to-molar conversion enabled
+        visible_traces = self._get_visible_traces()
+        traces_needing_validation = [(uid, model) for uid, model in visible_traces 
+                                    if getattr(model, "convert_from_wt_to_molar", False)]
+        
+        if not traces_needing_validation:
+            return True  # No traces need validation
+        
+        # Get valid apex/axis columns
+        apex_columns = {
+            'top_axis': getattr(self.setupMenuModel.axis_members, 'top_axis', []),
+            'left_axis': getattr(self.setupMenuModel.axis_members, 'left_axis', []),
+            'right_axis': getattr(self.setupMenuModel.axis_members, 'right_axis', []),
+            'x_axis': getattr(self.setupMenuModel.axis_members, 'x_axis', []),
+            'y_axis': getattr(self.setupMenuModel.axis_members, 'y_axis', []),
+        }
+        
+        # Get current formulas
+        formula_model = self.setupMenuModel.chemical_formulas
+        
+        # Track missing or invalid formulas
+        missing_formulas = []
+        invalid_formulas = []
+        
+        # Check each trace that needs validation
+        for uid, model in traces_needing_validation:
+            # Get the dataframe
+            df = self.setupMenuModel.data_library.dataframe_manager.get_dataframe_by_metadata(model.datafile)
+            if df is None:
+                continue
+                
+            # Check which columns need formulas
+            for axis_name, columns in apex_columns.items():
+                for column in columns:
+                    if column in df.columns:
+                        formula = formula_model.get_formula(axis_name, column)
+                        
+                        if not formula.strip():
+                            missing_formulas.append((model.trace_name, column, axis_name))
+                        elif not is_valid_formula(formula):
+                            invalid_formulas.append((model.trace_name, column, formula, axis_name))
+        
+        # If problems found, show a warning
+        if missing_formulas or invalid_formulas:
+            message = "Cannot render plot with weight-to-molar conversion due to formula issues:\n\n"
+            
+            if missing_formulas:
+                message += "Missing formulas:\n"
+                for trace, column, axis in missing_formulas:
+                    axis_display = axis.replace("_", " ").title()
+                    message += f"• Trace '{trace}' needs formula for '{column}' on {axis_display}\n"
+                message += "\n"
+                
+            if invalid_formulas:
+                message += "Invalid formulas:\n"
+                for trace, column, formula, axis in invalid_formulas:
+                    axis_display = axis.replace("_", " ").title()
+                    message += f"• Trace '{trace}': '{formula}' is not valid for '{column}' on {axis_display}\n"
+            
+            QMessageBox.warning(self, "Formula Validation Error", message)
+            return False
+            
+        return True
+
+    def on_preview_clicked(self):
+        """Generate and display the current plot."""
+
+        if not self.validate_formulas_for_molar_conversion():
+            # TODO add a popup here
+            print('not valid')
+            return  # Don't proceed with rendering if validation fails
+        
+        # Get visible traces
+        visible_traces = self._get_visible_traces()
+
+        # Get current plot type
+        current_plot_type = self.plotTypeSelector.currentText().lower()
+        
+        # Separate regular and contour traces
+        regular_traces = []
+        contour_traces = []
+        
+        for uid, model in visible_traces:
+            if getattr(model, "is_contour", False):
+                contour_traces.append((uid, model))
+            else:
+                regular_traces.append(model)
+        
+        if current_plot_type == 'ternary':
+            # Create the basic figure with regular traces using ternary plot maker
+            fig = self.ternary_plot_maker.make_plot(self.setupMenuModel, regular_traces)
+            
+            # Add contour traces if any exist
+            for uid, model in contour_traces:
+                # Generate the contour trace
+                contour_trace = self.ternary_contour_maker.make_trace(
+                    model, 
+                    self.setupMenuModel, 
+                    uid
+                )
+                
+                # Add to the figure
+                if contour_trace:
+                    fig.add_trace(contour_trace)
+        
+        elif current_plot_type == 'cartesian':
+            # Create the figure with regular traces using cartesian plot maker
+            fig = self.cartesian_plot_maker.make_plot(self.setupMenuModel, regular_traces)
+            
+            # TODO: Add support for cartesian contour traces if needed
+        
+        else:  # histogram or other plot types not implemented yet
+            QMessageBox.warning(
+                self, 
+                "Plot Type Not Supported", 
+                f"The plot type '{current_plot_type}' is not supported yet."
+            )
+            return
+        
+        # Convert to HTML and add JavaScript for interaction
         html = fig.to_html()
         javascript = """
-                <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-                <script type="text/javascript">
-                    document.addEventListener("DOMContentLoaded", function() {
-                        new QWebChannel(qt.webChannelTransport, function (channel) {
-                            window.plotlyInterface = channel.objects.plotlyInterface;
-                            var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
-                            plotElement.on('plotly_selected', function(eventData) {
-                                if (eventData) {
-                                    var indices = eventData.points.map(function(pt) {
-                                        return {pointIndex: pt.customdata[pt.customdata.length - 1], curveNumber: pt.curveNumber};  // the index is the last item in customdata
-                                    });
-                                    window.plotlyInterface.receive_selected_indices(indices);
-                                }
-                            });
+            <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+            <script type="text/javascript">
+                document.addEventListener("DOMContentLoaded", function() {
+                    new QWebChannel(qt.webChannelTransport, function (channel) {
+                        window.plotlyInterface = channel.objects.plotlyInterface;
+                        var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
+                        plotElement.on('plotly_selected', function(eventData) {
+                            if (eventData) {
+                                var indices = eventData.points.map(function(pt) {
+                                    return {pointIndex: pt.customdata[pt.customdata.length - 1], curveNumber: pt.curveNumber};  // the index is the last item in customdata
+                                });
+                                window.plotlyInterface.receive_selected_indices(indices);
+                            }
                         });
                     });
-                </script>
-            """
+                });
+            </script>
+        """
         full = html + javascript
         with open("tmp.html", "w") as f:
             f.write(full)
 
         self.plotView.setUrl(QUrl.fromLocalFile(Path(__file__).parent / "tmp.html"))
 
+    def _get_visible_traces(self):
+        """
+        Get a list of visible traces in the current plot.
+        
+        Returns:
+            List of (trace_id, trace_model) tuples for visible traces.
+        """
+        visible_traces = []
+        
+        # Gather trace information in the order they appear in the tab panel
+        for i in range(self.tabPanel.listWidget.count()):
+            item = self.tabPanel.listWidget.item(i)
+            if item and item.text() not in (SETUP_MENU_LABEL, ADD_TRACE_LABEL):
+                uid = item.data(Qt.ItemDataRole.UserRole)
+                model = self.tabPanel.id_to_widget.get(uid)
+                if isinstance(model, TraceEditorModel) and not getattr(model, "hide_on", False):
+                    visible_traces.append((uid, model))
+        
+        return visible_traces
+
     def on_bootstrap_clicked(self):
+        """
+        Handles the Bootstrap button click event.
+        
+        This method:
+        1. Gets the selected point indices from the plotly interface
+        2. Retrieves the corresponding data from the source trace
+        3. Creates a new contour trace using the TernaryContourTraceMaker
+        4. Adds the trace to the tab panel
+        """
+        # Get current plot type
+        current_plot_type = self.plotTypeSelector.currentText().lower()
 
+        # For now, bootstrapping is only implemented for ternary plots
+        if current_plot_type != 'ternary':
+            QMessageBox.warning(
+                self, 
+                "Bootstrapping Not Supported", 
+                f"Bootstrapping is currently only supported for ternary plots."
+            )
+            return
+
+        # Get selected indices from the plot
         indices = self.plotly_interface.get_indices()
-        print(f"{indices=}")
-
-        new_label = "Contour Test"
-        model = TraceEditorModel(trace_name=new_label, is_contour=True)
-
-        # Assign the first datafile from the library to the new trace
-        if self.setupMenuModel.data_library.loaded_files:
-            model.datafile = self.setupMenuModel.data_library.loaded_files[0]
-
+        
+        if not indices or len(indices) != 1:
+            QMessageBox.warning(
+                self, 
+                "Selection Error",
+                "Please select exactly one point using the lasso tool before bootstrapping."
+            )
+            return
+        
+        # Extract point information
+        point_info = indices[0]
+        curve_number = point_info.get('curveNumber')
+        point_index = point_info.get('pointIndex')
+        
+        if curve_number is None or point_index is None:
+            QMessageBox.warning(
+                self, 
+                "Selection Error",
+                "Could not determine which point was selected. Please try again."
+            )
+            return
+        
+        # Get visible traces for mapping curve numbers
+        visible_traces = self._get_visible_traces()
+        
+        if curve_number < 0 or curve_number >= len(visible_traces):
+            QMessageBox.warning(
+                self, 
+                "Selection Error",
+                f"Invalid curve number: {curve_number}. Please try again."
+            )
+            return
+        
+        # Get the source trace data
+        trace_uid, trace_model = visible_traces[curve_number]
+        
+        # Get the dataframe for this trace
+        if not hasattr(trace_model, "datafile") or not trace_model.datafile:
+            QMessageBox.warning(
+                self, 
+                "Data Error", 
+                "The selected trace has no associated datafile."
+            )
+            return
+        
+        # Get the dataframe
+        df = self.setupMenuModel.data_library.dataframe_manager.get_dataframe_by_metadata(
+            trace_model.datafile
+        )
+        
+        if df is None:
+            QMessageBox.warning(
+                self, 
+                "Data Error", 
+                "Could not retrieve data for the selected trace."
+            )
+            return
+        
+        # Extract the specific row from the dataframe
+        try:
+            # Get the row corresponding to the point index
+            if point_index < len(df):
+                series = df.iloc[point_index]
+            else:
+                QMessageBox.warning(
+                    self, 
+                    "Index Error", 
+                    f"Point index {point_index} is out of bounds for the dataframe."
+                )
+                return
+        except Exception as e:
+            QMessageBox.warning(
+                self, 
+                "Data Error", 
+                f"Failed to extract point data: {str(e)}"
+            )
+            return
+        
+        # Create a new trace with contour settings
+        new_label = f"Contour from {trace_model.trace_name}"
+        
+        # Create new trace model
+        model = TraceEditorModel(
+            trace_name=new_label, 
+            is_contour=True,
+            contour_level="Contour: 1-sigma",  # Default to 1-sigma
+            trace_color=trace_model.trace_color,  # Use the source trace color
+            outline_thickness=2,  # Slightly thicker line for contours
+            # Use the same datafile
+            datafile=trace_model.datafile,
+            # Use the same conversion setting
+            convert_from_wt_to_molar=getattr(trace_model, "convert_from_wt_to_molar", False)
+        )
+        
+        # Set the source point data
+        model.set_source_point(series, {
+            "source_trace_id": trace_uid,
+            "point_index": point_index
+        })
+        
+        # Add the new trace to the tab panel
         uid = self.tabPanel.add_tab(new_label, model)
+        
+        # Save current tab data and switch to the new tab
         self._save_current_tab_data()
         self.current_tab_id = uid
-
-        # Set the model
+        
+        # Set the model in the trace editor view
         self.traceEditorView.set_model(model)
         self.traceEditorController.model = model
         self._show_trace_editor()
-
-        # Make sure datafile change handler is triggered to populate columns
-        datafile = model.datafile
-        if datafile:
-            self.traceEditorController.on_datafile_changed(datafile)
+        
+        # Update the preview after a short delay to allow UI to update
+        # self.on_preview_clicked()
 
     def on_tab_selected(self, unique_id: str):
         self._save_current_tab_data()
@@ -4405,7 +5503,6 @@ class MainWindow(QMainWindow):
         # Assign the first datafile from the library to the new trace
         if self.setupMenuModel.data_library.loaded_files:
             model.datafile = self.setupMenuModel.data_library.loaded_files[0]
-
         uid = self.tabPanel.add_tab(new_label, model)
         self._save_current_tab_data()
         self.current_tab_id = uid
@@ -4578,32 +5675,6 @@ class MainWindow(QMainWindow):
                             trace_data[f.name] = getattr(model, f.name)
                     traces_data.append(trace_data)
 
-        # Create the setup model data manually
-        # setup_data = {
-        #     "data_library": {},
-        #     "plot_labels": {},
-        #     "axis_members": {},
-        #     "advanced_settings": {},
-        # }
-
-        # # Process data_library
-        # setup_data["data_library"]["loaded_files"] = []
-        # for metadata in self.setupMenuModel.data_library.loaded_files:
-        #     # Only include essentials, no df_id
-        #     setup_data["data_library"]["loaded_files"].append(
-        #         {
-        #             "file_path": metadata.file_path,
-        #             "header_row": metadata.header_row,
-        #             "sheet": metadata.sheet,
-        #         }
-        #     )
-
-        # # Process other setup sections
-        # for section_name in ["plot_labels", "axis_members", "advanced_settings"]:
-        #     section = getattr(self.setupMenuModel, section_name)
-        #     for f in fields(section):
-        #         setup_data[section_name][f.name] = getattr(section, f.name)
-
         setup_data = self.setupMenuModel.to_dict()
 
         # Build the complete workspace data
@@ -4621,7 +5692,8 @@ class MainWindow(QMainWindow):
         if filename:
             try:
                 with open(filename, "w") as f:
-                    json.dump(workspace_data, f, indent=2)
+                    # json.dump(workspace_data, f, indent=2)
+                    json.dump(workspace_data, f, indent=2, cls=CustomJSONEncoder)
             except Exception as e:
                 traceback.print_exc()
                 QMessageBox.critical(
@@ -4634,8 +5706,6 @@ class MainWindow(QMainWindow):
         )
         if filename:
             try:
-                print(f"Loading workspace from {filename}")
-
                 workspace = WorkspaceManager.load_from_file(filename)
 
                 # Validate data files and get mapping for any relocated files
@@ -4670,6 +5740,7 @@ class MainWindow(QMainWindow):
                     "plot_labels",
                     "axis_members",
                     "column_scaling",
+                    "chemical_formulas",
                     "advanced_settings",
                 ]:
                     loaded_section = getattr(workspace.setup_model, section_name)
@@ -4730,7 +5801,6 @@ class MainWindow(QMainWindow):
                 self.tabPanel.select_tab_by_id("setup-menu-id")
                 self.tabPanel.tabSelectedCallback("setup-menu-id")
                 QApplication.processEvents()
-                print("Workspace loading complete.")
 
             except Exception as e:
                 import traceback

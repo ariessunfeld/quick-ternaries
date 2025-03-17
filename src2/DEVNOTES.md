@@ -55,3 +55,10 @@
 - view-E-3 fixed it but then was accidentally overwritten by re-running the command cp view-E-2.py view-E-3.py :(
 - view-E-4 takes a different approach: Starting with view-E, trying to pad on the contour functionality by hand using the tips from Claude that were implemented in view-E-3 (before overwrite accident)
 - view-E-4.py fixed bugs it's awesome
+- view-E-5.py : cleaning up code and removing comments etc
+- view-E-6.py trying to implement cartesian bootstrapping but not convinced it is correct
+- view-G copied view-E-5 and tries to add validation when rendering
+- view-G also introduced WYSIWYG exports using snapshot tool and custom config, high res, for non-pdf and non-html exports
+- view-H was a weird backup of view-G
+- view-I added messages and PDF, HTML exporting as WYSIWYG (amazing)
+- view-J drastically simplified the codebase by removing javascript / preview-button functionality and just using write_image
