@@ -62,3 +62,6 @@
 - view-H was a weird backup of view-G
 - view-I added messages and PDF, HTML exporting as WYSIWYG (amazing)
 - view-J drastically simplified the codebase by removing javascript / preview-button functionality and just using write_image
+- dev/zmap-gui-claude-18.py is awesome, should integrate into quick ternaries
+- view-J also auto-scales heatmap when column is changed and improves default heatmap settings
+

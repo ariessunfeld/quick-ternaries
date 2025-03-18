@@ -2518,7 +2518,7 @@ class TraceEditorModel:
     heatmap_use_advanced: bool = field(
         default=False,
         metadata={
-            "label": "Use advanced settings:",
+            "label": "Show advanced settings:",
             "widget": QCheckBox,
             "plot_types": ["ternary", "cartesian"],
             "group": "heatmap",
@@ -2558,7 +2558,7 @@ class TraceEditorModel:
     )
     # Advanced options – marked with "advanced": True and depend on both heatmap_on and heatmap_use_advanced.
     heatmap_colorscale: str = field(
-        default="Viridis",
+        default="Inferno",
         metadata={
             "label": "Heatmap Colorscale:",
             "widget": ColorScaleDropdown,
@@ -2569,7 +2569,7 @@ class TraceEditorModel:
         },
     )
     heatmap_reverse_colorscale: bool = field(
-        default=False,
+        default=True,
         metadata={
             "label": "Reverse colorscale:",
             "widget": QCheckBox,
@@ -3522,6 +3522,72 @@ class TraceEditorController:
         if datafile_combo:
             datafile_combo.currentTextChanged.connect(self.on_datafile_changed)
 
+        # Connect to heatmap column changes
+        self.connect_heatmap_column_change()
+
+    def _update_heatmap_min_max_for_column(self, column_name: str):
+        """Update heatmap min/max based on the selected column's median."""
+        if not column_name:
+            return
+            
+        # Get the dataframe
+        datafile = self.model.datafile
+        if not datafile or not datafile.file_path:
+            return
+            
+        df = self.data_library.dataframe_manager.get_dataframe_by_metadata(datafile)
+        if df is None or column_name not in df.columns:
+            return
+            
+        # Calculate the median
+        try:
+            import numpy as np
+            import pandas as pd
+            # Filter to only numeric values and drop NaNs for median calculation
+            numeric_values = pd.to_numeric(df[column_name], errors='coerce').dropna()
+            if len(numeric_values) > 0:
+                median_value = np.nanmedian(numeric_values)
+                
+                # Set min to 0 and max to 2x median
+                self.model.heatmap_min = 0.0
+                self.model.heatmap_max = float(median_value * 2)
+                
+                # Update the UI widgets if they exist
+                if hasattr(self.view, "widgets"):
+                    min_widget = self.view.widgets.get("heatmap_min")
+                    max_widget = self.view.widgets.get("heatmap_max")
+                    
+                    if min_widget and isinstance(min_widget, QDoubleSpinBox):
+                        min_widget.blockSignals(True)
+                        min_widget.setValue(self.model.heatmap_min)
+                        min_widget.blockSignals(False)
+                        
+                    if max_widget and isinstance(max_widget, QDoubleSpinBox):
+                        max_widget.blockSignals(True)
+                        max_widget.setValue(self.model.heatmap_max)
+                        max_widget.blockSignals(False)
+        except Exception as e:
+            print(f"Error calculating median for column {column_name}: {e}")
+
+    def connect_heatmap_column_change(self):
+        """Connect to heatmap column combobox currentTextChanged signal."""
+        if hasattr(self.view, "widgets"):
+            heatmap_combo = self.view.widgets.get("heatmap_column")
+            if heatmap_combo:
+                # Disconnect any existing connections first
+                try:
+                    heatmap_combo.currentTextChanged.disconnect(self._on_heatmap_column_changed)
+                except (TypeError, RuntimeError):
+                    pass  # No connections exist
+                    
+                # Connect our handler
+                heatmap_combo.currentTextChanged.connect(self._on_heatmap_column_changed)
+            
+    def _on_heatmap_column_changed(self, column_name: str):
+        """Handle when the heatmap column changes."""
+        # Update min/max based on the data
+        self._update_heatmap_min_max_for_column(column_name)
+
     def on_datafile_changed(self, new_file: Union[str, DataFileMetadata]):
         """Handle datafile changes with smarter column handling for heatmap and
         sizemap."""
@@ -3566,12 +3632,13 @@ class TraceEditorController:
             # Check if current value exists in the new file's columns
             value_exists_in_new_file = current_value in numeric_cols
 
-            # If this is an interactive datafile change (not a workspace load)
-            # and the current value is not in the new file, we must change it
+            # If the current value is not in the new file, we must change it
             if not value_exists_in_new_file:
                 if numeric_cols:
                     self.model.heatmap_column = numeric_cols[0]
                     heatmap_combo.setCurrentText(numeric_cols[0])
+                    # Update min/max for the new column
+                    self._update_heatmap_min_max_for_column(numeric_cols[0])
                 else:
                     print("No numeric columns in new file, clearing heatmap column")
                     self.model.heatmap_column = ""
@@ -3579,6 +3646,9 @@ class TraceEditorController:
                 heatmap_combo.setCurrentText(current_value)
 
             heatmap_combo.blockSignals(False)
+            
+            # Reconnect signals after updating
+            self.connect_heatmap_column_change()
 
         # --- Update sizemap column options similarly ---
         sizemap_combo = self.view.widgets.get("sizemap_column")
@@ -4881,9 +4951,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Quick Ternaries")
         self.resize(1200, 800)
 
-        self.plot_config = None
-        self.download_filepath = None
-
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_vlayout = QVBoxLayout(central_widget)
@@ -4941,10 +5008,6 @@ class MainWindow(QMainWindow):
         self.plotView.setHtml("<h3>Plot Window</h3><p>QWebEngineView placeholder</p>")
         self.h_splitter.addWidget(self.plotView)
 
-        # Profile
-        self.webprofile = QWebEngineProfile.defaultProfile()
-        self.webprofile.downloadRequested.connect(self.handle_download)
-
         # Set up the web channel
         self.web_channel = QWebChannel(self.plotView.page())
         self.web_channel.registerObject("plotlyInterface", self.plotly_interface)
@@ -4979,36 +5042,6 @@ class MainWindow(QMainWindow):
         self.ternary_contour_maker = TernaryContourTraceMaker()
         self.cartesian_plot_maker = CartesianPlotMaker()
 
-    def handle_download(self, download):
-        print('handle download entered')
-        if self.download_filepath:
-            print('download_filepath was truthy inside handle download')
-            # Get the directory of the selected filepath
-            directory = str(self.download_filepath.parent)
-            filename = self.download_filepath.name
-            
-            # Set download directory and filename
-            download.setDownloadDirectory(directory)
-            download.setDownloadFileName(filename)
-            
-            # Accept the download
-            download.accept()
-
-            QMessageBox.information(
-                self,
-                "Export Successful",
-                f"Plot exported as {Path(filename).suffix.upper().lstrip('.')} to {Path(directory) / filename}"
-            )
-
-            # Reset the filepath
-            self.download_filepath = None
-        else:
-            QMessageBox.critical(
-                self,
-                "Export Failed",
-                f"Please use the Export button in the bottom banner."
-            )
-        
     def validate_axis_members(self):
         """
         Validates that all required axes for the current plot type have at least one column selected.
@@ -5164,15 +5197,10 @@ class MainWindow(QMainWindow):
 
         return Path(file_path), selected_filter
     
-    def _export_as_html_or_pdf(self, filepath: Path):
+    def _export_as_html_or_image(self, filepath: Path):
         """Export the current plot as a standalone HTML file."""
         try:
 
-            QMessageBox.warning(
-                self,
-                "Heatmap Format Warning",
-                f"If your plot contains heatmap color scales, their positions and dimensions may vary from what you see in the application window."
-            )
             # Get the current plot type
             current_plot_type = self.plotTypeSelector.currentText().lower()
             
@@ -5202,20 +5230,6 @@ class MainWindow(QMainWindow):
                     f"Exporting {current_plot_type} as HTML is not supported yet."
                 )
                 return
-            
-            # Create a standalone HTML file
-            config = {
-                'displayModeBar': True,
-                'displaylogo': False,
-                'responsive': True,
-                'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape'],
-            }
-            
-            html_content = fig.to_html(
-                # full_html=True,
-                # include_plotlyjs=True,
-                # config=config
-            )
 
             # Get current plotView dimensions
             current_width = self.plotView.width()
@@ -5230,10 +5244,6 @@ class MainWindow(QMainWindow):
             if str(filepath).lower().endswith('.html'):
                 
                 pio.write_html(fig, filepath)
-
-                # # Write to HTML file
-                # with open(filepath, 'w', encoding='utf-8') as f:
-                #     f.write(html_content)
                 
                 if Path(filepath).is_file():
                     QMessageBox.information(
@@ -5248,7 +5258,7 @@ class MainWindow(QMainWindow):
                         f"Failed to export plot as HTML to {filepath}"
                     )
 
-            elif str(filepath).lower().endswith('.pdf'):
+            else:
 
                 # Get current plotView dimensions
                 current_width = self.plotView.width()
@@ -5266,7 +5276,7 @@ class MainWindow(QMainWindow):
                     QMessageBox.information(
                         self,
                         "Export Successful",
-                        f"Plot exported as PDF to {filepath}"
+                        f"Plot exported as {filepath.suffix.lstrip('.').upper()} to {filepath}"
                     )
                 else:
                     QMessageBox.critical(
@@ -5283,110 +5293,13 @@ class MainWindow(QMainWindow):
                 f"Failed to export plot as HTML: {str(e)}"
             )
 
-    def _export_as_pdf(self, filepath):
-        """Export the current plot as a PDF file using QWebEnginePage's PDF export."""
-        try:
-            # First make sure we have the latest plot rendered
-            self.plot_config = None  # Reset the plot config to default
-            self.on_preview_clicked()
-            
-            # Define a callback for when PDF printing finishes
-            def on_pdf_finished(success):
-                if success:
-                    QMessageBox.information(
-                        self,
-                        "Export Successful",
-                        f"Plot exported as PDF to {filepath}"
-                    )
-                else:
-                    QMessageBox.critical(
-                        self,
-                        "Export Error",
-                        f"Failed to export plot as PDF to {filepath}"
-                    )
-            
-            # Function to execute after allowing plot to render
-            def do_pdf_export():
-                # Use the page's printToPdf method
-                self.plotView.page().printToPdf(str(filepath), on_pdf_finished)
-            
-            # Delay the PDF export to ensure plot is fully rendered
-            QTimer.singleShot(2000, do_pdf_export)
-            
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Export Error",
-                f"Failed to export plot as PDF: {str(e)}"
-            )
-    
-    def _on_page_loaded_for_export(self, success):
-        # Disconnect to avoid multiple callbacks
-        self.plotView.loadFinished.disconnect(self._on_page_loaded_for_export)
-        
-        if success:
-            # Use Plotly's API directly instead of clicking a button
-            js_script = """
-            (function() {
-                var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
-                if (plotElement && window.Plotly) {
-                    console.log('Found plot element, initiating download');
-                    var config = plotElement._context?.toImageButtonOptions || {};
-                    Plotly.downloadImage(plotElement, {
-                        format: config.format || 'png',
-                        filename: config.filename || 'plot',
-                        scale: config.scale || 8
-                    });
-                    return true;
-                }
-                console.log('Could not find plot element or Plotly');
-                return false;
-            })();
-            """
-            
-            # Give additional time for Plotly to initialize
-            QTimer.singleShot(500, lambda: self.plotView.page().runJavaScript(js_script))
-        else:
-            print("Page failed to load, cannot export")
-
     def on_export_clicked(self):
         filepath, selected_filter = self.show_save_dialog()
         
         if not filepath:
             return
-            
-        file_format = filepath.suffix.lower().lstrip('.')
-        
-        # Handle HTML export differently
-        if file_format == 'html':
-            self._export_as_html_or_pdf(filepath)
-            return
-            
-        # Handle PDF export differently
-        if file_format == 'pdf':
-            self._export_as_html_or_pdf(filepath)
-            return
-        
-        # For other image formats, use the existing approach
-        self.download_filepath = filepath
-        
-        # Update config with selected format and filename
-        self.plot_config = {
-            'toImageButtonOptions': {
-                'format': file_format,
-                'filename': filepath.stem,
-                'scale': 8
-            },
-            'displayModeBar': True,
-            'displaylogo': False,
-            'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape'],
-        }
 
-        # Connect to loadFinished BEFORE calling on_preview_clicked
-        self.plotView.loadFinished.connect(self._on_page_loaded_for_export)
-        
-        # This will trigger the page to load
-        self.on_preview_clicked()
+        self._export_as_html_or_image(filepath)
 
     def validate_formulas_for_molar_conversion(self):
         """
@@ -5460,199 +5373,6 @@ class MainWindow(QMainWindow):
             
         return True
     
-    def click_camera_button(self):
-        # JavaScript to click the camera button
-        js_script = """
-        (function() {
-            // Find and click the toImage button
-            const buttons = document.getElementsByClassName('modebar-btn');
-            for (let button of buttons) {
-                if (button.getAttribute('data-title') === 'Download plot' || 
-                    button.getAttribute('data-title') === 'Download plot as a svg' ||
-                    button.getAttribute('data-title') === 'Download plot as a jpeg' ||
-                    button.getAttribute('data-title') === 'Download plot as a webp' ||
-                    button.getAttribute('data-title') === 'Download plot as a pdf') {
-                    button.click();
-                    return true;
-                }
-            }
-            return false;
-        })();
-        """
-        self.plotView.page().runJavaScript(js_script)
-
-    # # def click_camera_button(self):
-    # #     # First, let's inspect the page to understand what buttons are available
-    # #     inspect_js = """
-    # #     (function() {
-    # #         // Get all buttons and their properties
-    # #         const buttons = document.getElementsByClassName('modebar-btn');
-    # #         let buttonInfo = [];
-            
-    # #         for (let i = 0; i < buttons.length; i++) {
-    # #             buttonInfo.push({
-    # #                 index: i,
-    # #                 title: buttons[i].getAttribute('data-title'),
-    # #                 icon: buttons[i].innerHTML.slice(0, 150),  // First 150 chars of inner HTML
-    # #                 classes: buttons[i].className
-    # #             });
-    # #         }
-            
-    # #         return JSON.stringify(buttonInfo);
-    # #     })();
-    # #     """
-        
-    # #     # Function to handle the inspection results
-    # #     def process_buttons(result):
-    # #         print("Available buttons:")
-    # #         try:
-    # #             import json
-    # #             buttons = json.loads(result)
-                
-    # #             # Print all buttons for debugging
-    # #             for btn in buttons:
-    # #                 print(f"Button {btn['index']}: {btn['title']}")
-                
-    # #             # Find the camera/download button
-    # #             camera_indices = [i for i, btn in enumerate(buttons) 
-    # #                             if btn['title'] and 'Download plot' in btn['title']]
-                
-    # #             if camera_indices:
-    # #                 print(f"Found camera button at index {camera_indices[0]}")
-    # #                 # Now click the camera button
-    # #                 click_js = f"""
-    # #                 (function() {{
-    # #                     const buttons = document.getElementsByClassName('modebar-btn');
-    # #                     if (buttons.length > {camera_indices[0]}) {{
-    # #                         console.log('Clicking button:', buttons[{camera_indices[0]}].getAttribute('data-title'));
-    # #                         buttons[{camera_indices[0]}].click();
-    # #                         return true;
-    # #                     }}
-    # #                     return false;
-    # #                 }})();
-    # #                 """
-    # #                 self.plotView.page().runJavaScript(click_js, lambda result: print(f"Button clicked: {result}"))
-    # #             else:
-    # #                 print("No camera button found!")
-                    
-    # #                 # Try an alternative method using data-attr
-    # #                 alt_click_js = """
-    # #                 (function() {
-    # #                     // Try to find the toImage button using its internal name
-    # #                     const buttons = document.querySelectorAll('[data-title*="Download plot"]');
-    # #                     if (buttons.length > 0) {
-    # #                         console.log('Found button via alternate method');
-    # #                         buttons[0].click();
-    # #                         return true;
-    # #                     }
-                        
-    # #                     // If that fails, try to programmatically trigger the download
-    # #                     if (window.Plotly && typeof window.Plotly.downloadImage === 'function') {
-    # #                         console.log('Triggering Plotly.downloadImage directly');
-    # #                         Plotly.downloadImage(document.querySelector('.js-plotly-plot'), {
-    # #                             format: 'png',
-    # #                             width: 1920,
-    # #                             height: 1080,
-    # #                             scale: 4
-    # #                         });
-    # #                         return true;
-    # #                     }
-                        
-    # #                     return false;
-    # #                 })();
-    # #                 """
-    # #                 self.plotView.page().runJavaScript(alt_click_js, lambda result: print(f"Alternative method result: {result}"))
-    # #         except Exception as e:
-    # #             print(f"Error processing buttons: {e}")
-        
-    # #     # Run the inspection and process the results
-    # #     self.plotView.page().runJavaScript(inspect_js, process_buttons)
-
-    # def _click_camera_button(self):
-    #     # In PySide6, we need to use signals to handle JavaScript results
-    #     # Create a JavaScript that logs all buttons
-    #     inspect_js = """
-    #     (function() {
-    #         // Get all buttons and their properties
-    #         const buttons = document.getElementsByClassName('modebar-btn');
-    #         let buttonInfo = [];
-            
-    #         for (let i = 0; i < buttons.length; i++) {
-    #             buttonInfo.push({
-    #                 index: i,
-    #                 title: buttons[i].getAttribute('data-title'),
-    #                 classes: buttons[i].className
-    #             });
-    #         }
-            
-    #         return JSON.stringify(buttonInfo);
-    #     })();
-    #     """
-        
-    #     # PySide6 doesn't support callback functions directly in runJavaScript
-    #     # Use QWebEngineCallback approach instead
-    #     class CallbackHelper(QObject):
-    #         def __init__(self, parent=None):
-    #             self.parent = parent
-    #             super().__init__(parent)
-                
-    #         def callback(self, result):
-    #             try:
-    #                 import json
-    #                 buttons = json.loads(result)
-                    
-    #                 print("Available buttons:")
-    #                 for btn in buttons:
-    #                     print(f"Button {btn['index']}: {btn['title']}")
-                    
-    #                 # Find the camera button
-    #                 camera_indices = [i for i, btn in enumerate(buttons) 
-    #                                  if btn['title'] and 'Download plot' in btn['title']]
-                    
-    #                 if camera_indices:
-    #                     camera_index = camera_indices[0]
-    #                     print(f"Found camera button at index {camera_index}")
-                        
-    #                     # Click the camera button
-    #                     click_js = f"""
-    #                     (function() {{
-    #                         const buttons = document.getElementsByClassName('modebar-btn');
-    #                         if (buttons.length > {camera_index}) {{
-    #                             buttons[{camera_index}].click();
-    #                             return "Button clicked";
-    #                         }}
-    #                         return "Button not found";
-    #                     }})();
-    #                     """
-    #                     self.plotView.page().runJavaScript(click_js)
-    #                 else:
-    #                     print("No camera button found!")
-    #                     # Try direct Plotly API
-    #                     direct_js = """
-    #                     (function() {
-    #                         if (window.Plotly && typeof window.Plotly.downloadImage === 'function') {
-    #                             const plot = document.querySelector('.js-plotly-plot');
-    #                             if (plot) {
-    #                                 Plotly.downloadImage(plot, {
-    #                                     format: 'png',
-    #                                     width: 1920,
-    #                                     height: 1080,
-    #                                     scale: 4
-    #                                 });
-    #                                 return "Downloaded via Plotly API";
-    #                             }
-    #                         }
-    #                         return "Failed to find Plotly";
-    #                     })();
-    #                     """
-    #                     self.plotView.page().runJavaScript(direct_js)
-                        
-    #             except Exception as e:
-    #                 print(f"Error processing buttons: {e}")
-        
-    #     # Create callback helper and connect
-    #     self.callback_helper = CallbackHelper(self)
-    #     self.plotView.page().runJavaScript(inspect_js, 0, self.callback_helper.callback)
 
     def on_preview_clicked(self):
         """Generate and display the current plot."""
@@ -5709,25 +5429,8 @@ class MainWindow(QMainWindow):
                 f"The plot type '{current_plot_type}' is not supported yet."
             )
             return
-        
-        # Convert to HTML and add JavaScript for interaction
-        if self.plot_config is None:
-            config = {
-                'toImageButtonOptions': {
-                    'format': 'png',
-                    'filename': 'high_res_plot',
-                    'scale': 8
-                },
-                'displayModeBar': True,
-                'displaylogo': False,
-                # Add drawing tools [TODO figure out how to add for ternary]
-                'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape'],
-            }
-        else:
-            config = self.plot_config.copy()
 
-        print(config)
-        html = fig.to_html(config=config)
+        html = fig.to_html()
         javascript = """
             <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
             <script type="text/javascript">
