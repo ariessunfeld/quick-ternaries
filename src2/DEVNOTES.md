@@ -64,4 +64,6 @@
 - view-J drastically simplified the codebase by removing javascript / preview-button functionality and just using write_image
 - dev/zmap-gui-claude-18.py is awesome, should integrate into quick ternaries
 - view-J also auto-scales heatmap when column is changed and improves default heatmap settings
+- view-J also fixes default colors for new traces using a palette
+- view-K tries to improve the palette by handling load-from-workspace updates, deleted traces, etc
 
