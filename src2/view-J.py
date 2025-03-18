@@ -510,6 +510,77 @@ def get_preview_data(data_source, sheet=None, n_rows=24, dataframe_manager=None)
     return []
 
 
+class ColorPalette:
+    """
+    Manages a palette of colors for traces, cycling through them as needed.
+    """
+    # Tab10-equivalent colors as hex strings
+    TAB10_COLORS = [
+        "#1f77b4",  # Blue
+        "#ff7f0e",  # Orange
+        "#2ca02c",  # Green
+        "#d62728",  # Red
+        "#9467bd",  # Purple
+        "#8c564b",  # Brown
+        "#e377c2",  # Pink
+        "#7f7f7f",  # Gray
+        "#bcbd22",  # Olive
+        "#17becf",  # Cyan
+    ]
+
+    set2_colors = [
+        "#66c2a5",  # Greenish teal
+        "#fc8d62",  # Soft orange
+        "#8da0cb",  # Muted blue
+        "#e78ac3",  # Soft pink
+        "#a6d854",  # Light green
+        "#ffd92f",  # Yellow
+        "#e5c494",  # Beige
+        "#b3b3b3",  # Gray
+    ]
+
+    dark2_colors = [
+        "#1b9e77",  # Teal green
+        "#d95f02",  # Burnt orange
+        "#7570b3",  # Muted purple
+        "#e7298a",  # Bright pink
+        "#66a61e",  # Olive green
+        "#e6ab02",  # Mustard yellow
+        "#a6761d",  # Brown
+        "#666666",  # Dark gray
+    ]
+
+    tableau_colorblind_10 = [
+        "#117733",  # Dark green
+        "#44AA99",  # Teal
+        "#88CCEE",  # Light blue
+        "#DDCC77",  # Light yellow
+        "#CC6677",  # Reddish pink
+        "#AA4499",  # Purple
+        "#882255",  # Dark red
+        "#DDDDDD",  # Light gray
+        "#999933",  # Olive green
+        "#332288",  # Deep blue
+    ]
+
+
+    
+    def __init__(self):
+        # self.colors = self.TAB10_COLORS.copy()
+        self.colors = self.tableau_colorblind_10.copy()
+        self.current_index = 0
+    
+    def next_color(self):
+        """Get the next color in the cycle."""
+        color = self.colors[self.current_index]
+        self.current_index = (self.current_index + 1) % len(self.colors)
+        return color
+        
+    def reset(self):
+        """Reset the color cycle."""
+        self.current_index = 0
+
+
 @dataclass
 class DataFileMetadata:
     file_path: str
@@ -4979,6 +5050,9 @@ class MainWindow(QMainWindow):
         self.tabPanel = TabPanel()
         self.h_splitter.addWidget(self.tabPanel)
 
+        # Initialize color palette for new traces
+        self.color_palette = ColorPalette()
+
         # Center: QStackedWidget to hold both TraceEditorView and SetupMenuView.
         self.centerStack = QStackedWidget()
 
@@ -5668,7 +5742,11 @@ class MainWindow(QMainWindow):
 
         new_trace_number = self._find_next_trace_number()
         new_label = f"Trace {new_trace_number}"
-        model = TraceEditorModel(trace_name=new_label)
+
+        # Get the next color from the palette for non-contour traces
+        next_color = self.color_palette.next_color()
+
+        model = TraceEditorModel(trace_name=new_label, trace_color=next_color)
 
         # Assign the first datafile from the library to the new trace
         if self.setupMenuModel.data_library.loaded_files:
@@ -5971,6 +6049,9 @@ class MainWindow(QMainWindow):
                 self.tabPanel.select_tab_by_id("setup-menu-id")
                 self.tabPanel.tabSelectedCallback("setup-menu-id")
                 QApplication.processEvents()
+
+                # Reset the color palette when loading a workspace
+                self.color_palette.reset()
 
             except Exception as e:
                 import traceback
