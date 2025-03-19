@@ -66,4 +66,6 @@
 - view-J also auto-scales heatmap when column is changed and improves default heatmap settings
 - view-J also fixes default colors for new traces using a palette
 - view-K tries to improve the palette by handling load-from-workspace updates, deleted traces, etc
-
+- view-L integrates ZMAPs, need to fix the combobox in the zmap setupmenu when loading a workspace: https://claude.ai/chat/c111e352-a9ad-4bac-afe9-e1aa8ba53cc5
+- view-L made the fix, and added customizable and reversivle colorscale options to zmap setup menu
+- view-L discovered a bug where contours are not finding the error entry models. Unsure when it was introduced. The version bundled into the tarball titled 0.6.0 is working (does not have bug), need to look at ternary trace maker in that version to understand the problem
