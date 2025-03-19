@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 from typing import Dict, List, Optional, Tuple
 import plotly.graph_objects as go
 
-from molar_calculator import MolarMassCalculator
-from filters import (
+from src2.molar_calculator import MolarMassCalculator
+from src2.filters import (
     EqualsFilterStrategy, 
     OneOfFilterStrategy, 
     ExcludeOneFilterStrategy, 
@@ -21,9 +21,9 @@ from filters import (
     LTLTFilterStrategy
 )
 
-from utils import util_convert_hex_to_rgba
-from error_entry_model import ErrorEntryModel
-from contour_utils import (
+from src2.utils import util_convert_hex_to_rgba
+from src2.error_entry_model import ErrorEntryModel
+from src2.contour_utils import (
     transform_to_cartesian, 
     compute_kde_contours, 
     convert_contour_to_ternary

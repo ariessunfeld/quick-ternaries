@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from molar_calculator import MolarMassCalculator
-from filters import (
+from src2.molar_calculator import MolarMassCalculator
+from src2.filters import (
     EqualsFilterStrategy, 
     OneOfFilterStrategy, 
     ExcludeOneFilterStrategy, 
@@ -20,8 +20,8 @@ from filters import (
     LTLTFilterStrategy
 )
 
-from error_entry_model import ErrorEntryModel
-from utils import util_convert_hex_to_rgba
+from src2.error_entry_model import ErrorEntryModel
+from src2.utils import util_convert_hex_to_rgba
 
 class BootstrapTraceContourException(Exception):
     """Exception raised when there's an error generating contours for a bootstrap trace."""

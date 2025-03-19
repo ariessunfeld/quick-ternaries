@@ -5,7 +5,7 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
 
-from ternary_trace_maker_4 import TernaryTraceMaker
+from src2.ternary_trace_maker_4 import TernaryTraceMaker
 
 
 class AxisFormatter:

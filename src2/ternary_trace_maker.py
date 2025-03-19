@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from molar_calculator import MolarMassCalculator
-from filters import (
+from src2.molar_calculator import MolarMassCalculator
+from src2.filters import (
     EqualsFilterStrategy, 
     OneOfFilterStrategy, 
     ExcludeOneFilterStrategy, 

@@ -5,8 +5,8 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
 
-from cartesian_trace_maker import CartesianTraceMaker
-from axis_formatter import AxisFormatter
+from src2.cartesian_trace_maker import CartesianTraceMaker
+from src2.axis_formatter import AxisFormatter
 
 # class CartesianPlotMaker:
 #     """
