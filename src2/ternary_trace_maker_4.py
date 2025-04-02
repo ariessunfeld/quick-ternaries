@@ -29,55 +29,6 @@ from src2.contour_utils import (
     convert_contour_to_ternary
 )
 
-# def util_convert_hex_to_rgba(hex_color: str) -> str:
-#     """
-#     Convert a hex color string to rgba format.
-#     Handles hex formats: #RGB, #RGBA, #RRGGBB, #AARRGGBB
-    
-#     Args:
-#         hex_color: Hex color string
-        
-#     Returns:
-#         rgba color string
-#     """
-#     # Remove # if present
-#     has_hash = hex_color.startswith('#')
-#     hex_color = hex_color.lstrip('#')
-    
-#     if len(hex_color) == 8:  # #AARRGGBB format from ColorButton
-#         a = int(hex_color[0:2], 16) / 255
-#         r = int(hex_color[2:4], 16)
-#         g = int(hex_color[4:6], 16)
-#         b = int(hex_color[6:8], 16)
-#         return f"rgba({r}, {g}, {b}, {a})"
-    
-#     elif len(hex_color) == 6:  # #RRGGBB format
-#         r = int(hex_color[0:2], 16)
-#         g = int(hex_color[2:4], 16)
-#         b = int(hex_color[4:6], 16)
-#         return f"rgba({r}, {g}, {b}, 1)"
-    
-#     # elif len(hex_color) == 4:  # #RGBA format
-#     #     r = int(hex_color[0] + hex_color[0], 16)
-#     #     g = int(hex_color[1] + hex_color[1], 16)
-#     #     b = int(hex_color[2] + hex_color[2], 16)
-#     #     a = int(hex_color[3] + hex_color[3], 16) / 255
-#     #     return f"rgba({r}, {g}, {b}, {a})"
-    
-#     # elif len(hex_color) == 3:  # #RGB format
-#     #     r = int(hex_color[0] + hex_color[0], 16)
-#     #     g = int(hex_color[1] + hex_color[1], 16)
-#     #     b = int(hex_color[2] + hex_color[2], 16)
-#     #     return f"rgba({r}, {g}, {b}, 1)"
-    
-#     else:
-#         # If the format is not recognized, return the original color
-#         ret = f"{hex_color}"
-#         if has_hash:
-#             return '#' + ret
-#         else:
-#             return ret
-
 class BootstrapTraceContourException(Exception):
     """Exception raised when there's an error generating contours for a bootstrap trace."""
     def __init__(self, trace_id, message):
@@ -85,6 +36,488 @@ class BootstrapTraceContourException(Exception):
         self.message = message
         super().__init__(f"Error in trace {trace_id}: {message}")
 
+
+
+class DensityContourMaker:
+    """
+    Creates density contours for ternary plots based on all points in a trace.
+    Now supports multiple contours with custom names and line styles.
+    """
+    
+    # Pattern constants (match those in TernaryTraceMaker)
+    APEX_PATTERN = '__{apex}_{us}'
+    SCALED_COLUMN_PATTERN = '__{col}_scaled_{apex}_{us}'
+    
+    def __init__(self):
+        """Initialize the density contour maker."""
+        # Import the necessary contour utilities here to avoid potential circular imports
+        from src2.contour_utils import (
+            transform_to_cartesian, 
+            compute_kde_contours, 
+            convert_contour_to_ternary
+        )
+        self.transform_to_cartesian = transform_to_cartesian
+        self.compute_kde_contours = compute_kde_contours
+        self.convert_contour_to_ternary = convert_contour_to_ternary
+        
+        # Initialize MolarMassCalculator
+        from src2.molar_calculator import MolarMassCalculator
+        self.calculator = MolarMassCalculator()
+
+        # Import filter strategies
+        from src2.filters import (
+            EqualsFilterStrategy, 
+            OneOfFilterStrategy, 
+            ExcludeOneFilterStrategy, 
+            ExcludeMultipleFilterStrategy,
+            LessEqualFilterStrategy, 
+            LessThanFilterStrategy, 
+            GreaterEqualFilterStrategy, 
+            GreaterThanFilterStrategy,
+            LELTFilterStrategy, 
+            LELEFilterStrategy, 
+            LTLEFilterStrategy, 
+            LTLTFilterStrategy
+        )
+        
+        # Create filter strategy dictionary
+        self.filter_strategies = {
+            'is': EqualsFilterStrategy(),
+            '==': EqualsFilterStrategy(),
+            'is one of': OneOfFilterStrategy(),
+            'is not': ExcludeOneFilterStrategy(),
+            'is not one of': ExcludeMultipleFilterStrategy(),
+            '<': LessThanFilterStrategy(),
+            '>': GreaterThanFilterStrategy(),
+            '<=': LessEqualFilterStrategy(),
+            '>=': GreaterEqualFilterStrategy(),
+            'a < x < b': LTLTFilterStrategy(),
+            'a <= x <= b': LELEFilterStrategy(),
+            'a <= x < b': LELTFilterStrategy(),
+            'a < x <= b': LTLEFilterStrategy()
+        }
+    
+
+    def make_trace(self, setup_model, trace_model, trace_id: str):
+        """
+        Creates one or more density contour traces based on all points in a trace.
+        Now returns a list of traces if multiple contours are enabled.
+        
+        Args:
+            setup_model: The SetupMenuModel containing global plot settings
+            trace_model: The TraceEditorModel with density contour settings enabled
+            trace_id: Unique identifier for the trace
+            
+        Returns:
+            A list of Plotly Scatterternary traces for the density contours, or None if generation fails
+        """
+        # Debug info
+        print(f"DensityContourMaker.make_trace called for trace: {trace_model.trace_name}")
+        print(f"Density contour on: {getattr(trace_model, 'density_contour_on', False)}")
+        print(f"Multiple contours: {getattr(trace_model, 'density_contour_multiple', False)}")
+        
+        if not getattr(trace_model, 'density_contour_on', False):
+            print("Density contour is not enabled for this trace")
+            return None
+            
+        try:
+            # Get the dataframe for this trace
+            df = setup_model.data_library.dataframe_manager.get_dataframe_by_metadata(trace_model.datafile)
+            if df is None or df.empty:
+                print(f"No data available for density contour on trace: {trace_model.trace_name}")
+                return None
+                
+            print(f"Got dataframe with {len(df)} rows")
+                
+            # Apply filters if enabled
+            filtered_df = df.copy()
+            if getattr(trace_model, 'filters_on', False) and hasattr(trace_model, 'filters'):
+                filtered_df = self._apply_filters(filtered_df, trace_model.filters)
+            
+            if filtered_df.empty:
+                print(f"No data left after filtering for density contour on trace: {trace_model.trace_name}")
+                return None
+                
+            print(f"After filtering: {len(filtered_df)} rows")
+            
+            # Generate a unique string for column naming
+            unique_str = self._generate_unique_str()
+            
+            # Get column lists for each apex
+            top_columns = getattr(setup_model.axis_members, 'top_axis', [])
+            left_columns = getattr(setup_model.axis_members, 'left_axis', [])
+            right_columns = getattr(setup_model.axis_members, 'right_axis', [])
+            
+            # Process the data to get ternary coordinates
+            prepared_df = self._prepare_data(
+                filtered_df,
+                setup_model,
+                trace_model,
+                top_columns,
+                left_columns,
+                right_columns,
+                unique_str
+            )
+            
+            # Determine which percentiles to use
+            percentiles = []
+            use_multiple = bool(getattr(trace_model, 'density_contour_multiple', False))
+            print(f"Use multiple contours: {use_multiple}")
+            
+            if use_multiple:
+                # Parse multiple percentiles from comma-separated list
+                percentiles_str = getattr(trace_model, 'density_contour_percentiles', "60,70,80")
+                print(f"Percentiles string: '{percentiles_str}'")
+                try:
+                    percentiles = [float(p.strip()) for p in percentiles_str.split(',') if p.strip()]
+                    if not percentiles:
+                        percentiles = [60.0, 70.0, 80.0]  # Default if parsing fails
+                except ValueError:
+                    percentiles = [60.0, 70.0, 80.0]  # Default if parsing fails
+                print(f"Using multiple percentiles: {percentiles}")
+            else:
+                # Use single percentile
+                percentiles = [getattr(trace_model, 'density_contour_percentile', 68.27)]
+                print(f"Using single percentile: {percentiles[0]}")
+            
+            # Get user-specified legend name or generate a default
+            user_legend_name = getattr(trace_model, 'density_contour_name', "").strip()
+            trace_name = trace_model.trace_name
+            
+            # Generate default legend name based on percentiles
+            if not user_legend_name:
+                if use_multiple:
+                    # For multiple contours: "60.0%, 70.0%, 80.0% densities for Trace X"
+                    percentile_str = ", ".join(f"{p:.1f}%" for p in percentiles)
+                    default_legend_name = f"{percentile_str} densities for {trace_name}"
+                else:
+                    # For single contour: "68.0% density for Trace X"
+                    default_legend_name = f"{percentiles[0]:.1f}% density for {trace_name}"
+                    
+                legend_name = default_legend_name
+            else:
+                legend_name = user_legend_name
+            
+            print(f"Using legend name: {legend_name}")
+            
+            # Import utils for color conversion    
+            from src2.utils import util_convert_hex_to_rgba
+            
+            # Get line style
+            line_style = getattr(trace_model, 'density_contour_line_style', 'solid')
+            
+            # Create a list to store all contour traces
+            contour_traces = []
+            
+            # Generate cartesian coordinates once for efficiency
+            trace_data_df_for_transformation = prepared_df[
+                [self.APEX_PATTERN.format(apex='top',   us=unique_str),
+                self.APEX_PATTERN.format(apex='left',  us=unique_str),
+                self.APEX_PATTERN.format(apex='right', us=unique_str)]
+            ]
+            
+            # Transform to cartesian coordinates for KDE
+            trace_data_cartesian = self.transform_to_cartesian(
+                trace_data_df_for_transformation,
+                self.APEX_PATTERN.format(apex='top',   us=unique_str),
+                self.APEX_PATTERN.format(apex='left',  us=unique_str),
+                self.APEX_PATTERN.format(apex='right', us=unique_str)
+            )
+            
+            # Normalize percentiles to 0-1 scale
+            normalized_percentiles = [p/100 if p > 1 else p for p in percentiles]
+            
+            # Compute all contours at once
+            success, contours = self.compute_kde_contours(trace_data_cartesian, normalized_percentiles)
+            
+            if not success or not contours:
+                print("KDE contour computation failed")
+                return None
+                
+            # Convert all contours to ternary coordinates
+            ternary_contours = self.convert_contour_to_ternary(contours)
+            
+            # Use same legendgroup for all contours to group them
+            legendgroup = f"density-{trace_id}-{unique_str}"
+            
+            # Create a trace for each contour
+            for i, (percentile, contour) in enumerate(zip(percentiles, ternary_contours)):
+                if contour is None or contour.shape[0] == 0:
+                    print(f"Empty contour for percentile {percentile}, skipping")
+                    continue
+                
+                # Only show the first trace in the legend
+                show_in_legend = (i == 0)
+                
+                # Hover text shows individual percentile
+                hover_text = f"{percentile:.1f}% density<br>Trace: {trace_name}"
+                
+                # Create the contour trace
+                trace = go.Scatterternary(
+                    a=contour[:, 0], b=contour[:, 1], c=contour[:, 2],
+                    name=legend_name,  # Same name for all traces in the group
+                    legendgroup=legendgroup,  # Group in legend
+                    mode='lines',
+                    line=dict(
+                        color=util_convert_hex_to_rgba(trace_model.density_contour_color),
+                        width=trace_model.density_contour_thickness,
+                        dash=line_style if line_style != 'solid' else None
+                    ),
+                    showlegend=show_in_legend,  # Only show first one in legend
+                    hovertemplate=f"{hover_text}<extra></extra>"
+                )
+                contour_traces.append(trace)
+                
+            if not contour_traces:
+                print("No valid contours generated")
+                return None
+                
+            return contour_traces
+                
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error creating density contour for trace {trace_model.trace_name}: {e}")
+            return None
+    
+    def _apply_filters(self, df, filters):
+        """Apply filters to the dataframe."""
+        filtered_df = df.copy()
+        
+        for filter_obj in filters:
+            if not hasattr(filter_obj, 'filter_column') or not hasattr(filter_obj, 'filter_operation'):
+                continue
+                
+            column = filter_obj.filter_column
+            operation = filter_obj.filter_operation
+            
+            if column not in filtered_df.columns:
+                continue
+                
+            # Prepare filter parameters
+            filter_params = {'column': column, 'operation': operation}
+            
+            # Add appropriate values based on operation type
+            if operation in ['==', '<', '>', '<=', '>=', 'is', 'is not']:
+                filter_params['value 1'] = filter_obj.filter_value1
+            elif operation in ['is one of', 'is not one of']:
+                values = filter_obj.filter_value1
+                if isinstance(values, str):
+                    values = [v.strip() for v in values.split(',') if v.strip()]
+                filter_params['selected values'] = values
+            elif operation in ['a < x < b', 'a <= x <= b', 'a <= x < b', 'a < x <= b']:
+                filter_params['value a'] = filter_obj.filter_value1
+                filter_params['value b'] = filter_obj.filter_value2
+            
+            # Apply the filter
+            filter_strategy = self.filter_strategies.get(operation)
+            if filter_strategy:
+                try:
+                    result_df = filter_strategy.filter(filtered_df, filter_params)
+                    if len(result_df) > 0:
+                        filtered_df = result_df
+                except Exception as e:
+                    print(f"Error applying filter: {e}")
+        
+        return filtered_df
+    
+    def _prepare_data(self, df, setup_model, trace_model, top_columns, left_columns, right_columns, unique_str):
+        """
+        Prepares the data for contour generation.
+        """
+        # Get the scaling maps
+        scaling_maps = {}
+        if hasattr(setup_model, 'column_scaling') and hasattr(setup_model.column_scaling, 'scaling_factors'):
+            for axis_name, apex_name in [('top_axis', 'top'), ('left_axis', 'left'), ('right_axis', 'right')]:
+                if axis_name in setup_model.column_scaling.scaling_factors:
+                    scaling_maps[apex_name] = setup_model.column_scaling.scaling_factors[axis_name]
+        
+        # Apply scaling with apex-specific factors
+        df = self._apply_apex_specific_scaling(
+            df,
+            top_columns,
+            left_columns,
+            right_columns,
+            scaling_maps,
+            unique_str
+        )
+        
+        # Apply molar conversion if enabled
+        if getattr(trace_model, 'convert_from_wt_to_molar', False):
+            df = self._perform_molar_conversion(
+                df,
+                setup_model,
+                top_columns,
+                left_columns,
+                right_columns,
+                unique_str
+            )
+        else:
+            # Sum the scaled columns for each apex
+            for apex_name, apex_cols_list in zip(
+                ['top', 'left', 'right'], 
+                [top_columns, left_columns, right_columns]
+            ):
+                # Use the scaled column names
+                scaled_cols = [
+                    self.SCALED_COLUMN_PATTERN.format(col=col, apex=apex_name, us=unique_str)
+                    for col in apex_cols_list
+                ]
+                
+                df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                    df[scaled_cols].sum(axis=1)
+        
+        return df
+    
+    def _apply_apex_specific_scaling(self, df, top_columns, left_columns, right_columns, 
+                                    scaling_maps, unique_str):
+        """
+        Applies apex-specific scaling to columns and creates scaled columns.
+        """
+        # Process each apex
+        for apex_name, apex_cols_list in zip(
+            ['top', 'left', 'right'], 
+            [top_columns, left_columns, right_columns]
+        ):
+            # Get scaling map for this apex
+            apex_scale_map = scaling_maps.get(apex_name, {})
+            
+            # Create scaled columns for each apex column
+            for col in apex_cols_list:
+                # Get the scale factor (default to 1.0)
+                scale_factor = apex_scale_map.get(col, 1.0)
+                
+                # Create a scaled column
+                scaled_col_name = self.SCALED_COLUMN_PATTERN.format(col=col, apex=apex_name, us=unique_str)
+                df[scaled_col_name] = df[col] * scale_factor
+        
+        return df
+    
+    def _perform_molar_conversion(self, df, setup_model, top_columns, left_columns, right_columns, unique_str):
+        """
+        Performs molar conversion on the dataframe using scaled column values.
+        """
+        # Create a simplified molar converter
+        apex_columns = top_columns + left_columns + right_columns
+        formula_map = {}
+        
+        # Get formulas from setup model if available
+        if hasattr(setup_model, 'chemical_formulas') and hasattr(setup_model.chemical_formulas, 'formulas'):
+            for axis_name, axis_cols in zip(
+                ['top_axis', 'left_axis', 'right_axis'],
+                [top_columns, left_columns, right_columns]
+            ):
+                if axis_name in setup_model.chemical_formulas.formulas:
+                    for col, formula in setup_model.chemical_formulas.formulas[axis_name].items():
+                        if col in top_columns + left_columns + right_columns:
+                            formula_map[col] = formula
+        
+        # Process each apex
+        for apex_name, apex_cols_list in zip(
+            ['top', 'left', 'right'], 
+            [top_columns, left_columns, right_columns]
+        ):
+            # Create a list to store molar columns
+            molar_columns = []
+            
+            # Process each column in this apex
+            for col in apex_cols_list:
+                if col in formula_map:
+                    # Get the formula for this column
+                    formula = formula_map[col]
+                    
+                    # Get the scaled column name
+                    scaled_col_name = self.SCALED_COLUMN_PATTERN.format(
+                        col=col, apex=apex_name, us=unique_str
+                    )
+                    
+                    # Calculate molar mass using the calculator
+                    try:
+                        molar_mass = self.calculator.get_molar_mass(formula)
+                        
+                        # Create molar proportion column
+                        molar_col_name = f"__{col}_{apex_name}_molar_{unique_str}"
+                        df[molar_col_name] = df[scaled_col_name] / molar_mass
+                        
+                        # Add to list of molar columns
+                        molar_columns.append(molar_col_name)
+                    except Exception as e:
+                        # Skip this column if there's an error calculating molar mass
+                        print(f"Warning: Error calculating molar mass for {formula}: {e}")
+            
+            # Sum molar columns to get the apex value
+            if molar_columns:
+                df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
+                    df[molar_columns].sum(axis=1)
+            else:
+                # If no molar columns, use 0
+                df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = 0
+        
+        return df
+    
+
+    def _generate_contour(self, df, unique_str, percentile):
+        """
+        Generate contour from trace data.
+        This method is now deprecated in favor of generating multiple contours at once.
+        """
+        try:
+            print(f"Generating contour with percentile: {percentile}")
+            
+            # Extract ternary coordinates
+            trace_data_df_for_transformation = df[
+                [self.APEX_PATTERN.format(apex='top',   us=unique_str),
+                 self.APEX_PATTERN.format(apex='left',  us=unique_str),
+                 self.APEX_PATTERN.format(apex='right', us=unique_str)]
+            ]
+            
+            print(f"Extracted ternary coordinates, shape: {trace_data_df_for_transformation.shape}")
+            
+            # Transform to cartesian coordinates for KDE
+            trace_data_cartesian = self.transform_to_cartesian(
+                trace_data_df_for_transformation,
+                self.APEX_PATTERN.format(apex='top',   us=unique_str),
+                self.APEX_PATTERN.format(apex='left',  us=unique_str),
+                self.APEX_PATTERN.format(apex='right', us=unique_str)
+            )
+            
+            print(f"Transformed to cartesian, shape: {trace_data_cartesian.shape}")
+            
+            # Compute contours (convert percentile to 0-1 scale if needed)
+            clean_percentile = percentile / 100 if percentile > 1 else percentile
+            print(f"Using clean percentile: {clean_percentile}")
+            
+            success, contours = self.compute_kde_contours(trace_data_cartesian, [clean_percentile])
+            
+            if not success or not contours:
+                print("KDE contour computation failed")
+                return None, None, None
+            
+            print(f"KDE contour computed, number of contours: {len(contours)}")
+            
+            # Convert contour back to ternary coordinates
+            ternary_contours = self.convert_contour_to_ternary(contours)
+            print(f"Converted to ternary, number of contours: {len(ternary_contours)}")
+            
+            if not ternary_contours:
+                return None, None, None
+                
+            first_contour = ternary_contours[0]
+            print(f"First contour shape: {first_contour.shape}")
+            
+            return first_contour[:, 0], first_contour[:, 1], first_contour[:, 2]
+        except Exception as e:
+            print(f"Error generating contour: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, None, None
+    
+    def _generate_unique_str(self):
+        """Generate a unique string for column naming."""
+        from time import time
+        return str(hash(time()))
+    
+    
 class TernaryContourTraceMaker:
     """
     Creates Plotly Scatterternary traces for bootstrap contours in ternary diagrams.
@@ -354,9 +787,11 @@ class TernaryContourTraceMaker:
         # Use error values from the model
         if hasattr(model, "error_entry_model") and isinstance(model.error_entry_model, ErrorEntryModel):
             error_model = model.error_entry_model
-            
+            print('in _generate_error_repr, ternart trace maker 4, error_entry_model found')
             for col in series.index:
+                print(f'\tprocessing {col=}')
                 if isinstance(series[col], (int, float, np.number)) and not pd.isna(series[col]):
+                    print(f'\ttype of column entry is good')
                     # Get error from the model
                     err = error_model.get_error(col)
                     
@@ -365,7 +800,10 @@ class TernaryContourTraceMaker:
                         err *= scaling_map[col]
                         
                     err_dict[col] = err
+                else:
+                    print(f'\ttype of column entry is bad')
         else:
+            print('in _generate_error_repr, ternart trace maker 4, no error_entry_model found')
             # Fallback to default error model if no error entry model
             for col, val in series.items():
                 if isinstance(val, (int, float, np.number)) and not pd.isna(val):
@@ -378,6 +816,7 @@ class TernaryContourTraceMaker:
                         
                     err_dict[col] = err
         
+        print(f'{err_dict=}')
         return err_dict
     
     def _get_bootstrap_hover_data_and_template(self, model, scale_map) -> Tuple[Optional[np.ndarray], str]:
@@ -573,7 +1012,8 @@ class TernaryContourTraceMaker:
         
         # Compute contours
         percentile = self._clean_percentile(contour_level)
-        success, contours = compute_kde_contours(trace_data_cartesian, [percentile], 100)
+        print(f'{percentile=}')
+        success, contours = compute_kde_contours(trace_data_cartesian, [percentile])
         
         if not success:
             raise BootstrapTraceContourException(trace_id, 'Error computing contour for point')
@@ -685,13 +1125,15 @@ class TernaryTraceMaker:
             'a < x <= b': LTLEFilterStrategy()
         }
     
-    def make_trace(self, setup_model, trace_model) -> go.Scatterternary:
+
+    def make_trace(self, setup_model, trace_model, source_trace_id=None):
         """
         Creates a Plotly Scatterternary trace based on the provided setup and trace models.
         
         Args:
             setup_model: The SetupMenuModel containing global plot settings
             trace_model: The TraceEditorModel containing trace-specific settings
+            source_trace_id: Optional unique ID for the source trace (for bootstrapping)
             
         Returns:
             A Plotly Scatterternary trace object
@@ -732,6 +1174,13 @@ class TernaryTraceMaker:
             right_columns,
             scaling_maps
         )
+        
+        # Add source_trace_id to customdata if provided
+        if source_trace_id is not None and customdata is not None and len(customdata) > 0:
+            # Create an array of the same source_trace_id for each point
+            source_ids = np.full((customdata.shape[0], 1), source_trace_id, dtype=object)
+            # Add it to customdata
+            customdata = np.hstack((customdata, source_ids))
         
         # Get the values for each apex
         a = trace_data_df[self.APEX_PATTERN.format(apex='top', us=unique_str)]

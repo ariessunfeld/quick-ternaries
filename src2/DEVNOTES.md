@@ -69,3 +69,10 @@
 - view-L integrates ZMAPs, need to fix the combobox in the zmap setupmenu when loading a workspace: https://claude.ai/chat/c111e352-a9ad-4bac-afe9-e1aa8ba53cc5
 - view-L made the fix, and added customizable and reversivle colorscale options to zmap setup menu
 - view-L discovered a bug where contours are not finding the error entry models. Unsure when it was introduced. The version bundled into the tarball titled 0.6.0 is working (does not have bug), need to look at ternary trace maker in that version to understand the problem
+- view-M fixed the bug (was importing from error_entry_model and src2.error_entry_model in different places, so type check was failing. Wow!
+- view-M also added a "remove filter" option
+- view-N made a lot of changes: added density contours, changed how bootstrapping looks up the selected point (now includes trace ID as customdata in the HTML), and refactored the data library logic to display header and sheet number. However, broke some integrations with heatmap, sizemap, filter updates when datafile changes. Also seems to have totally broken the heatmap update signal that sets the min/max.
+- view-O is actually where the datafile refactor happened, and the big changes to on_datafile_changed and heatmap min/max etc. These refactors were motivated by Jade's detection of a massive bug when switching datafile for a trace. Basically, it doesnt work at all ever since datafilemetadata started being stored in the trace editor model (instead of simply storing filepath)
+- view-P tries to fix these issues by overhauling how the datafile change mechanism works in a trace, with a focus on cascading change robustness
+- view-Q tries to fix errors with scrolling datafile selection, filter highlight UI syncness, and sizemap detection, and heatmap min/max update connection
+
