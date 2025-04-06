@@ -31,7 +31,6 @@ from quick_ternaries.utils.contour_utils import (
     convert_contour_to_ternary
 )
 
-
 class BootstrapTraceContourException(Exception):
     """Exception raised when there's an error generating contours for a bootstrap trace."""
     def __init__(self, trace_id, message):
@@ -52,36 +51,14 @@ class DensityContourMaker:
     
     def __init__(self):
         """Initialize the density contour maker."""
-        # Import the necessary contour utilities here to avoid potential circular imports
-        from src2.contour_utils import (
-            transform_to_cartesian, 
-            compute_kde_contours, 
-            convert_contour_to_ternary
-        )
+        
         self.transform_to_cartesian = transform_to_cartesian
         self.compute_kde_contours = compute_kde_contours
         self.convert_contour_to_ternary = convert_contour_to_ternary
         
         # Initialize MolarMassCalculator
-        from src2.molar_calculator import MolarMassCalculator
         self.calculator = MolarMassCalculator()
 
-        # Import filter strategies
-        from src2.filters import (
-            EqualsFilterStrategy, 
-            OneOfFilterStrategy, 
-            ExcludeOneFilterStrategy, 
-            ExcludeMultipleFilterStrategy,
-            LessEqualFilterStrategy, 
-            LessThanFilterStrategy, 
-            GreaterEqualFilterStrategy, 
-            GreaterThanFilterStrategy,
-            LELTFilterStrategy, 
-            LELEFilterStrategy, 
-            LTLEFilterStrategy, 
-            LTLTFilterStrategy
-        )
-        
         # Create filter strategy dictionary
         self.filter_strategies = {
             'is': EqualsFilterStrategy(),
