@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__
+*.csv
+venv
+build
+build-venv
+testvenv
+from-github
+dist
+src3/dev
+src3/demo-data
+src3/from-ellie
+src3/from-steph
+src2/demo-data/matplotvenv
+quick_ternaries/app/__tmp.html
