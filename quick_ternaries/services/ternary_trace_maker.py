@@ -179,9 +179,6 @@ class DensityContourMaker:
             
             print(f"Using legend name: {legend_name}")
             
-            # Import utils for color conversion    
-            from src2.utils import util_convert_hex_to_rgba
-            
             # Get line style
             line_style = getattr(trace_model, 'density_contour_line_style', 'solid')
             
