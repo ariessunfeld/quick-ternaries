@@ -2,7 +2,7 @@ import time
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 import plotly.graph_objects as go
 
 from quick_ternaries.services.molar_mass_calculator import MolarMassCalculator
@@ -21,11 +21,18 @@ from quick_ternaries.services.filters import (
     LTLTFilterStrategy
 )
 
-from quick_ternaries.utils.functions import util_convert_hex_to_rgba
+from quick_ternaries.utils.functions import (
+    util_convert_hex_to_rgba,
+    format_scale_factor
+)
 from quick_ternaries.models.error_entry_model import ErrorEntryModel
 from quick_ternaries.utils.contour_utils import (
     compute_kde_contours, 
 )
+
+if TYPE_CHECKING:
+    from quick_ternaries.models.setup_menu_model import SetupMenuModel
+    from quick_ternaries.models.trace_editor_model import TraceEditorModel
 
 
 class CartesianContourException(Exception):
@@ -1420,9 +1427,15 @@ class CartesianTraceMaker:
         
         return df
 
-    def _get_hover_data_and_template(self, setup_model, trace_model, data_df: pd.DataFrame, 
-                                    x_columns: List[str], y_columns: List[str], 
-                                    scaling_maps: Dict[str, Dict[str, float]]) -> Tuple[np.ndarray, str]:
+    def _get_hover_data_and_template(
+            self, 
+            setup_model: "SetupMenuModel", 
+            trace_model: "TraceEditorModel", 
+            data_df: pd.DataFrame, 
+            x_columns: List[str], 
+            y_columns: List[str], 
+            scaling_maps: Dict[str, Dict[str, float]]
+        ) -> Tuple[np.ndarray, str]:
         """
         Generates custom data for hover tooltips and an HTML template for the hover data.
         
@@ -1448,13 +1461,11 @@ class CartesianTraceMaker:
                     merged_scale_map[col] = factor
         
         # Determine which columns to display in hover
-        use_custom_hover_data = hasattr(setup_model, 'custom_hover_data_is_checked') and setup_model.custom_hover_data_is_checked
-        
-        if use_custom_hover_data and hasattr(setup_model, 'axis_members') and hasattr(setup_model.axis_members, 'hover_data'):
-            # Use custom hover data selected by the user
+        if hasattr(setup_model, 'axis_members') and hasattr(setup_model.axis_members, 'hover_data') and setup_model.axis_members.hover_data:
+            # Use hover data selected by the user
             hover_cols = setup_model.axis_members.hover_data
         else:
-            # Default to axis columns and heatmap/sizemap columns
+            # Default to apex columns and heatmap/sizemap columns
             hover_cols = axis_columns.copy()
             
             if trace_model.heatmap_on and trace_model.heatmap_column not in hover_cols:
@@ -1471,7 +1482,7 @@ class CartesianTraceMaker:
         # Construct the hover template
         hovertemplate = "<b>x</b>: %{x}<br><b>y</b>: %{y}"
         hovertemplate += "".join(
-            f"<br><b>{f'{merged_scale_map.get(header, 1.0)}×' if header in merged_scale_map and merged_scale_map.get(header, 1.0) != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
+            f"<br><b>{f'{format_scale_factor(merged_scale_map.get(header, 1.0))}×' if header in merged_scale_map and merged_scale_map.get(header, 1.0) != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
             for i, header in enumerate(hover_cols)
         )
         

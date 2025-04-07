@@ -24,12 +24,16 @@ from quick_ternaries.services.filters import (
     LTLTFilterStrategy
 )
 from quick_ternaries.models.error_entry_model import ErrorEntryModel
-from quick_ternaries.utils.functions import util_convert_hex_to_rgba
+from quick_ternaries.utils.functions import (
+    util_convert_hex_to_rgba,
+    format_scale_factor
+)
 from quick_ternaries.utils.contour_utils import (
     transform_to_cartesian, 
     compute_kde_contours, 
     convert_contour_to_ternary
 )
+
 
 if TYPE_CHECKING:
     from quick_ternaries.models.setup_menu_model import SetupMenuModel
@@ -1829,7 +1833,7 @@ class TernaryTraceMaker:
         
         # Construct the hover template
         hovertemplate = "".join(
-            f"<br><b>{f'{merged_scale_map.get(header, 1.0)}×' if header in merged_scale_map and merged_scale_map.get(header, 1.0) != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
+            f"<br><b>{f'{format_scale_factor(merged_scale_map.get(header, 1.0))}×' if header in merged_scale_map and merged_scale_map.get(header, 1.0) != 1 else ''}{header}:</b> %{{customdata[{i}]}}"
             for i, header in enumerate(hover_cols)
         )
         

@@ -542,3 +542,32 @@ def util_convert_hex_to_rgba(hex_color: str) -> str:
             return '#' + ret
         else:
             return ret
+        
+def format_scale_factor(scale_factor: float) -> str:
+    """
+    Format a scale factor for display in hover text, handling precision appropriately.
+    
+    Args:
+        scale_factor: The scale factor value
+        
+    Returns:
+        Formatted scale factor as a string
+    """
+    # Handle precision issues by rounding first
+    rounded = round(scale_factor, 4)
+    
+    # For whole numbers (1, 2, 3, etc.), don't show decimal places
+    if rounded == int(rounded):
+        return f"{int(rounded)}"
+    
+    # For numbers with decimal portion, show appropriate precision
+    # If it only needs 1 decimal place (e.g., 2.5)
+    if rounded == round(rounded, 1):
+        return f"{rounded:.1f}"
+    
+    # If it needs 2 decimal places (e.g., 2.25)
+    if rounded == round(rounded, 2):
+        return f"{rounded:.2f}"
+    
+    # Default to 3 decimal places for more precise values
+    return f"{rounded:.3f}"
