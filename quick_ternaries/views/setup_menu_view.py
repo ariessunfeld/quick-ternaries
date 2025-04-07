@@ -237,8 +237,25 @@ class SetupMenuView(QWidget):
         return widget
 
     # Update the existing on_field_selection_changed method
+    # def on_field_selection_changed(self, field_name, selection, model):
+    #     """Handle when a field selection changes in axis members."""
+    #     # Update the model
+    #     setattr(model, field_name, selection)
+
+    #     # Clean up any scaling factors for columns no longer selected
+    #     self.model.column_scaling.clean_unused_scales(field_name, selection)
+        
+    #     # Clean up any formulas for columns no longer selected
+    #     self.model.chemical_formulas.clean_unused_formulas(field_name, selection)
+
+    #     # Update the widgets for this axis
+    #     self.update_scaling_widget_for_axis(field_name)
+    #     self.update_formula_widget_for_axis(field_name)
     def on_field_selection_changed(self, field_name, selection, model):
         """Handle when a field selection changes in axis members."""
+        # Get the previous selection before updating
+        previous_selection = getattr(model, field_name, [])
+        
         # Update the model
         setattr(model, field_name, selection)
 
@@ -247,6 +264,29 @@ class SetupMenuView(QWidget):
         
         # Clean up any formulas for columns no longer selected
         self.model.chemical_formulas.clean_unused_formulas(field_name, selection)
+        
+        # If this is an apex field, sync new columns to hover data
+        if field_name in ['top_axis', 'left_axis', 'right_axis', 'x_axis', 'y_axis']:
+            # Find columns that were added
+            new_columns = [col for col in selection if col not in previous_selection]
+            
+            if new_columns:
+                # Get current hover data
+                current_hover_data = getattr(self.model.axis_members, 'hover_data', [])
+                
+                # Add new columns to hover data if they're not already there
+                updated_hover_data = current_hover_data.copy()
+                for col in new_columns:
+                    if col not in updated_hover_data:
+                        updated_hover_data.append(col)
+                
+                # Update the hover data in the model
+                self.model.axis_members.hover_data = updated_hover_data
+                
+                # Update the hover data widget if it exists
+                hover_widget = self.section_widgets.get("axis_members", {}).get("hover_data")
+                if hover_widget and hasattr(hover_widget, "set_selected_fields"):
+                    hover_widget.set_selected_fields(updated_hover_data)
 
         # Update the widgets for this axis
         self.update_scaling_widget_for_axis(field_name)

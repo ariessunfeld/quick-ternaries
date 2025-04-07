@@ -3,7 +3,7 @@ TODO identify rendundant methods and use inheritance to resolve
 """
 
 import time
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -30,6 +30,10 @@ from quick_ternaries.utils.contour_utils import (
     compute_kde_contours, 
     convert_contour_to_ternary
 )
+
+if TYPE_CHECKING:
+    from quick_ternaries.models.setup_menu_model import SetupMenuModel
+    from quick_ternaries.models.trace_editor_model import TraceEditorModel
 
 class BootstrapTraceContourException(Exception):
     """Exception raised when there's an error generating contours for a bootstrap trace."""
@@ -1769,9 +1773,16 @@ class TernaryTraceMaker:
         
         return marker, data_df
     
-    def _get_hover_data_and_template(self, setup_model, trace_model, data_df: pd.DataFrame, 
-                                    top_columns: List[str], left_columns: List[str], 
-                                    right_columns: List[str], scaling_maps: Dict[str, Dict[str, float]]) -> Tuple[np.ndarray, str]:
+    def _get_hover_data_and_template(
+            self, 
+            setup_model: "SetupMenuModel", 
+            trace_model: "TraceEditorModel", 
+            data_df: pd.DataFrame, 
+            top_columns: List[str], 
+            left_columns: List[str], 
+            right_columns: List[str],
+            scaling_maps: Dict[str, Dict[str, float]]
+        ) -> Tuple[np.ndarray, str]:
         """
         Generates custom data for hover tooltips and an HTML template for the hover data.
         
@@ -1798,10 +1809,8 @@ class TernaryTraceMaker:
                     merged_scale_map[col] = factor
         
         # Determine which columns to display in hover
-        use_custom_hover_data = hasattr(setup_model, 'custom_hover_data_is_checked') and setup_model.custom_hover_data_is_checked
-        
-        if use_custom_hover_data and hasattr(setup_model, 'axis_members') and hasattr(setup_model.axis_members, 'hover_data'):
-            # Use custom hover data selected by the user
+        if hasattr(setup_model, 'axis_members') and hasattr(setup_model.axis_members, 'hover_data') and setup_model.axis_members.hover_data:
+            # Use hover data selected by the user
             hover_cols = setup_model.axis_members.hover_data
         else:
             # Default to apex columns and heatmap/sizemap columns
@@ -1815,8 +1824,8 @@ class TernaryTraceMaker:
                 
             if trace_model.filters_on:
                 for filter_obj in trace_model.filters:
-                    if hasattr(filter_obj, 'column') and filter_obj.column not in hover_cols:
-                        hover_cols.append(filter_obj.column)
+                    if hasattr(filter_obj, 'filter_column') and filter_obj.filter_column not in hover_cols:
+                        hover_cols.append(filter_obj.filter_column)
         
         # Construct the hover template
         hovertemplate = "".join(

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 import pandas as pd
 import numpy as np
 from PySide6.QtWidgets import (
@@ -18,6 +18,9 @@ from quick_ternaries.models.data_file_metadata_model import DataFileMetadata
 from quick_ternaries.models.filter_model import FilterModel
 from quick_ternaries.models.error_entry_model import ErrorEntryModel
 
+if TYPE_CHECKING:
+    from quick_ternaries.models.data_file_metadata_model import DataFileMetadata
+    from quick_ternaries.models.filter_model import FilterModel
 
 @dataclass
 class TraceEditorModel:
@@ -342,7 +345,7 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian", "histogram", "zmap"],
         },
     )
-    filters: list = field(
+    filters: List["FilterModel"] = field(
         default_factory=list,
         metadata={
             "label": "Filters:",
