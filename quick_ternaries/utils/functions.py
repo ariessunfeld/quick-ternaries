@@ -42,83 +42,221 @@ def recursive_to_dict(obj):
         return {k: recursive_to_dict(v) for k, v in obj.items()}
     else:
         return obj
+    
+# def canonical_category(x):
+#     """
+#     Convert a cell to a canonical category: either 'numeric', 'string', or 'nan'.
+#     This helps standardize type inference between Excel and CSV.
+#     """
+#     try:
+#         if pd.isna(x):
+#             return "nan"
+#         # Try to convert to float. If it works, consider the value numeric.
+#         float(x)
+#         return "numeric"
+#     except Exception:
+#         return "string"
 
 
-def find_header_row_excel(file, max_rows_scan, sheet_name):
-    """Returns the 'best' header row for an Excel file."""
-    min_score = float("inf")
-    best_header_row = None
+# def find_header_row_excel(file, max_rows_scan, sheet_name):
+#     """Returns the 'best' header row for an Excel file."""
+#     min_score = float("inf")
+#     best_header_row = None
 
+#     try:
+#         # Read the full sheet to know how many rows there are
+#         df = pd.read_excel(file, sheet_name=sheet_name)
+#     except FileNotFoundError as err:
+#         print(err)
+#         return None
+
+#     n_rows_search = min(len(df), max_rows_scan)
+
+#     for i in range(n_rows_search):
+#         try:
+#             # Read candidate header with nrows to compute a score
+#             df_candidate = pd.read_excel(
+#                 file, sheet_name=sheet_name, header=i, nrows=n_rows_search + 1
+#             )
+#         except Exception as e:
+#             print(f"Error reading excel file with header {i}: {e}")
+#             continue
+
+#         columns = df_candidate.columns.tolist()
+#         num_unnamed = sum("unnamed" in str(name).lower() for name in columns)
+#         num_unique = len(set(columns))
+#         # For each column, check if all values in the column (in the preview) are of the same type.
+#         type_consistency = sum(
+#             df_candidate[col].apply(type).nunique() == 1 for col in df_candidate.columns
+#         )
+
+#         total_score = num_unnamed - num_unique - type_consistency
+
+#         if total_score < min_score:
+#             min_score = total_score
+#             best_header_row = i
+
+#     return best_header_row
+
+def find_header_row_excel(file, max_rows_scan=10, sheet_name='Sheet1'):
+    """
+    Returns the most likely header row for an Excel file.
+    
+    The function reads the Excel sheet without a header, preserving the original data layout.
+    It considers each row (up to max_rows_scan) as a potential header and computes a score based on:
+    
+      - Duplicate count: Calculated as the total number of entries minus the number of unique entries.
+      - Type consistency: For each column, it checks whether all values (in the rows following the candidate header)
+        share the same type. A consistent column is scored as 1.
+    
+    The score for a candidate header is given by:
+    
+        score = duplicate_count - type_consistency
+        
+    Lower scores indicate a better candidate header.
+    
+    Parameters:
+        file (str): Path to the Excel file.
+        max_rows_scan (int): Maximum number of rows to consider as header candidates.
+        sheet_name (str): Name of the sheet to process.
+        
+    Returns:
+        int or None: The index of the best header row, or None if an error occurs.
+    """
     try:
-        # Read the full sheet to know how many rows there are
-        df = pd.read_excel(file, sheet_name=sheet_name)
-    except FileNotFoundError as err:
-        print(err)
+        # Read the entire sheet without a header
+        df = pd.read_excel(file, sheet_name=sheet_name, header=None)
+    except Exception as e:
+        print(f"Error reading Excel file: {e}")
         return None
 
-    n_rows_search = min(len(df), max_rows_scan)
+    best_score = float("inf")
+    best_candidate = None
+    num_rows = len(df)
+    max_candidates = min(max_rows_scan, num_rows)
+    
+    for i in range(max_candidates):
+        # Candidate header row as a list
+        candidate_header = df.iloc[i].tolist()
+        # Compute the duplicate count (raw count of duplicates)
+        duplicate_count = len(candidate_header) - len(set(candidate_header))
+        
+        # Evaluate type consistency for each column using all rows following the candidate header
+        type_consistency = 0
+        for col_idx in range(len(candidate_header)):
+            col_data = df.iloc[i+1:, col_idx] if i+1 < num_rows else pd.Series()
+            if not col_data.empty:
+                # Count the column as consistent if all values have the same type
+                if col_data.apply(type).nunique() == 1:
+                    type_consistency += 1
+        
+        # Calculate the overall score: lower is better
+        score = duplicate_count - type_consistency
+        
+        print(f"Row {i}: candidate header: {candidate_header}")
+        print(f"    Duplicate count: {duplicate_count}, Type consistency: {type_consistency}, Score: {score}")
+        
+        if score < best_score:
+            best_score = score
+            best_candidate = i
 
-    for i in range(n_rows_search):
-        try:
-            # Read candidate header with nrows to compute a score
-            df_candidate = pd.read_excel(
-                file, sheet_name=sheet_name, header=i, nrows=n_rows_search + 1
-            )
-        except Exception as e:
-            print(f"Error reading excel file with header {i}: {e}")
-            continue
-
-        columns = df_candidate.columns.tolist()
-        num_unnamed = sum("unnamed" in str(name).lower() for name in columns)
-        num_unique = len(set(columns))
-        # For each column, check if all values in the column (in the preview) are of the same type.
-        type_consistency = sum(
-            df_candidate[col].apply(type).nunique() == 1 for col in df_candidate.columns
-        )
-
-        total_score = num_unnamed - num_unique - type_consistency
-
-        if total_score < min_score:
-            min_score = total_score
-            best_header_row = i
-
-    return best_header_row
+    return best_candidate
 
 
-def find_header_row_csv(file, max_rows_scan):
-    """Returns the 'best' header row for a CSV file."""
-    min_score = float("inf")
-    best_header_row = None
+# def find_header_row_csv(file, max_rows_scan):
+#     """Returns the 'best' header row for a CSV file."""
+#     min_score = float("inf")
+#     best_header_row = None
 
+#     try:
+#         df = pd.read_csv(file)
+#     except FileNotFoundError as err:
+#         print(err)
+#         return None
+
+#     n_rows_search = min(len(df), max_rows_scan)
+
+#     for i in range(n_rows_search):
+#         try:
+#             df_candidate = pd.read_csv(file, header=i, nrows=n_rows_search + 1)
+#         except Exception as e:
+#             print(f"Error reading CSV file with header {i}: {e}")
+#             continue
+
+#         columns = df_candidate.columns.tolist()
+#         num_unnamed = sum("unnamed" in str(name).lower() for name in columns)
+#         num_unique = len(set(columns))
+#         type_consistency = sum(
+#             df_candidate[col].apply(type).nunique() == 1 for col in df_candidate.columns
+#         )
+
+#         total_score = num_unnamed - num_unique - type_consistency
+
+#         if total_score < min_score:
+#             min_score = total_score
+#             best_header_row = i
+
+#     return best_header_row
+
+def find_header_row_csv(file, max_rows_scan=16):
+    """
+    Returns the most likely header row for a CSV file.
+    
+    The function reads the CSV file without a header and considers each row (up to max_rows_scan)
+    as a potential header row. It calculates a score based on two metrics:
+    
+      - Duplicate Count: How many duplicate entries exist in the candidate header.
+      - Type Consistency: For each column, whether the data in the rows following the candidate header
+        have consistent types (i.e., all values in the column share the same type).
+    
+    A lower score suggests a better candidate.
+    
+    Parameters:
+        file (str): Path to the CSV file.
+        max_rows_scan (int): Maximum number of rows to consider as header candidates.
+        
+    Returns:
+        int or None: The index of the best header row, or None if an error occurs.
+    """
     try:
-        df = pd.read_csv(file)
-    except FileNotFoundError as err:
-        print(err)
+        # Read the CSV file with no header to preserve the original data layout.
+        df = pd.read_csv(file, header=None)
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
         return None
 
-    n_rows_search = min(len(df) - 1, max_rows_scan)
+    best_score = float("inf")
+    best_candidate = None
+    num_rows = len(df)
+    max_candidates = min(max_rows_scan, num_rows)
+    
+    for i in range(max_candidates):
+        # Use the candidate row as the header
+        candidate_header = df.iloc[i].tolist()
+        # Calculate the duplicate count (raw duplicates, not the auto-renamed ones)
+        duplicate_count = len(candidate_header) - len(set(candidate_header))
+        
+        # Check type consistency in each column using all rows after the candidate header.
+        type_consistency = 0
+        for col in range(len(candidate_header)):
+            # Get all data for this column after the candidate header row.
+            col_data = df.iloc[i+1:, col] if i+1 < num_rows else pd.Series()
+            if not col_data.empty:
+                # If all values in the column share the same type, count this column as consistent.
+                if col_data.apply(type).nunique() == 1:
+                    type_consistency += 1
+        
+        # The scoring formula is a heuristic: lower scores are better.
+        score = duplicate_count - type_consistency
+        
+        print(f"Row {i}: candidate header: {candidate_header}")
+        print(f"    Duplicate count: {duplicate_count}, Type consistency: {type_consistency}, Score: {score}")
+        
+        if score < best_score:
+            best_score = score
+            best_candidate = i
 
-    for i in range(n_rows_search):
-        try:
-            df_candidate = pd.read_csv(file, header=i, nrows=n_rows_search + 1)
-        except Exception as e:
-            print(f"Error reading CSV file with header {i}: {e}")
-            continue
-
-        columns = df_candidate.columns.tolist()
-        num_unnamed = sum("unnamed" in str(name).lower() for name in columns)
-        num_unique = len(set(columns))
-        type_consistency = sum(
-            df_candidate[col].apply(type).nunique() == 1 for col in df_candidate.columns
-        )
-
-        total_score = num_unnamed - num_unique - type_consistency
-
-        if total_score < min_score:
-            min_score = total_score
-            best_header_row = i
-
-    return best_header_row
+    return best_candidate
 
 
 def get_sheet_names(file_path):
