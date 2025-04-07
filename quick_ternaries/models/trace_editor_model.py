@@ -474,6 +474,47 @@ class TraceEditorModel:
             "group": "density_contour",
         },
     )
+    custom_colorscale_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Custom RGB Colorscale:",
+            "widget": QCheckBox,
+            "plot_types": ["ternary"],
+        },
+    )
+
+    apex_red_mapping: str = field(
+        default="top_axis",
+        metadata={
+            "label": "Red Channel:",
+            "widget": QComboBox,
+            "plot_types": ["ternary"],
+            "depends_on": "custom_colorscale_on",
+            "group": "custom_colorscale",
+        },
+    )
+
+    apex_green_mapping: str = field(
+        default="left_axis",
+        metadata={
+            "label": "Green Channel:",
+            "widget": QComboBox,
+            "plot_types": ["ternary"],
+            "depends_on": "custom_colorscale_on",
+            "group": "custom_colorscale",
+        },
+    )
+
+    apex_blue_mapping: str = field(
+        default="right_axis",
+        metadata={
+            "label": "Blue Channel:",
+            "widget": QComboBox,
+            "plot_types": ["ternary"],
+            "depends_on": "custom_colorscale_on",
+            "group": "custom_colorscale",
+        },
+    )
 
     def to_dict(self):
         ret = asdict(self)

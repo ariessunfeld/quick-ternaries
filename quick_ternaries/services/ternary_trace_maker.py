@@ -1182,6 +1182,52 @@ class TernaryTraceMaker:
             showlegend=True
         )
     
+    def _apply_custom_colorscale(self, marker, data_df, trace_model, unique_str):
+        """
+        Apply custom RGB colorscale based on ternary apex values.
+        
+        Args:
+            marker: The marker dictionary to update
+            data_df: The dataframe with the data
+            trace_model: The TraceEditorModel containing custom colorscale settings
+            unique_str: Unique string for column naming
+        
+        Returns:
+            tuple: (updated marker, updated dataframe)
+        """
+        # Get the mapping from color channels to apexes
+        red_apex = getattr(trace_model, "apex_red_mapping", "top_axis")
+        green_apex = getattr(trace_model, "apex_green_mapping", "left_axis")
+        blue_apex = getattr(trace_model, "apex_blue_mapping", "right_axis")
+        
+        # Get the shortened apex names (top, left, right)
+        red_apex_short = red_apex.split('_')[0]
+        green_apex_short = green_apex.split('_')[0]
+        blue_apex_short = blue_apex.split('_')[0]
+        
+        # Get apex values from dataframe
+        red_vals = data_df[self.APEX_PATTERN.format(apex=red_apex_short, us=unique_str)]
+        green_vals = data_df[self.APEX_PATTERN.format(apex=green_apex_short, us=unique_str)]
+        blue_vals = data_df[self.APEX_PATTERN.format(apex=blue_apex_short, us=unique_str)]
+        
+        # Normalize values to 0-1 range for each channel
+        red_norm = (red_vals - red_vals.min()) / (red_vals.max() - red_vals.min()) if red_vals.max() > red_vals.min() else red_vals * 0
+        green_norm = (green_vals - green_vals.min()) / (green_vals.max() - green_vals.min()) if green_vals.max() > green_vals.min() else green_vals * 0
+        blue_norm = (blue_vals - blue_vals.min()) / (blue_vals.max() - blue_vals.min()) if blue_vals.max() > blue_vals.min() else blue_vals * 0
+        
+        # Scale to 0-255 range and compute RGB colors
+        red_color = (red_norm * 255).astype(int)
+        green_color = (green_norm * 255).astype(int)
+        blue_color = (blue_norm * 255).astype(int)
+        
+        # Create rgba strings for each point
+        colors = [f"rgba({r}, {g}, {b}, 1)" for r, g, b in zip(red_color, green_color, blue_color)]
+        
+        # Add colors to the marker
+        marker['color'] = colors
+        
+        return marker, data_df
+    
     def _get_scaling_maps(self, setup_model) -> Dict[str, Dict[str, float]]:
         """
         Extracts scaling maps for each apex from the setup model.
@@ -1224,8 +1270,17 @@ class TernaryTraceMaker:
         
         return scaling_maps
     
-    def _prepare_data(self, setup_model, trace_model, top_columns, left_columns, 
-                     right_columns, unique_str, marker, scaling_maps) -> Tuple[dict, pd.DataFrame]:
+    def _prepare_data(
+            self, 
+            setup_model, 
+            trace_model, 
+            top_columns, 
+            left_columns, 
+            right_columns, 
+            unique_str, 
+            marker, 
+            scaling_maps
+        ) -> Tuple[dict, pd.DataFrame]:
         """
         Prepares the data for plotting by applying filters, scaling, and configuring markers.
         
@@ -1294,15 +1349,31 @@ class TernaryTraceMaker:
                 trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
                     trace_data_df[scaled_cols].sum(axis=1)
         
-        # Configure markers based on heatmap and sizemap settings
-        if trace_model.heatmap_on and trace_model.sizemap_on:
-            # Sort considering both heatmap and sizemap columns
+        # First, check for custom colorscale, then fallback to heatmap
+        if getattr(trace_model, "custom_colorscale_on", False):
+            marker, trace_data_df = self._apply_custom_colorscale(
+                marker,
+                trace_data_df,
+                trace_model,
+                unique_str
+            )
+        elif trace_model.heatmap_on and trace_model.sizemap_on:
+            # Existing code for integrated sort
             marker, trace_data_df = self._integrated_sort(
                 marker,
                 trace_data_df,
                 trace_model,
                 unique_str
             )
+        # # Configure markers based on heatmap and sizemap settings
+        # if trace_model.heatmap_on and trace_model.sizemap_on:
+        #     # Sort considering both heatmap and sizemap columns
+        #     marker, trace_data_df = self._integrated_sort(
+        #         marker,
+        #         trace_data_df,
+        #         trace_model,
+        #         unique_str
+        #     )
         else:
             if trace_model.heatmap_on:
                 marker, trace_data_df = self._update_marker_with_heatmap(

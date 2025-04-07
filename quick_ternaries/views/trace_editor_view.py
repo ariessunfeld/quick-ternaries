@@ -357,7 +357,11 @@ class TraceEditorView(QWidget):
                 widget.stateChanged.connect(
                     lambda state, fname=f.name: setattr(self.model, fname, bool(state))
                 )
-                if f.name in ("heatmap_on", "sizemap_on", "density_contour_on"):
+                if f.name in (
+                        "heatmap_on", 
+                        "sizemap_on", 
+                        "density_contour_on", 
+                        "custom_colorscale_on"):
                     widget.stateChanged.connect(
                         lambda _: self.set_plot_type(self.current_plot_type)
                     )
@@ -384,7 +388,10 @@ class TraceEditorView(QWidget):
                         lambda state: self._update_multiple_contours_visibility(bool(state))
                     )
             elif isinstance(widget, QComboBox):
-                if f.name == "line_style":
+                if f.name in ["apex_red_mapping", "apex_green_mapping", "apex_blue_mapping"]:
+                    widget.addItems(["top_axis", "left_axis", "right_axis"])
+                    widget.setCurrentText(str(value))
+                elif f.name == "line_style":
                     widget.addItems(['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'])
                 elif f.name == "heatmap_sort_mode":
                     widget.addItems(
@@ -393,17 +400,13 @@ class TraceEditorView(QWidget):
                 elif f.name == "heatmap_colorscale":
                     widget.addItems(["Viridis", "Cividis", "Plasma", "Inferno"])
                 elif f.name == "sizemap_sort_mode":
-                    widget.addItems(
-                        ["no change", "high on top", "low on top", "shuffled"]
-                    )
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
                 elif f.name == "sizemap_scale":
                     widget.addItems(["linear", "log"])
                 elif f.name == "heatmap_bar_orientation":
                     widget.addItems(["vertical", "horizontal"])
                 elif f.name == "contour_level":
-                    widget.addItems(
-                        ["Contour: 1-sigma", "Contour: 2-sigma"]
-                    )
+                    widget.addItems(["Contour: 1-sigma", "Contour: 2-sigma"])
                 else:
                     widget.addItems([])
                 widget.setCurrentText(str(value))
@@ -552,6 +555,17 @@ class TraceEditorView(QWidget):
             )
             density_multiple_checkbox.stateChanged.connect(
                 lambda state: self._update_multiple_contours_visibility(bool(state))
+            )
+
+        custom_colorscale_cb = self.widgets.get("custom_colorscale_on")
+        heatmap_cb = self.widgets.get("heatmap_on")
+
+        if custom_colorscale_cb and heatmap_cb:
+            custom_colorscale_cb.stateChanged.connect(
+                lambda state: heatmap_cb.setChecked(False) if state else None
+            )
+            heatmap_cb.stateChanged.connect(
+                lambda state: custom_colorscale_cb.setChecked(False) if state else None
             )
 
         self._build_filters_ui()
