@@ -22,7 +22,7 @@ class HorizontalScrollArea(QScrollArea):
 
     def wheelEvent(self, event):
         # Translate vertical scrolling into horizontal scrolling
-        delta = event.angleDelta().y()
+        delta = max(event.angleDelta().y(), event.angleDelta().x())
         new_value = self.horizontalScrollBar().value() - delta
         self.horizontalScrollBar().setValue(new_value)
         event.accept()
@@ -36,41 +36,37 @@ class ScrollableLabel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # A horizontal layout for the scroll area
+        # Use QHBoxLayout with controlled margins
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         self.scroll_area = HorizontalScrollArea()
-        # Expand horizontally, but do not expand vertically
         self.scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(self.scroll_area)
 
         self.label = QLabel()
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.label.setWordWrap(False)  # single-line behavior
-
-        # Style to resemble a line edit, but with smaller font & padding
+        self.label.setWordWrap(False)
+        
+        # Improved styling with better vertical centering
         self.label.setStyleSheet("""
             QLabel {
                 background-color: rgba(240, 240, 240, 0.5);
                 border: 1px solid #c0c0c0;
                 border-radius: 2px;
-                padding: 2px;            /* smaller padding */
+                padding: 4px 6px;  /* Increased padding - vertical, horizontal */
                 font-family: system-ui;
-                font-size: 12px;         /* smaller font */
+                font-size: 12px;
+                min-height: 20px; /* Control internal content height */
             }
         """)
-        # Expand horizontally, fixed vertically
+        
         self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        # Option 1: Fix the overall widget height to about 24 px
-        # (Comment out if you prefer a max height or no limit.)
-        # self.setFixedHeight(24)
-
-        # Option 2: Alternatively, set a maximum height:
-        self.setMaximumHeight(24)
-
+        
+        # Set BOTH minimum and maximum height for consistency
+        self.setFixedHeight(28)  # Fixed height instead of just maximum
+        
         self.scroll_area.setWidget(self.label)
 
     def setText(self, text: str):

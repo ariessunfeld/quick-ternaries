@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QPushButton, 
     QDialog
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 from quick_ternaries.views.widgets import ScrollableLabel
 from quick_ternaries.views.dialogs import DatafileSelectionDialog
@@ -25,28 +25,43 @@ class DatafileSelector(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        # Main layout
+        
+        # Main layout with better alignment control
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-
+        layout.setAlignment(Qt.AlignVCenter)  # Important - align everything vertically
+        
         # Our scrollable label widget
         self.display = ScrollableLabel()
-        # Expand horizontally, fixed vertically
         self.display.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(self.display)
-
-        # The ellipsis button, matching the same height as the label
+        layout.addWidget(self.display, 0, Qt.AlignVCenter)  # Force vertical centering
+        
+        # The ellipsis button with consistent height
         self.change_button = QPushButton("...")
         self.change_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.change_button.setToolTip("Select Datafile")
-        self.change_button.setMaximumHeight(24)  # match ScrollableLabel
-        layout.addWidget(self.change_button)
-
+        self.change_button.setFixedHeight(28)  # Match ScrollableLabel exactly
+        self.change_button.setFixedWidth(28)   # Square button looks nicer
+        
+        # Optional: Style the button to match the label's appearance
+        self.change_button.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #c0c0c0;
+                border-radius: 2px;
+                background-color: rgba(240, 240, 240, 0.5);
+                font-weight: bold;
+            }
+        """)
+        
+        layout.addWidget(self.change_button, 0, Qt.AlignVCenter)  # Force vertical centering
+        
         # Connect button click
         self.change_button.clicked.connect(self.open_selection_dialog)
-
+        
+        # Set a fixed height for the entire widget to ensure consistent rendering
+        self.setFixedHeight(30)  # Slightly larger to contain everything
+        
         # Internal state
         self._datafile = None
         self._all_datafiles = []
