@@ -15,7 +15,6 @@ If you found Quick Ternaries useful in your work, please feel free to cite it as
   version      = {v0.5.3},
   doi          = {10.5281/zenodo.14511221},
   url          = {https://doi.org/10.5281/zenodo.14511221},
-  note         = {Open-source software package},
   howpublished = {Software available from Zenodo}
 }
 </pre>
