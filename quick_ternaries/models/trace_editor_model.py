@@ -1,7 +1,10 @@
+from copy import deepcopy
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, TYPE_CHECKING
+
 import pandas as pd
 import numpy as np
+
 from PySide6.QtWidgets import (
     QLineEdit, 
     QComboBox, 
@@ -9,6 +12,7 @@ from PySide6.QtWidgets import (
     QSpinBox, 
     QCheckBox
 )
+
 from quick_ternaries.views.widgets import (
     ColorButton, 
     ShapeButtonWithMenu, 
@@ -668,3 +672,9 @@ class TraceEditorModel:
                 ):
                     default_error = series[err_col]
                     self.error_entry_model.set_error(col, default_error)
+
+    def copy(self):
+        """Create a deep copy of this model."""
+        # Use Python's deepcopy to properly handle all nested structures
+        new_model = deepcopy(self)
+        return new_model

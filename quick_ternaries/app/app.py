@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
         self.tabPanel.tabRenamedCallback = self.on_tab_renamed
         self.tabPanel.tabRemovedCallback = self.on_tab_removed
         self.tabPanel.tabAddRequestedCallback = self.create_new_tab
+        self.tabPanel.duplicate_trace = self.duplicate_trace
 
         # Setup Menu special case
         self.setup_id = "setup-menu-id"
@@ -193,6 +194,39 @@ class MainWindow(QMainWindow):
         self.ternary_contour_maker = TernaryContourTraceMaker()
         self.cartesian_plot_maker = CartesianPlotMaker()
         self.density_contour_maker = DensityContourMaker()
+
+    def duplicate_trace(self, uid):
+        """Handle the duplication of a trace."""
+        if uid not in self.tabPanel.id_to_widget:
+            return
+            
+        # Get the original model
+        original_model = self.tabPanel.id_to_widget.get(uid)
+        if not isinstance(original_model, TraceEditorModel):
+            return
+        
+        # Create a deep copy of the model using the copy method
+        new_model = original_model.copy()
+        
+        # Update the trace name
+        original_name = original_model.trace_name
+        new_model.trace_name = f"Copy of {original_name}"
+        
+        # For non-contour traces, get a new color from the palette
+        if not getattr(new_model, "is_contour", False):
+            new_model.trace_color = self.color_palette.next_color()
+        
+        # Add the new tab
+        new_trace_id = self.tabPanel.add_tab(new_model.trace_name, new_model)
+        
+        # Save current tab data and switch to the new tab
+        self._save_current_tab_data()
+        self.current_tab_id = new_trace_id
+        
+        # Set the model in the trace editor view
+        self.traceEditorView.set_model(new_model)
+        self.traceEditorController.model = new_model
+        self._show_trace_editor()
 
     def ensure_datafile_metadata(self, value):
         """Ensure value is a DataFileMetadata object."""

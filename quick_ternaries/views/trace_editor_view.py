@@ -161,9 +161,9 @@ class TraceEditorView(QWidget):
                 )
                 
                 # If heatmap is on and we have a column, update min/max immediately
-                if getattr(self.model, "heatmap_on", False) and self.model.heatmap_column:
-                    print(f"Initial heatmap column: {self.model.heatmap_column}")
-                    controller._update_heatmap_min_max_for_column(self.model.heatmap_column)
+                # if getattr(self.model, "heatmap_on", False) and self.model.heatmap_column:
+                #     print(f"Initial heatmap column: {self.model.heatmap_column}")
+                #     controller._update_heatmap_min_max_for_column(self.model.heatmap_column)
 
     def connect_datafile_selector(self):
         """Ensure the datafile selector widget is properly connected to the controller."""

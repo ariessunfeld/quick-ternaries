@@ -17,13 +17,16 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QVBoxLayout,
-    QWidget
+    QWidget,
+    QMenu
 )
 
 from quick_ternaries.utils.constants import (
     ADD_TRACE_LABEL,
     SETUP_MENU_LABEL
 )
+
+from quick_ternaries.models.trace_editor_model import TraceEditorModel
 
 # --------------------------------------------------------------------
 # TabListWidget and TabPanel (for managing tabs)
@@ -35,6 +38,25 @@ class TabListWidget(QListWidget):
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
         self.viewport().installEventFilter(self)
+
+    def contextMenuEvent(self, event):
+        item = self.itemAt(event.pos())
+        if item is None:
+            return
+        
+        # Don't show context menu for special items
+        if item.text() in (SETUP_MENU_LABEL, ADD_TRACE_LABEL):
+            return
+            
+        # Create context menu
+        menu = QMenu(self)
+        duplicate_action = menu.addAction("Duplicate")
+        action = menu.exec(event.globalPos())
+        
+        if action == duplicate_action:
+            uid = item.data(Qt.ItemDataRole.UserRole)
+            # Signal to parent that we want to duplicate this trace
+            self.parent().duplicate_trace(uid)
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Drop and source is self.viewport():
@@ -136,6 +158,42 @@ class TabPanel(QWidget):
 
         self.is_programmatic_change = False
 
+    def duplicate_trace(self, uid):
+        """Duplicate the trace with the given ID."""
+        if uid not in self.id_to_widget:
+            return
+            
+        original_model = self.id_to_widget.get(uid)
+        if not isinstance(original_model, TraceEditorModel):
+            return
+        
+        # Create a deep copy of the model
+        new_model = self._duplicate_model(original_model)
+        
+        # Update the trace name
+        original_name = original_model.trace_name
+        new_model.trace_name = f"Copy of {original_name}"
+        
+        # Add the new tab
+        new_id = self.add_tab(new_model.trace_name, new_model)
+        
+        # Select the new tab
+        self.select_tab_by_id(new_id)
+        
+        # Signal that the tab was selected (to update the view)
+        if self.tabSelectedCallback:
+            self.tabSelectedCallback(new_id)
+        
+    def _duplicate_model(self, model):
+        """Create a deep copy of a TraceEditorModel."""
+        # Convert to dict representation (without references to dataframe_manager)
+        model_dict = model.to_dict()
+        
+        # Create a new model from the dict
+        new_model = TraceEditorModel.from_dict(model_dict)
+        
+        return new_model
+
     def _on_item_selection_changed(self):
         selected_items = self.listWidget.selectedItems()
         if len(selected_items) == 1:
@@ -234,6 +292,11 @@ class TabPanel(QWidget):
                     self.listWidget.setCurrentRow(0)
 
     def _on_item_clicked(self, item: QListWidgetItem):
+
+        # If right-click, don't process further since context menu will handle it
+        if QApplication.mouseButtons() == Qt.MouseButton.RightButton:
+            return
+    
         label = item.text()
         if label == SETUP_MENU_LABEL:
             if self.tabSelectedCallback:
