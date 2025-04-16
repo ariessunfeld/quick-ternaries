@@ -9,10 +9,10 @@ If you found Quick Ternaries useful in your work, please feel free to cite it as
 <pre>
 @misc{essunfeld2025quick,
   author       = {Ari Essunfeld and Reid Morris},
-  title        = {Quick Ternaries: windows-conda-launcher-2025-02-25},
+  title        = {Quick Ternaries: v0.5.3},
   year         = {2025},
   publisher    = {Zenodo},
-  version      = {windows-conda-launcher-2025-02-25},
+  version      = {v0.5.3},
   doi          = {10.5281/zenodo.14511221},
   url          = {https://doi.org/10.5281/zenodo.14511221},
   note         = {Open-source software package},
