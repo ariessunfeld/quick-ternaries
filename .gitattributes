@@ -1,5 +1,5 @@
 # Exclude HTML files from language stats
-quick_ternaries/resources/* linguist-vendored
+quick_ternaries/resources/*.html linguist-vendored
 
 # Ensure Python files are correctly detected
 *.py linguist-language=Python
