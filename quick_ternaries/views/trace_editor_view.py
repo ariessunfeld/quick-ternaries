@@ -361,7 +361,9 @@ class TraceEditorView(QWidget):
                         "heatmap_on", 
                         "sizemap_on", 
                         "density_contour_on", 
-                        "custom_colorscale_on"):
+                        "custom_colorscale_on",
+                        "vertical_offset_on",
+                        "vertical_line_only"):
                     widget.stateChanged.connect(
                         lambda _: self.set_plot_type(self.current_plot_type)
                     )

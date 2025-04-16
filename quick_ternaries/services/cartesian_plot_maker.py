@@ -31,8 +31,85 @@ class CartesianPlotMaker:
             A Plotly Figure object
         """
         layout = self._create_layout(setup_model)
-        traces = self._create_traces(setup_model, trace_models)
-        return Figure(data=traces, layout=layout)
+        # traces = self._create_traces(setup_model, trace_models)
+        # # return Figure(data=traces, layout=layout)
+        # # For vertical line traces, ensure that the y-axis domain is correct
+        # vertical_line_traces = [trace for trace in trace_models if getattr(trace, "vertical_line_only", False)]
+        
+        # fig = Figure(data=traces, layout=layout)
+        
+        # if vertical_line_traces:
+        #     # Ensure vertical lines span the entire y-axis range
+        #     # Use rangemode='nonnegative' for y-axis if we have vertical lines
+        #     fig.update_yaxes(rangemode='normal', showgrid=True)
+            
+        # return fig
+        # Separate regular traces from vertical line traces
+        regular_traces = []
+        vertical_line_shapes = []
+        
+        for trace_model in trace_models:
+            if getattr(trace_model, "vertical_line_only", False):
+                # Convert vertical line trace models to shapes
+                shape = self._create_vertical_line_shape(trace_model)
+                vertical_line_shapes.append(shape)
+            else:
+                # Create regular trace
+                trace = self.trace_maker.make_trace(setup_model, trace_model)
+                regular_traces.append(trace)
+        
+        # Add shapes to layout if any exist
+        if vertical_line_shapes:
+            layout.shapes = vertical_line_shapes
+        
+        # Create figure with regular traces and layout (which includes shapes)
+        fig = Figure(data=regular_traces, layout=layout)
+        
+        return fig
+    
+    def _create_vertical_line_shape(self, trace_model):
+        """
+        Create a vertical line shape for the layout.
+        
+        Args:
+            trace_model: The TraceEditorModel containing trace settings
+            
+        Returns:
+            Dictionary defining a vertical line shape
+        """
+        # Get the x value where the vertical line should be drawn
+        x_value = getattr(trace_model, "vertical_line_x_value", 0.0)
+        
+        # Get line properties
+        line_color = self._convert_hex_to_rgba(trace_model.trace_color)
+        line_width = trace_model.line_thickness
+        
+        # Get line dash style
+        line_dash = 'solid'
+        dash_style = getattr(trace_model, 'line_style', 'solid')
+        if dash_style == 'dash':
+            line_dash = 'dash'
+        elif dash_style == 'dot':
+            line_dash = 'dot'
+        elif dash_style == 'dashdot':
+            line_dash = 'dashdot'
+        
+        # Create a shape for the vertical line
+        return {
+            'type': 'line',
+            'x0': x_value,
+            'x1': x_value,
+            'y0': 0,
+            'y1': 1,
+            'yref': 'paper',  # This makes it span the entire y-axis regardless of data range
+            'line': {
+                'color': line_color,
+                'width': line_width,
+                'dash': line_dash
+            },
+            'name': trace_model.trace_name,
+            # 'showlegend': not getattr(trace_model, "exclude_from_legend", False)
+        }
 
     def _create_layout(self, setup_model) -> Layout:
         """
@@ -116,6 +193,22 @@ class CartesianPlotMaker:
         
         layout.xaxis.update(axis_settings)
         layout.yaxis.update(axis_settings)
+
+        # Apply aspect ratio if set
+        if hasattr(advanced_settings, 'aspect_ratio') and advanced_settings.aspect_ratio != "Automatic":
+            try:
+                # Parse the aspect ratio from format like "5x3"
+                ratio_parts = advanced_settings.aspect_ratio.split('x')
+                if len(ratio_parts) == 2:
+                    x_ratio = float(ratio_parts[0])
+                    y_ratio = float(ratio_parts[1])
+                    aspect_ratio = y_ratio / x_ratio
+                    # Set the aspect ratio
+                    layout.yaxis.scaleanchor = "x"
+                    layout.yaxis.scaleratio = aspect_ratio
+            except (ValueError, ZeroDivisionError):
+                # If parsing fails, don't set aspect ratio
+                pass
         
         # Title font
         if layout.title:

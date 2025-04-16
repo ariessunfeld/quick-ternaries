@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from PySide6.QtWidgets import (
     QCheckBox, 
     QSpinBox,
+    QComboBox,
     QDoubleSpinBox, 
     QLineEdit
 )
@@ -15,6 +16,14 @@ from quick_ternaries.views.widgets import (
 
 @dataclass
 class AdvancedPlotSettingsModel:
+    aspect_ratio: str = field(
+        default="Automatic",
+        metadata={
+            "label": "Aspect Ratio:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian"],
+        },
+    )
     zmap_colorscale: str = field(
         default="RdBu",
         metadata={

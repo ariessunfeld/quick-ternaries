@@ -219,6 +219,8 @@ class SetupMenuView(QWidget):
                 )
             elif isinstance(field_widget, QComboBox):
                 field_widget.addItems([])
+                if f.name == 'aspect_ratio':
+                    field_widget.addItems(["Automatic", "5x3", "2x1", "1x3", "1x1"])
                 field_widget.setCurrentText(str(value))
                 field_widget.currentTextChanged.connect(
                     lambda text, fname=f.name, m=section_model: setattr(m, fname, text)

@@ -104,6 +104,14 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
         },
     )
+    point_on: bool = field(
+        default=True,
+        metadata={
+            "label": "Points On:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+        },
+    )
     line_on: bool = field(
         default=False,
         metadata={
@@ -394,6 +402,58 @@ class TraceEditorModel:
             "label": None,
             "widget": None,
             "plot_types": ["ternary", "cartesian"],
+        },
+    )
+    exclude_from_legend: bool = field(
+        default=False,
+        metadata={
+            "label": "Exclude from Legend:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian", "ternary"],
+        },
+    )
+    vertical_offset_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Vertical Offset:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+        },
+    )
+    
+    vertical_offset_value: float = field(
+        default=0.0,
+        metadata={
+            "label": "Offset Value:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "vertical_offset_on",
+        },
+    )
+    vertical_line_only: bool = field(
+        default=False,
+        metadata={
+            "label": "Vertical Line Only:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+        },
+    )
+    
+    vertical_line_x_value: float = field(
+        default=0.0,
+        metadata={
+            "label": "X Value:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "vertical_line_only",
+        },
+    )
+    min_max_normalize: bool = field(
+        default=False,
+        metadata={
+            "label": "Min-Max Normalize:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
         },
     )
     density_contour_on: bool = field(

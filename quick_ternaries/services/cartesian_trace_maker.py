@@ -143,7 +143,7 @@ class CartesianContourTraceMaker:
             marker=marker,
             customdata=customdata,
             hovertemplate=hovertemplate,
-            showlegend=True,
+            showlegend=not getattr(model, "exclude_from_legend", False),
             line=line,
             fill='toself'  # Add fill to create a closed contour
         )
@@ -697,10 +697,35 @@ class CartesianTraceMaker:
         x = trace_data_df[f'__x_scaled_sum_{unique_str}']
         y = trace_data_df[f'__y_scaled_sum_{unique_str}']
         
-        # Create mode based on trace settings
-        mode = 'markers'
+        # # Create mode based on trace settings
+        # mode = 'markers'
+        # if getattr(trace_model, 'line_on', False):
+        #     mode += '+lines'
+
+        # Apply min-max normalization if enabled
+        if getattr(trace_model, "min_max_normalize", False):
+            # x = self._normalize_values(x)
+            y = self._normalize_values(y)
+
+        # Apply vertical offset if enabled (after min-max normalization)
+        if getattr(trace_model, "vertical_offset_on", False):
+            offset_value = getattr(trace_model, "vertical_offset_value", 0.0)
+            y = y + offset_value
+        
+        # Determine the mode based on point_on and line_on settings
+        mode = ''
+        if getattr(trace_model, 'point_on', True):
+            mode += 'markers'
+        
         if getattr(trace_model, 'line_on', False):
-            mode += '+lines'
+            if mode:
+                mode += '+lines'
+            else:
+                mode = 'lines'
+        
+        # If both options are turned off, default to markers
+        if not mode:
+            mode = 'markers'
         
         # Line settings if enabled
         line = None
@@ -720,7 +745,48 @@ class CartesianTraceMaker:
             line=line,
             customdata=customdata,
             hovertemplate=hovertemplate,
-            showlegend=True
+            showlegend=not getattr(trace_model, "exclude_from_legend", False),
+        )
+    
+    def _normalize_values(self, values):
+        """Normalize values to range [0, 1] using min-max scaling."""
+        if len(values) <= 1:
+            return values
+        min_val = values.min()
+        max_val = values.max()
+        if max_val > min_val:
+            return (values - min_val) / (max_val - min_val)
+        return values  # Return original if max=min to avoid division by zero
+
+    def _make_vertical_line_trace(self, trace_model) -> go.Scatter:
+        """
+        Create a vertical line trace at a specific x value.
+        
+        Args:
+            trace_model: The TraceEditorModel containing trace settings
+            
+        Returns:
+            A Plotly Scatter trace representing a vertical line
+        """
+        # Get the x value where the vertical line should be drawn
+        x_value = getattr(trace_model, "vertical_line_x_value", 0.0)
+        
+        # Create line style based on trace settings
+        line = {
+            'color': self._convert_hex_to_rgba(trace_model.trace_color),
+            'width': trace_model.line_thickness,
+            'dash': trace_model.line_style
+        }
+        
+        # Create the trace with a vertical line spanning the entire y-axis
+        return go.Scatter(
+            x=[x_value, x_value],  # Same x-value for both points
+            y=[0, 1],              # Spans from 0 to 1 in normalized coordinates
+            name=trace_model.trace_name,
+            mode='lines',
+            line=line,
+            showlegend=not getattr(trace_model, "exclude_from_legend", False),
+            hoverinfo='x',         # Only show x-value on hover
         )
     
     def _get_scaling_maps(self, setup_model) -> Dict[str, Dict[str, float]]:
