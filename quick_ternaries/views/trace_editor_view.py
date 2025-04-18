@@ -543,7 +543,7 @@ class TraceEditorView(QWidget):
                 self.group_boxes[group_name] = (group_box, group_layout)
                 self.form_layout.addRow(group_box)
 
-        # After processing all fields, add this code specifically for the multiple contours checkbox
+        # After processing all fields, process multiple contours checkbox
         density_multiple_checkbox = self.widgets.get("density_contour_multiple")
         if density_multiple_checkbox and isinstance(density_multiple_checkbox, QCheckBox):
             # First disconnect any existing connections

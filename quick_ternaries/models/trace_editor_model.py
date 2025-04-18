@@ -351,15 +351,15 @@ class TraceEditorModel:
                 "plot_types": ["ternary", "cartesian"]
             }
     )
-    hline_separator: bool = field(
-        default=True,
-        metadata = {
-            "label": None,
-            "widget": HLineWidget,
-            "plot_types": ["ternary", "cartesian"],
-            "depends_on": "show_advanced_settings_on",
-        }
-    )
+    # hline_separator: bool = field(
+    #     default=True,
+    #     metadata = {
+    #         "label": ' ',
+    #         "widget": HLineWidget,
+    #         "plot_types": ["ternary", "cartesian"],
+    #         "depends_on": "show_advanced_settings_on",
+    #     }
+    # )
     outline_color: str = field(
         default='#000000',
         metadata={
