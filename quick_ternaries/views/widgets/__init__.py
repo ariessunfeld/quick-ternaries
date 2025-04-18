@@ -10,6 +10,7 @@ from quick_ternaries.views.widgets.shape_button_with_menu_widget import ShapeBut
 from quick_ternaries.views.widgets.color_scale_dropdown import ColorScaleDropdown
 from quick_ternaries.views.widgets.formula_input_widget import FormulaInputWidget
 from quick_ternaries.views.widgets.column_scaling_widget import ColumnScalingWidget
+from quick_ternaries.views.widgets.hline_widget import HLineWidget
 
 __all__ = [
     "MultiFieldSelector",
@@ -23,5 +24,6 @@ __all__ = [
     "ShapeButtonWithMenu",
     "ColorScaleDropdown",
     "FormulaInputWidget",
-    "ColumnScalingWidget"
+    "ColumnScalingWidget",
+    "HLineWidget"
 ]

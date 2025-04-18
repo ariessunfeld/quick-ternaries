@@ -16,7 +16,8 @@ from PySide6.QtWidgets import (
 from quick_ternaries.views.widgets import (
     ColorButton, 
     ShapeButtonWithMenu, 
-    ColorScaleDropdown
+    ColorScaleDropdown,
+    HLineWidget
 )
 from quick_ternaries.models.data_file_metadata_model import DataFileMetadata
 from quick_ternaries.models.filter_model import FilterModel
@@ -60,14 +61,6 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian", "histogram"],
         },
     )
-    outline_color: str = field(
-        default='#000000',
-        metadata={
-            "label": "Outline Color:",
-            "widget": ColorButton,
-            "plot_types": ["ternary", "cartesian"]
-        }
-    )
     point_shape: str = field(
         default="circle",
         metadata={
@@ -84,26 +77,10 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian"],
         },
     )
-    outline_thickness: int = field(
-        default=1,
-        metadata={
-            "label": "Outline Thickness:",
-            "widget": QSpinBox,
-            "plot_types": ["ternary", "cartesian"]
-        }
-    )
     convert_from_wt_to_molar: bool = field(
         default=False,
         metadata={
             "label": "Convert from wt% to molar:",
-            "widget": QCheckBox,
-            "plot_types": ["ternary", "cartesian"],
-        },
-    )
-    hide_on: bool = field(
-        default=False,
-        metadata={
-            "label": "Hide (do not plot):",
             "widget": QCheckBox,
             "plot_types": ["ternary", "cartesian"],
         },
@@ -365,6 +342,51 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian", "histogram", "zmap"],
         },
     )
+    show_advanced_settings_on: bool = field(
+        default=False,
+        metadata=
+            {
+                "label": "Show advanced settings:",
+                "widget": QCheckBox,
+                "plot_types": ["ternary", "cartesian"]
+            }
+    )
+    hline_separator: bool = field(
+        default=True,
+        metadata = {
+            "label": None,
+            "widget": HLineWidget,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on",
+        }
+    )
+    outline_color: str = field(
+        default='#000000',
+        metadata={
+            "label": "Outline Color:",
+            "widget": ColorButton,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on"
+        }
+    )
+    outline_thickness: int = field(
+        default=1,
+        metadata={
+            "label": "Outline Thickness:",
+            "widget": QSpinBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on"
+        }
+    )
+    hide_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Hide (do not plot):",
+            "widget": QCheckBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on"
+        },
+    )
     # Contour confidence level - updated to use self-describing options
     contour_level: str = field(
         default="Contour: 1-sigma",
@@ -414,6 +436,7 @@ class TraceEditorModel:
             "label": "Exclude from Legend:",
             "widget": QCheckBox,
             "plot_types": ["cartesian", "ternary"],
+            "depends_on": "show_advanced_settings_on"
         },
     )
     vertical_offset_on: bool = field(
@@ -466,6 +489,7 @@ class TraceEditorModel:
             "label": "Density Contour On:",
             "widget": QCheckBox,
             "plot_types": ["ternary"],
+            "depends_on": "show_advanced_settings_on"
         },
     )
     density_contour_color: str = field(
@@ -474,7 +498,7 @@ class TraceEditorModel:
             "label": "Contour Color:",
             "widget": ColorButton,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -484,7 +508,7 @@ class TraceEditorModel:
             "label": "Contour Thickness:",
             "widget": QSpinBox,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -494,7 +518,7 @@ class TraceEditorModel:
             "label": "Percentile:",
             "widget": QDoubleSpinBox,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -504,7 +528,7 @@ class TraceEditorModel:
             "label": "Legend Name:",
             "widget": QLineEdit,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -514,7 +538,7 @@ class TraceEditorModel:
             "label": "Multiple Contours:",
             "widget": QCheckBox,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -524,7 +548,7 @@ class TraceEditorModel:
             "label": "Percentiles (comma-separated):",
             "widget": QLineEdit,
             "plot_types": ["ternary"],
-            "depends_on": ["density_contour_on", "density_contour_multiple"],
+            "depends_on": ["show_advanced_settings_on", "density_contour_on", "density_contour_multiple"],
             "group": "density_contour",
         },
     )
@@ -534,7 +558,7 @@ class TraceEditorModel:
             "label": "Line Style:",
             "widget": QComboBox,
             "plot_types": ["ternary"],
-            "depends_on": "density_contour_on",
+            "depends_on": ["show_advanced_settings_on", "density_contour_on"],
             "group": "density_contour",
         },
     )
@@ -544,6 +568,7 @@ class TraceEditorModel:
             "label": "Custom RGB Colorscale:",
             "widget": QCheckBox,
             "plot_types": ["ternary"],
+            "depends_on": "show_advanced_settings_on"
         },
     )
 
@@ -553,7 +578,7 @@ class TraceEditorModel:
             "label": "Red Channel:",
             "widget": QComboBox,
             "plot_types": ["ternary"],
-            "depends_on": "custom_colorscale_on",
+            "depends_on": ["show_advanced_settings_on", "custom_colorscale_on"],
             "group": "custom_colorscale",
         },
     )
@@ -564,7 +589,7 @@ class TraceEditorModel:
             "label": "Green Channel:",
             "widget": QComboBox,
             "plot_types": ["ternary"],
-            "depends_on": "custom_colorscale_on",
+            "depends_on": ["show_advanced_settings_on", "custom_colorscale_on"],
             "group": "custom_colorscale",
         },
     )
@@ -575,7 +600,7 @@ class TraceEditorModel:
             "label": "Blue Channel:",
             "widget": QComboBox,
             "plot_types": ["ternary"],
-            "depends_on": "custom_colorscale_on",
+            "depends_on": ["show_advanced_settings_on", "custom_colorscale_on"],
             "group": "custom_colorscale",
         },
     )

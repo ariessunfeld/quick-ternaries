@@ -363,7 +363,8 @@ class TraceEditorView(QWidget):
                         "density_contour_on", 
                         "custom_colorscale_on",
                         "vertical_offset_on",
-                        "vertical_line_only"):
+                        "vertical_line_only",
+                        "show_advanced_settings_on"):
                     widget.stateChanged.connect(
                         lambda _: self.set_plot_type(self.current_plot_type)
                     )
