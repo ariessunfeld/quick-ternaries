@@ -22,7 +22,7 @@ class HorizontalScrollArea(QScrollArea):
 
     def wheelEvent(self, event):
         # Translate vertical scrolling into horizontal scrolling
-        delta = max(event.angleDelta().y(), event.angleDelta().x())
+        delta = event.angleDelta().y()
         new_value = self.horizontalScrollBar().value() - delta
         self.horizontalScrollBar().setValue(new_value)
         event.accept()
@@ -65,7 +65,7 @@ class ScrollableLabel(QWidget):
         self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         # Set BOTH minimum and maximum height for consistency
-        self.setFixedHeight(28)  # Fixed height instead of just maximum
+        self.setFixedHeight(38)  # Fixed height instead of just maximum
         
         self.scroll_area.setWidget(self.label)
 

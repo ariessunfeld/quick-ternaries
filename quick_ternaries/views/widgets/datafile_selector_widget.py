@@ -41,8 +41,8 @@ class DatafileSelector(QWidget):
         self.change_button = QPushButton("...")
         self.change_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.change_button.setToolTip("Select Datafile")
-        self.change_button.setFixedHeight(28)  # Match ScrollableLabel exactly
-        self.change_button.setFixedWidth(28)   # Square button looks nicer
+        self.change_button.setFixedHeight(38)  # Match ScrollableLabel exactly
+        self.change_button.setFixedWidth(38)   # Square button looks nicer
         
         # Optional: Style the button to match the label's appearance
         self.change_button.setStyleSheet("""
@@ -60,7 +60,7 @@ class DatafileSelector(QWidget):
         self.change_button.clicked.connect(self.open_selection_dialog)
         
         # Set a fixed height for the entire widget to ensure consistent rendering
-        self.setFixedHeight(30)  # Slightly larger to contain everything
+        self.setFixedHeight(40)  # Slightly larger to contain everything
         
         # Internal state
         self._datafile = None
