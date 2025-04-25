@@ -68,7 +68,7 @@ class DensityContourMaker:
         self.calculator = MolarMassCalculator()
 
         # Create filter strategy dictionary
-        self.filter_strategies = {
+        self.operation_strategies = {
             'is': EqualsFilterStrategy(),
             '==': EqualsFilterStrategy(),
             'is one of': OneOfFilterStrategy(),
@@ -119,7 +119,7 @@ class DensityContourMaker:
             # Apply filters if enabled
             filtered_df = df.copy()
             if getattr(trace_model, 'filters_on', False) and hasattr(trace_model, 'filters'):
-                filtered_df = self._apply_filters(filtered_df, trace_model.filters)
+                filtered_df = self._apply_filters(filtered_df, trace_model)
             
             if filtered_df.empty:
                 print(f"No data left after filtering for density contour on trace: {trace_model.trace_name}")
@@ -263,45 +263,126 @@ class DensityContourMaker:
             traceback.print_exc()
             print(f"Error creating density contour for trace {trace_model.trace_name}: {e}")
             return None
-    
-    def _apply_filters(self, df, filters):
-        """Apply filters to the dataframe."""
-        filtered_df = df.copy()
+
+    def _apply_filters(self, data_df: pd.DataFrame, trace_model) -> pd.DataFrame:
+        """
+        Applies filters to the dataframe.
         
-        for filter_obj in filters:
+        Args:
+            data_df: The dataframe to filter
+            trace_model: The TraceEditorModel containing filter settings
+            
+        Returns:
+            The filtered dataframe
+        """
+        # If filters are not enabled or no filters exist, return original dataframe
+        if not trace_model.filters_on or not trace_model.filters:
+            return data_df
+        
+        # Make a copy to avoid modifying the original
+        filtered_df = data_df.copy()
+        
+        # Track filters with issues for reporting
+        filter_issues = []
+        
+        # Apply each filter in sequence
+        for filter_obj in trace_model.filters:
+            # Skip if filter is not configured properly
             if not hasattr(filter_obj, 'filter_column') or not hasattr(filter_obj, 'filter_operation'):
+                filter_issues.append(f"Filter '{getattr(filter_obj, 'filter_name', 'Unknown')}' is missing required attributes")
                 continue
-                
+            
             column = filter_obj.filter_column
             operation = filter_obj.filter_operation
             
+            # Skip if column not in dataframe
             if column not in filtered_df.columns:
+                filter_issues.append(f"Column '{column}' not found for filter '{filter_obj.filter_name}'")
                 continue
-                
+            
+            # Get column data type
+            column_dtype = filtered_df[column].dtype
+            is_numeric = pd.api.types.is_numeric_dtype(column_dtype)
+            
             # Prepare filter parameters
-            filter_params = {'column': column, 'operation': operation}
+            filter_params = {
+                'column': column,
+                'operation': operation,
+            }
             
-            # Add appropriate values based on operation type
-            if operation in ['==', '<', '>', '<=', '>=', 'is', 'is not']:
-                filter_params['value 1'] = filter_obj.filter_value1
-            elif operation in ['is one of', 'is not one of']:
-                values = filter_obj.filter_value1
-                if isinstance(values, str):
-                    values = [v.strip() for v in values.split(',') if v.strip()]
-                filter_params['selected values'] = values
-            elif operation in ['a < x < b', 'a <= x <= b', 'a <= x < b', 'a < x <= b']:
-                filter_params['value a'] = filter_obj.filter_value1
-                filter_params['value b'] = filter_obj.filter_value2
-            
-            # Apply the filter
-            filter_strategy = self.filter_strategies.get(operation)
-            if filter_strategy:
-                try:
-                    result_df = filter_strategy.filter(filtered_df, filter_params)
-                    if len(result_df) > 0:
-                        filtered_df = result_df
-                except Exception as e:
-                    print(f"Error applying filter: {e}")
+            try:
+                # Single value operations
+                if operation in ['==', '<', '>', '<=', '>=', 'is', 'is not']:
+                    value = filter_obj.filter_value1
+                    if is_numeric and value:
+                        try:
+                            value = float(value)
+                        except ValueError:
+                            raise ValueError(f"Cannot convert '{value}' to a number for filter '{filter_obj.filter_name}'")
+                    filter_params['value 1'] = value
+                    
+                # Multi-value operations
+                elif operation in ['is one of', 'is not one of']:
+                    values = filter_obj.filter_value1
+                    # Handle both list and string cases
+                    if isinstance(values, str):
+                        values = [v.strip() for v in values.split(',') if v.strip()]
+                    elif not isinstance(values, list):
+                        values = [values] if values else []
+                    
+                    if is_numeric and values:
+                        try:
+                            values = [float(v) for v in values]
+                        except ValueError:
+                            raise ValueError(f"Cannot convert one or more values to numbers for filter '{filter_obj.filter_name}'")
+                    
+                    filter_params['selected values'] = values
+                    
+                # Range operations
+                elif operation in ['a < x < b', 'a <= x <= b', 'a <= x < b', 'a < x <= b']:
+                    if not is_numeric:
+                        raise ValueError(f"Cannot apply range operation '{operation}' to non-numeric column '{column}'")
+                    
+                    value_a = filter_obj.filter_value1
+                    value_b = filter_obj.filter_value2
+                    
+                    try:
+                        if value_a:
+                            value_a = float(value_a)
+                        if value_b:
+                            value_b = float(value_b)
+                    except ValueError:
+                        raise ValueError(f"Cannot convert range values to numbers for filter '{filter_obj.filter_name}'")
+                    
+                    filter_params['value a'] = value_a
+                    filter_params['value b'] = value_b
+                
+                else:
+                    raise ValueError(f"Unsupported filter operation: '{operation}'")
+                
+                # Apply the filter using appropriate strategy
+                filter_strategy = self.operation_strategies.get(operation)
+                if filter_strategy:
+                    try:
+                        # Apply filter and handle empty result case
+                        result_df = filter_strategy.filter(filtered_df, filter_params)
+                        if len(result_df) > 0:
+                            filtered_df = result_df
+                        else:
+                            print(f"Warning: Filter '{filter_obj.filter_name}' resulted in zero rows")
+                    except Exception as e:
+                        raise ValueError(f"Error applying filter '{filter_obj.filter_name}': {str(e)}")
+                else:
+                    filter_issues.append(f"No strategy found for operation '{operation}' in filter '{filter_obj.filter_name}'")
+                    
+            except ValueError as e:
+                filter_issues.append(str(e))
+        
+        # Log filter issues if any
+        if filter_issues:
+            print("Filter application issues:")
+            for issue in filter_issues:
+                print(f"  - {issue}")
         
         return filtered_df
     
