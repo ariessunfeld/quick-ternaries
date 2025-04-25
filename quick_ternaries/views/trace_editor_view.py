@@ -419,6 +419,19 @@ class TraceEditorView(QWidget):
                 widget.valueChanged.connect(
                     lambda val, fname=f.name: setattr(self.model, fname, val)
                 )
+                # Have to set range when building to allow large values to persist
+                # Without this the value would still take effect, 
+                # but it would display as 99.99 after switching tabs and change if the user
+                # clicks in the field and changes the value from 99.99
+                if f.name in (
+                        "x_axis_min",
+                        "x_axis_max",
+                        "y_axis_min",
+                        "y_axis_max",
+                        "vertical_exaggeration_factor",
+                        "vertical_offset_value"
+                    ):
+                    widget.setRange(-1e10, 1e10)
             elif isinstance(widget, QSpinBox):
                 widget.setValue(int(value))
                 widget.valueChanged.connect(
@@ -1041,25 +1054,25 @@ class TraceEditorView(QWidget):
                 if hasattr(self.model, "density_contour_line_style"):
                     combobox.setCurrentText(self.model.density_contour_line_style)
         
-        # Configure spinboxes for density contours
-        if "density_contour_percentile" in self.widgets:
-            spinbox = self.widgets["density_contour_percentile"]
-            if isinstance(spinbox, QDoubleSpinBox):
-                spinbox.setRange(1.0, 99.99)
-                spinbox.setSingleStep(1.0)
-                spinbox.setDecimals(2)
-                spinbox.setSuffix("%")
+        # # Configure spinboxes for density contours
+        # if "density_contour_percentile" in self.widgets:
+        #     spinbox = self.widgets["density_contour_percentile"]
+        #     if isinstance(spinbox, QDoubleSpinBox):
+        #         spinbox.setRange(1.0, 99.99)
+        #         spinbox.setSingleStep(1.0)
+        #         spinbox.setDecimals(2)
+        #         spinbox.setSuffix("%")
         
         if "density_contour_thickness" in self.widgets:
             spinbox = self.widgets["density_contour_thickness"]
             if isinstance(spinbox, QSpinBox):
-                spinbox.setRange(1, 10)
-                spinbox.setSingleStep(1)
+                spinbox.setRange(0.5, 100)
+                spinbox.setSingleStep(0.1)
 
         if "vertical_offset_value" in self.widgets:
             spinbox = self.widgets["vertical_offset_value"]
             if isinstance(spinbox, QDoubleSpinBox):
-                spinbox.setRange(-1e100, 1e100)
+                spinbox.setRange(-10_000, 10_000)
                 spinbox.setSingleStep(0.1)
                 spinbox.setDecimals(2)
 
@@ -1067,7 +1080,14 @@ class TraceEditorView(QWidget):
         if "vertical_exaggeration_factor" in self.widgets:
             spinbox = self.widgets["vertical_exaggeration_factor"]
             if isinstance(spinbox, QDoubleSpinBox):
-                spinbox.setRange(-1e100, 1e100)  # Reasonable range for scaling
+                spinbox.setRange(-10_000, 10_000)
+                spinbox.setSingleStep(0.1)
+                spinbox.setDecimals(2)
+
+        if "vertical_line_x_value" in self.widgets:
+            spinbox = self.widgets["vertical_line_x_value"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(-10_000_000, 10_000_000)
                 spinbox.setSingleStep(0.1)
                 spinbox.setDecimals(2)
         
