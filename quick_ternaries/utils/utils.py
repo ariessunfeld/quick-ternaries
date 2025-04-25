@@ -17,12 +17,13 @@ if TYPE_CHECKING:
 class WorkspaceManager:
     VERSION = "1.0"
 
-    def __init__(self, traces: list, setup_model: "SetupMenuModel", order=None):
+    def __init__(self, traces: list, setup_model: "SetupMenuModel", order=None, plot_type="ternary"):
         self.traces = traces
         self.setup_model = setup_model
         self.order = (
             order if order is not None else [str(i) for i in range(len(traces))]
         )
+        self.plot_type = plot_type
 
     def to_dict(self) -> dict:
         """Convert workspace to a dictionary, ensuring DataframeManager is not
@@ -45,6 +46,7 @@ class WorkspaceManager:
             "order": self.order,
             "traces": traces_dicts,
             "setup": setup_dict,
+            "plot_type": self.plot_type,
         }
 
     def save_to_file(self, filename: str):
@@ -56,7 +58,8 @@ class WorkspaceManager:
         traces = [TraceEditorModel.from_dict(item) for item in d.get("traces", [])]
         setup = SetupMenuModel.from_dict(d.get("setup", {}))
         order = d.get("order", None)
-        return cls(traces, setup, order=order)
+        plot_type = d.get("plot_type", "ternary")
+        return cls(traces, setup, order=order, plot_type=plot_type)
 
     @classmethod
     def load_from_file(cls, filename: str):

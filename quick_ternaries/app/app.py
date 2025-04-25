@@ -1701,12 +1701,15 @@ class MainWindow(QMainWindow):
 
         setup_data = self.setupMenuModel.to_dict()
 
+        current_plot_type = self.plotTypeSelector.currentText().lower()
+
         # Build the complete workspace data
         workspace_data = {
             "version": WorkspaceManager.VERSION,
             "order": order,
             "traces": traces_data,
             "setup": setup_data,
+            "plot_type": current_plot_type,
         }
 
         # Save to file
@@ -1795,6 +1798,23 @@ class MainWindow(QMainWindow):
 
                 # Refresh the setup menu view (no need to set model since it's the same object)
                 self.setupMenuView.update_from_model()
+                
+                # Set the plot type from the workspace
+                if hasattr(workspace, "plot_type") and workspace.plot_type:
+                    # Convert to title case for the combobox
+                    plot_type_title = workspace.plot_type.title()
+                    
+                    # Find the index of the plot type in the combobox
+                    index = self.plotTypeSelector.findText(plot_type_title)
+                    if index >= 0:
+                        # Block signals to prevent triggering changes during loading
+                        self.plotTypeSelector.blockSignals(True)
+                        self.plotTypeSelector.setCurrentIndex(index)
+                        self.plotTypeSelector.blockSignals(False)
+                        
+                        # Manually call the plot type changed handler
+                        self.on_plot_type_changed(plot_type_title)
+                        
                 self.setupMenuView.set_plot_type(self.setupMenuView.current_plot_type)
 
                 # IMPORTANT: Force update of the axis options after loading
