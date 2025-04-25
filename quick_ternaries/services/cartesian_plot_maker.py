@@ -7,6 +7,8 @@ from plotly.graph_objects import Figure, Layout
 
 from quick_ternaries.services.cartesian_trace_maker import CartesianTraceMaker
 
+from PySide6.QtWidgets import QMessageBox
+
 # TODO import and use the CartesianContourTraceMaker
 
 
@@ -206,9 +208,57 @@ class CartesianPlotMaker:
                     # Set the aspect ratio
                     layout.yaxis.scaleanchor = "x"
                     layout.yaxis.scaleratio = aspect_ratio
-            except (ValueError, ZeroDivisionError):
+            except (ValueError, ZeroDivisionError) as err:
                 # If parsing fails, don't set aspect ratio
+                print(f'Failed to parse aspect ratio: {err}')
                 pass
+
+        # # Apply axis range restrictions if enabled
+        # if getattr(advanced_settings, 'axis_domain_range_on', False):
+        #     # Get the axis limit values
+        #     x_min = getattr(advanced_settings, 'x_axis_min', None)
+        #     x_max = getattr(advanced_settings, 'x_axis_max', None)
+        #     y_min = getattr(advanced_settings, 'y_axis_min', None)
+        #     y_max = getattr(advanced_settings, 'y_axis_max', None)
+            
+        #     # Apply to layout if values are valid
+        #     if x_min is not None and x_max is not None and x_min < x_max:
+        #         layout.xaxis.range = [x_min, x_max]
+            
+        #     if y_min is not None and y_max is not None and y_min < y_max:
+        #         layout.yaxis.range = [y_min, y_max]
+
+        # Apply X-axis range restrictions if enabled
+        if getattr(advanced_settings, 'x_axis_custom_range_on', False):
+            # Get the axis limit values
+            x_min = getattr(advanced_settings, 'x_axis_min', None)
+            x_max = getattr(advanced_settings, 'x_axis_max', None)
+            
+            # Apply to layout if values are valid
+            if x_min is not None and x_max is not None and x_min < x_max:
+                layout.xaxis.range = [x_min, x_max]
+            elif x_min >= x_max:
+                QMessageBox.warning(
+                    None,
+                    "Invalid Range",
+                    "X-Axis minimum value must be less than maximum value. Using full X-axis range."
+                )
+        
+        # Apply Y-axis range restrictions if enabled
+        if getattr(advanced_settings, 'y_axis_custom_range_on', False):
+            # Get the axis limit values
+            y_min = getattr(advanced_settings, 'y_axis_min', None)
+            y_max = getattr(advanced_settings, 'y_axis_max', None)
+            
+            # Apply to layout if values are valid
+            if y_min is not None and y_max is not None and y_min < y_max:
+                layout.yaxis.range = [y_min, y_max]
+            elif y_min >= y_max:
+                QMessageBox.warning(
+                    None,
+                    "Invalid Range",
+                    "Y-Axis minimum value must be less than maximum value. Using full Y-axis range."
+                )
         
         # Title font
         if layout.title:

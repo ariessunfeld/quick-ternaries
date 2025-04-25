@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QHeaderView
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 # ---------------------------------
 
@@ -67,6 +67,31 @@ class TraceEditorView(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(self.scroll)
         self.setLayout(main_layout)
+
+        # Set scrollbar policy to always show vertical scrollbar
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        # Apply stylesheet to ensure scrollbar remains visible
+        self.scroll.setStyleSheet("""
+            QScrollBar:vertical {
+                width: 16px;
+                margin: 0px 0px 0px 0px;
+                background-color: #f0f0f0;
+            }
+            QScrollBar::handle:vertical {
+                min-height: 20px;
+                background-color: #c0c0c0;
+                border-radius: 5px;
+                margin: 2px 2px 2px 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #a0a0a0;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
 
         self._build_ui()
         self.set_plot_type(self.current_plot_type)
@@ -264,6 +289,53 @@ class TraceEditorView(QWidget):
                 # Update the filter value widgets based on the new column
                 child.update_filter_value_widgets()
 
+    def _connect_checkbox_for_scroll(self, checkbox, dependent_widgets):
+        """
+        Connect a checkbox to scroll to dependent widgets when they become visible.
+        
+        Args:
+            checkbox: The QCheckBox widget
+            dependent_widgets: List of widget names that depend on this checkbox
+        """
+        def on_checkbox_toggled(state):
+            def delayed_scroll():
+                # If the checkbox is checked, scroll to show the dependent widgets
+                if state:
+                    # Find the last dependent widget that should now be visible
+                    last_widget = None
+                    for name in dependent_widgets:
+                        widget = self.widgets.get(name)
+                        if widget and widget.isVisible():
+                            last_widget = widget
+                    
+                    # If we found a visible dependent widget, scroll to it
+                    if last_widget:
+                        # Ensure group box is expanded (if it's in one)
+                        parent = last_widget.parent()
+                        while parent and not isinstance(parent, self.__class__):
+                            if hasattr(parent, "isCollapsible") and parent.isCollapsible():
+                                parent.setExpanded(True)
+                            parent = parent.parent()
+                        
+                        # Get the widget's position in the scroll area
+                        widget_pos = self.content.mapFromGlobal(last_widget.mapToGlobal(last_widget.rect().bottomRight()))
+                        
+                        # Calculate the target scroll position to make the widget visible
+                        scroll_value = widget_pos.y() - self.scroll.height() + 50  # Add padding
+                        
+                        # Ensure scroll value is within valid range
+                        max_scroll = self.scroll.verticalScrollBar().maximum()
+                        scroll_value = min(max(0, scroll_value), max_scroll)
+                        
+                        # Set the scroll position
+                        self.scroll.verticalScrollBar().setValue(scroll_value)
+            
+            # Use a timer to delay scrolling slightly to allow UI layout to update
+            QTimer.singleShot(100, delayed_scroll)
+        
+        # Connect the checkbox's stateChanged signal to our handler
+        checkbox.stateChanged.connect(on_checkbox_toggled)
+
     def _build_ui(self):
         # Clear existing state.
         self.widgets = {}
@@ -364,6 +436,7 @@ class TraceEditorView(QWidget):
                         "custom_colorscale_on",
                         "vertical_offset_on",
                         "vertical_line_only",
+                        "vertical_exaggeration_on",
                         "show_advanced_settings_on"):
                     widget.stateChanged.connect(
                         lambda _: self.set_plot_type(self.current_plot_type)
@@ -382,6 +455,25 @@ class TraceEditorView(QWidget):
                         widget.stateChanged.connect(
                             lambda state: self._on_feature_enabled("sizemap", bool(state))
                         )
+                    elif f.name == 'filters_on':
+                        self._connect_checkbox_for_scroll(
+                            widget, 
+                            ["filters_on", "filter_column", "filter_value"]
+                        )
+                    # Find dependent widgets for this checkbox
+                    dependent_widgets = []
+                    for dep_field in fields(self.model):
+                        dep_metadata = dep_field.metadata
+                        if "depends_on" in dep_metadata:
+                            if dep_metadata["depends_on"] == f.name or (
+                                isinstance(dep_metadata["depends_on"], list) and
+                                f.name in dep_metadata["depends_on"]
+                            ):
+                                dependent_widgets.append(dep_field.name)
+                    
+                    # Connect for scrolling if there are dependent widgets
+                    if dependent_widgets:
+                        self._connect_checkbox_for_scroll(widget, dependent_widgets)
                 if f.name == "filters_on":
                     widget.stateChanged.connect(
                         lambda _: self._update_filters_visibility()
@@ -397,9 +489,7 @@ class TraceEditorView(QWidget):
                 elif f.name == "line_style":
                     widget.addItems(['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'])
                 elif f.name == "heatmap_sort_mode":
-                    widget.addItems(
-                        ["no change", "high on top", "low on top", "shuffled"]
-                    )
+                    widget.addItems(["no change", "high on top", "low on top", "shuffled"])
                 elif f.name == "heatmap_colorscale":
                     widget.addItems(["Viridis", "Cividis", "Plasma", "Inferno"])
                 elif f.name == "sizemap_sort_mode":
@@ -442,6 +532,9 @@ class TraceEditorView(QWidget):
             self.add_source_point_info()
             # Add error entry widget
             self.add_error_entry_widget()
+
+        # Add the filters
+        self._build_filters_ui()
 
         # Now handle group boxes and nested group boxes
         # (rest of the method remains unchanged from original)
@@ -559,6 +652,10 @@ class TraceEditorView(QWidget):
             density_multiple_checkbox.stateChanged.connect(
                 lambda state: self._update_multiple_contours_visibility(bool(state))
             )
+            self._connect_checkbox_for_scroll(
+                density_multiple_checkbox, 
+                ["density_contour_percentiles"]
+            )
 
         custom_colorscale_cb = self.widgets.get("custom_colorscale_on")
         heatmap_cb = self.widgets.get("heatmap_on")
@@ -570,8 +667,10 @@ class TraceEditorView(QWidget):
             heatmap_cb.stateChanged.connect(
                 lambda state: custom_colorscale_cb.setChecked(False) if state else None
             )
-
-        self._build_filters_ui()
+            self._connect_checkbox_for_scroll(
+                custom_colorscale_cb, 
+                ["apex_blue_mapping"]
+            )
 
  
     def _update_multiple_contours_visibility(self, enable_multiple):
@@ -750,30 +849,83 @@ class TraceEditorView(QWidget):
                     )
                     self._update_advanced_visibility(heatmap_use_advanced)
             else:
+        #         group_visible = False
+        #         for f in fields(self.model):
+        #             metadata = f.metadata
+        #             if metadata.get("group", None) != group_name:
+        #                 continue
+        #             field_visible = ("plot_types" not in metadata) or (
+        #                 self.current_plot_type in metadata["plot_types"]
+        #             )
+        #             if "depends_on" in metadata:
+        #                 dep = metadata["depends_on"]
+        #                 if isinstance(dep, list):
+        #                     for d in dep:
+        #                         field_visible = field_visible and bool(
+        #                             getattr(self.model, d)
+        #                         )
+        #                 else:
+        #                     field_visible = field_visible and bool(
+        #                         getattr(self.model, dep)
+        #                     )
+        #             if field_visible:
+        #                 group_visible = True
+        #                 break
+        #         group_box.setVisible(group_visible)
+        # self._update_filters_visibility()
                 group_visible = False
+
+                # First, determine if any field in the group should be visible based on plot type
                 for f in fields(self.model):
                     metadata = f.metadata
                     if metadata.get("group", None) != group_name:
                         continue
+                        
+                    widget = self.widgets.get(f.name)
+                    if not widget:
+                        continue
+                        
+                    # Check if widget should be visible based on plot type
                     field_visible = ("plot_types" not in metadata) or (
                         self.current_plot_type in metadata["plot_types"]
                     )
+                    
+                    # Check dependency conditions
                     if "depends_on" in metadata:
                         dep = metadata["depends_on"]
                         if isinstance(dep, list):
                             for d in dep:
-                                field_visible = field_visible and bool(
-                                    getattr(self.model, d)
-                                )
+                                if isinstance(d, str):
+                                    field_visible = field_visible and bool(getattr(self.model, d))
+                                elif isinstance(d, tuple) and len(d) == 2:
+                                    field_visible = field_visible and getattr(self.model, d[0]) == d[1]
                         else:
-                            field_visible = field_visible and bool(
-                                getattr(self.model, dep)
-                            )
+                            field_visible = field_visible and bool(getattr(self.model, dep))
+                    
+                    # Set visibility of the individual widget inside the group box
                     if field_visible:
+                        widget.show()
                         group_visible = True
-                        break
-                group_box.setVisible(group_visible)
-        self._update_filters_visibility()
+                    else:
+                        widget.hide()
+                    
+                    # Also set visibility for the label if it's in a form layout
+                    if hasattr(group_box, "layout") and isinstance(group_box.layout(), QFormLayout):
+                        form_layout = group_box.layout()
+                        label = form_layout.labelForField(widget)
+                        if label:
+                            if field_visible:
+                                label.show()
+                            else:
+                                label.hide()
+
+                # Then set the group box visibility based on whether any of its fields are visible
+                if group_visible:
+                    group_box.show()
+                else:
+                    group_box.hide()
+
+                self._update_filters_visibility()
 
         # Update error entry widget visibility if it exists
         if hasattr(self, 'error_entry_widget'):
@@ -903,6 +1055,21 @@ class TraceEditorView(QWidget):
             if isinstance(spinbox, QSpinBox):
                 spinbox.setRange(1, 10)
                 spinbox.setSingleStep(1)
+
+        if "vertical_offset_value" in self.widgets:
+            spinbox = self.widgets["vertical_offset_value"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(-1e100, 1e100)
+                spinbox.setSingleStep(0.1)
+                spinbox.setDecimals(2)
+
+        # Configure vertical exaggeration spinbox
+        if "vertical_exaggeration_factor" in self.widgets:
+            spinbox = self.widgets["vertical_exaggeration_factor"]
+            if isinstance(spinbox, QDoubleSpinBox):
+                spinbox.setRange(-1e100, 1e100)  # Reasonable range for scaling
+                spinbox.setSingleStep(0.1)
+                spinbox.setDecimals(2)
         
         # Configure multiple contours visibility
         if hasattr(self.model, "density_contour_multiple"):

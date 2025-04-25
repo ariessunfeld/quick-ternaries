@@ -61,60 +61,12 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian", "histogram"],
         },
     )
-    point_shape: str = field(
-        default="circle",
-        metadata={
-            "label": "Point Shape:",
-            "widget": ShapeButtonWithMenu,
-            "plot_types": ["ternary", "cartesian"],
-        },
-    )
-    point_size: float = field(
-        default=6.0,
-        metadata={
-            "label": "Point Size:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["ternary", "cartesian"],
-        },
-    )
     convert_from_wt_to_molar: bool = field(
         default=False,
         metadata={
             "label": "Convert from wt% to molar:",
             "widget": QCheckBox,
             "plot_types": ["ternary", "cartesian"],
-        },
-    )
-    point_on: bool = field(
-        default=True,
-        metadata={
-            "label": "Points On:",
-            "widget": QCheckBox,
-            "plot_types": ["cartesian"],
-        },
-    )
-    line_on: bool = field(
-        default=False,
-        metadata={
-            "label": "Line On:",
-            "widget": QCheckBox,
-            "plot_types": ["cartesian"],
-        },
-    )
-    line_style: str = field(
-        default="solid",
-        metadata={
-            "label": "Line Style:",
-            "widget": QComboBox,
-            "plot_types": ["cartesian"],
-        },
-    )
-    line_thickness: float = field(
-        default=1.0,
-        metadata={
-            "label": "Line Thickness:",
-            "widget": QDoubleSpinBox,
-            "plot_types": ["cartesian"],
         },
     )
     heatmap_on: bool = field(
@@ -342,6 +294,66 @@ class TraceEditorModel:
             "plot_types": ["ternary", "cartesian", "histogram", "zmap"],
         },
     )
+    point_shape: str = field(
+        default="circle",
+        metadata={
+            "label": "Point Shape:",
+            "widget": ShapeButtonWithMenu,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker"
+        },
+    )
+    point_size: float = field(
+        default=6.0,
+        metadata={
+            "label": "Point Size:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["ternary", "cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker"
+        },
+    )
+    point_on: bool = field(
+        default=True,
+        metadata={
+            "label": "Points On:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker",
+        },
+    )
+    line_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Line On:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker"
+        },
+    )
+    line_style: str = field(
+        default="solid",
+        metadata={
+            "label": "Line Style:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker"
+        },
+    )
+    line_thickness: float = field(
+        default=1.0,
+        metadata={
+            "label": "Line Thickness:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "marker"
+        },
+    )
     show_advanced_settings_on: bool = field(
         default=False,
         metadata=
@@ -366,7 +378,8 @@ class TraceEditorModel:
             "label": "Outline Color:",
             "widget": ColorButton,
             "plot_types": ["ternary", "cartesian"],
-            "depends_on": "show_advanced_settings_on"
+            "depends_on": "show_advanced_settings_on",
+            "group": "outline"
         }
     )
     outline_thickness: int = field(
@@ -375,7 +388,8 @@ class TraceEditorModel:
             "label": "Outline Thickness:",
             "widget": QSpinBox,
             "plot_types": ["ternary", "cartesian"],
-            "depends_on": "show_advanced_settings_on"
+            "depends_on": "show_advanced_settings_on",
+            "group": "outline"
         }
     )
     hide_on: bool = field(
@@ -384,7 +398,8 @@ class TraceEditorModel:
             "label": "Hide (do not plot):",
             "widget": QCheckBox,
             "plot_types": ["ternary", "cartesian"],
-            "depends_on": "show_advanced_settings_on"
+            "depends_on": "show_advanced_settings_on",
+            "group": "visibility"
         },
     )
     # Contour confidence level - updated to use self-describing options
@@ -436,7 +451,8 @@ class TraceEditorModel:
             "label": "Exclude from Legend:",
             "widget": QCheckBox,
             "plot_types": ["cartesian", "ternary"],
-            "depends_on": "show_advanced_settings_on"
+            "depends_on": "show_advanced_settings_on",
+            "group": "visibility"
         },
     )
     vertical_offset_on: bool = field(
@@ -445,16 +461,38 @@ class TraceEditorModel:
             "label": "Vertical Offset:",
             "widget": QCheckBox,
             "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "aesthetics"
         },
     )
-    
     vertical_offset_value: float = field(
         default=0.0,
         metadata={
-            "label": "Offset Value:",
+            "label": "Vertical Offset Value:",
             "widget": QDoubleSpinBox,
             "plot_types": ["cartesian"],
-            "depends_on": "vertical_offset_on",
+            "depends_on": ["show_advanced_settings_on", "vertical_offset_on"],
+            "group": "aesthetics"
+        },
+    )
+    vertical_exaggeration_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Vertical Exaggeration:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "aesthetics"
+        },
+    )
+    vertical_exaggeration_factor: float = field(
+        default=1.0,
+        metadata={
+            "label": "Exaggeration Factor:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": ["show_advanced_settings_on", "vertical_exaggeration_on"],
+            "group": "aesthetics"
         },
     )
     vertical_line_only: bool = field(
@@ -463,16 +501,18 @@ class TraceEditorModel:
             "label": "Vertical Line Only:",
             "widget": QCheckBox,
             "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "visibility",
         },
     )
-    
     vertical_line_x_value: float = field(
         default=0.0,
         metadata={
             "label": "X Value:",
             "widget": QDoubleSpinBox,
             "plot_types": ["cartesian"],
-            "depends_on": "vertical_line_only",
+            "depends_on": ["show_advanced_settings_on", "vertical_line_only"],
+            "group": "visibility",
         },
     )
     min_max_normalize: bool = field(
@@ -481,6 +521,8 @@ class TraceEditorModel:
             "label": "Min-Max Normalize:",
             "widget": QCheckBox,
             "plot_types": ["cartesian"],
+            "depends_on": "show_advanced_settings_on",
+            "group": "aesthetics"
         },
     )
     density_contour_on: bool = field(

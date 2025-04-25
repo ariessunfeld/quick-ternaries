@@ -55,6 +55,9 @@ class SetupMenuView(QWidget):
         self.content_layout = QVBoxLayout(self.content)
         self.content.setLayout(self.content_layout)
 
+        # Set scrollbar policy to always show vertical scrollbar
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
         # Data Library Section
         self.dataLibraryWidget = QWidget(self)
         data_library_layout = QVBoxLayout(self.dataLibraryWidget)
@@ -205,6 +208,11 @@ class SetupMenuView(QWidget):
                 field_widget.valueChanged.connect(
                     lambda val, fname=f.name, m=section_model: setattr(m, fname, val)
                 )
+                # Configure axis range spinboxes
+                if f.name in ["x_axis_min", "x_axis_max", "y_axis_min", "y_axis_max"]:
+                    field_widget.setRange(-1e6, 1e6) 
+                    field_widget.setSingleStep(0.1)
+                    field_widget.setDecimals(3)
             elif isinstance(field_widget, QSpinBox):
                 field_widget.setValue(int(value))
                 field_widget.valueChanged.connect(
@@ -216,6 +224,9 @@ class SetupMenuView(QWidget):
                     lambda state, fname=f.name, m=section_model: setattr(
                         m, fname, bool(state)
                     )
+                )
+                field_widget.stateChanged.connect(
+                    lambda _: self._update_field_visibility()
                 )
             elif isinstance(field_widget, QComboBox):
                 field_widget.addItems([])
@@ -294,6 +305,103 @@ class SetupMenuView(QWidget):
         self.update_scaling_widget_for_axis(field_name)
         self.update_formula_widget_for_axis(field_name)
 
+    def _update_field_visibility(self):
+        """Update visibility of fields based on 'depends_on' metadata."""
+        for section, widgets in self.section_widgets.items():
+            section_model = getattr(self.model, section, None)
+            if section_model is None:
+                continue
+                
+            # First pass: update visibility based on plot type
+            for fname, field_widget in widgets.items():
+                # Retrieve metadata for this field
+                metadata = None
+                for f in fields(section_model):
+                    if f.name == fname:
+                        metadata = f.metadata
+                        break
+                        
+                if metadata is None:
+                    continue
+                    
+                # Check if field should be visible based on plot type
+                visible = ("plot_types" not in metadata) or (
+                    self.current_plot_type in metadata["plot_types"]
+                )
+                
+                # Store base visibility (before dependency check)
+                field_widget.setProperty("base_visible", visible)
+                
+                # Apply visibility
+                if visible:
+                    field_widget.show()
+                    form_layout = self.section_form_layouts.get(section)
+                    if form_layout:
+                        label = form_layout.labelForField(field_widget)
+                        if label:
+                            label.show()
+                else:
+                    field_widget.hide()
+                    form_layout = self.section_form_layouts.get(section)
+                    if form_layout:
+                        label = form_layout.labelForField(field_widget)
+                        if label:
+                            label.hide()
+            
+            # Second pass: update visibility based on dependencies
+            for fname, field_widget in widgets.items():
+                # Retrieve metadata for this field
+                metadata = None
+                for f in fields(section_model):
+                    if f.name == fname:
+                        metadata = f.metadata
+                        break
+                        
+                if metadata is None or "depends_on" not in metadata:
+                    continue
+                    
+                # Get base visibility from first pass
+                base_visible = field_widget.property("base_visible") or False
+                
+                # Check dependency condition
+                dep = metadata["depends_on"]
+                dep_met = False
+                
+                if isinstance(dep, list):
+                    # Multiple dependencies - all must be met
+                    dep_met = True
+                    for d in dep:
+                        if isinstance(d, str):
+                            # Simple dependency on a boolean field
+                            dep_met = dep_met and bool(getattr(section_model, d, False))
+                        elif isinstance(d, tuple) and len(d) == 2:
+                            # Dependency on field having specific value
+                            dep_met = dep_met and getattr(section_model, d[0], None) == d[1]
+                        else:
+                            dep_met = False
+                else:
+                    # Single dependency
+                    dep_met = bool(getattr(section_model, dep, False))
+                
+                # Final visibility is base_visible AND dep_met
+                visible = base_visible and dep_met
+                
+                # Apply visibility
+                if visible:
+                    field_widget.show()
+                    form_layout = self.section_form_layouts.get(section)
+                    if form_layout:
+                        label = form_layout.labelForField(field_widget)
+                        if label:
+                            label.show()
+                else:
+                    field_widget.hide()
+                    form_layout = self.section_form_layouts.get(section)
+                    if form_layout:
+                        label = form_layout.labelForField(field_widget)
+                        if label:
+                            label.hide()
+
     def on_scale_changed(self, axis_name, column_name, scale_factor):
         """Handle when a scale factor is changed in the scaling widget."""
         self.model.column_scaling.set_scale(axis_name, column_name, scale_factor)
@@ -341,6 +449,92 @@ class SetupMenuView(QWidget):
             # Update the scaling widget
             self.scalingWidget.update_columns(axis_name, columns, current_scales)
 
+    # def set_plot_type(self, plot_type: str):
+    #     """
+    #     Update widget visibility and values based on the selected plot type.
+        
+    #     Args:
+    #         plot_type: The new plot type (ternary, cartesian, histogram, zmap)
+    #     """
+    #     self.current_plot_type = plot_type
+        
+    #     # First update visibility of all form fields based on plot type
+    #     for section, widgets in self.section_widgets.items():
+    #         section_model = getattr(self.model, section, None)
+    #         if section_model is None:
+    #             continue
+    #         form_layout = self.section_form_layouts.get(section)
+    #         for fname, field_widget in widgets.items():
+    #             # Retrieve metadata for this field.
+    #             metadata = None
+    #             for f in fields(section_model):
+    #                 if f.name == fname:
+    #                     metadata = f.metadata
+    #                     break
+    #             if metadata is None:
+    #                 continue
+    #             show_field = (
+    #                 "plot_types" in metadata
+    #                 and self.current_plot_type in metadata["plot_types"]
+    #             )
+    #             if show_field:
+    #                 field_widget.show()
+    #                 if form_layout:
+    #                     label = form_layout.labelForField(field_widget)
+    #                     if label:
+    #                         label.show()
+                    
+    #                 # For newly visible fields that are comboboxes, ensure values are set correctly
+    #                 if self.current_plot_type == 'zmap' and isinstance(field_widget, QComboBox) and fname == 'categorical_column':
+    #                     # Get the current value from the model
+    #                     current_value = getattr(section_model, fname, "")
+                        
+    #                     # Ensure the combobox has this value if present
+    #                     if current_value and field_widget.findText(current_value) == -1:
+    #                         field_widget.blockSignals(True)
+    #                         field_widget.addItem(current_value)
+    #                         field_widget.blockSignals(False)
+                        
+    #                     # Set the current text to match the model
+    #                     if current_value:
+    #                         field_widget.blockSignals(True)
+    #                         field_widget.setCurrentText(current_value)
+    #                         field_widget.blockSignals(False)
+
+    #                 if self.current_plot_type == 'zmap' and isinstance(field_widget, ColorScaleDropdown) and fname == 'zmap_colorscale':
+    #                     # Get the current value from the model
+    #                     current_value = getattr(section_model, fname, "")
+                        
+    #                     # Set the current text to match the model
+    #                     if current_value:
+    #                         field_widget.blockSignals(True)
+    #                         field_widget.setColorScale(current_value)
+    #                         field_widget.blockSignals(False)
+    #             else:
+    #                 field_widget.hide()
+    #                 if form_layout:
+    #                     label = form_layout.labelForField(field_widget)
+    #                     if label:
+    #                         label.hide()
+
+    #     # Show/hide the column scaling widget based on plot type
+    #     scaling_plot_types = ["cartesian", "histogram", "ternary"]
+    #     if self.current_plot_type in scaling_plot_types:
+    #         self.columnScalingWidget.show()
+    #         # Update with the correct axes for this plot type
+    #         self.update_scaling_widget()
+    #     else:
+    #         self.columnScalingWidget.hide()
+
+    #     # Show/hide the chemical formula widget based on plot type
+    #     formula_plot_types = ["cartesian", "ternary"]
+    #     if self.current_plot_type in formula_plot_types:
+    #         self.chemicalFormulaWidget.show()
+    #         # Update with the correct axes for this plot type
+    #         self.update_formula_widget()
+    #     else:
+    #         self.chemicalFormulaWidget.hide()
+
     def set_plot_type(self, plot_type: str):
         """
         Update widget visibility and values based on the selected plot type.
@@ -350,65 +544,9 @@ class SetupMenuView(QWidget):
         """
         self.current_plot_type = plot_type
         
-        # First update visibility of all form fields based on plot type
-        for section, widgets in self.section_widgets.items():
-            section_model = getattr(self.model, section, None)
-            if section_model is None:
-                continue
-            form_layout = self.section_form_layouts.get(section)
-            for fname, field_widget in widgets.items():
-                # Retrieve metadata for this field.
-                metadata = None
-                for f in fields(section_model):
-                    if f.name == fname:
-                        metadata = f.metadata
-                        break
-                if metadata is None:
-                    continue
-                show_field = (
-                    "plot_types" in metadata
-                    and self.current_plot_type in metadata["plot_types"]
-                )
-                if show_field:
-                    field_widget.show()
-                    if form_layout:
-                        label = form_layout.labelForField(field_widget)
-                        if label:
-                            label.show()
-                    
-                    # For newly visible fields that are comboboxes, ensure values are set correctly
-                    if self.current_plot_type == 'zmap' and isinstance(field_widget, QComboBox) and fname == 'categorical_column':
-                        # Get the current value from the model
-                        current_value = getattr(section_model, fname, "")
-                        
-                        # Ensure the combobox has this value if present
-                        if current_value and field_widget.findText(current_value) == -1:
-                            field_widget.blockSignals(True)
-                            field_widget.addItem(current_value)
-                            field_widget.blockSignals(False)
-                        
-                        # Set the current text to match the model
-                        if current_value:
-                            field_widget.blockSignals(True)
-                            field_widget.setCurrentText(current_value)
-                            field_widget.blockSignals(False)
-
-                    if self.current_plot_type == 'zmap' and isinstance(field_widget, ColorScaleDropdown) and fname == 'zmap_colorscale':
-                        # Get the current value from the model
-                        current_value = getattr(section_model, fname, "")
-                        
-                        # Set the current text to match the model
-                        if current_value:
-                            field_widget.blockSignals(True)
-                            field_widget.setColorScale(current_value)
-                            field_widget.blockSignals(False)
-                else:
-                    field_widget.hide()
-                    if form_layout:
-                        label = form_layout.labelForField(field_widget)
-                        if label:
-                            label.hide()
-
+        # Update field visibility based on plot type and dependencies
+        self._update_field_visibility()
+        
         # Show/hide the column scaling widget based on plot type
         scaling_plot_types = ["cartesian", "histogram", "ternary"]
         if self.current_plot_type in scaling_plot_types:

@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 import plotly.graph_objects as go
+from PySide6.QtWidgets import QMessageBox
 
 from quick_ternaries.services.molar_mass_calculator import MolarMassCalculator
 from quick_ternaries.services.filters import (
@@ -703,9 +704,17 @@ class CartesianTraceMaker:
         #     mode += '+lines'
 
         # Apply min-max normalization if enabled
+        # if getattr(trace_model, "min_max_normalize", False):
+        #     # x = self._normalize_values(x)
+        #     y = self._normalize_values(y)
         if getattr(trace_model, "min_max_normalize", False):
-            # x = self._normalize_values(x)
-            y = self._normalize_values(y)
+            # Pass x values and setup_model to the normalization function
+            y = self._normalize_values(y, x_values=x, setup_model=setup_model)
+
+        # Apply vertical exaggeration if enabled
+        if getattr(trace_model, "vertical_exaggeration_on", False):
+            exaggeration_factor = getattr(trace_model, "vertical_exaggeration_factor", 1.0)
+            y = y * exaggeration_factor
 
         # Apply vertical offset if enabled (after min-max normalization)
         if getattr(trace_model, "vertical_offset_on", False):
@@ -748,15 +757,56 @@ class CartesianTraceMaker:
             showlegend=not getattr(trace_model, "exclude_from_legend", False),
         )
     
-    def _normalize_values(self, values):
-        """Normalize values to range [0, 1] using min-max scaling."""
+    def _normalize_values(self, values, x_values=None, setup_model=None):
+        """
+        Normalize values to range [0, 1] using min-max scaling, respecting domain restrictions.
+        
+        Args:
+            values: The y-values to normalize
+            x_values: Corresponding x-values (if available) to filter based on domain
+            setup_model: The setup model that may contain domain restrictions
+            
+        Returns:
+            Normalized values array
+        """
         if len(values) <= 1:
             return values
-        min_val = values.min()
-        max_val = values.max()
+            
+        # Default to using all values
+        filtered_values = values
+        
+        # If we have x_values and a setup model with domain restrictions
+        if (x_values is not None and setup_model is not None and 
+                hasattr(setup_model, 'advanced_settings') and 
+                getattr(setup_model.advanced_settings, 'x_axis_custom_range_on', False)):
+            
+            # Get the domain limits
+            x_min = getattr(setup_model.advanced_settings, 'x_axis_min', None)
+            x_max = getattr(setup_model.advanced_settings, 'x_axis_max', None)
+            
+            if x_min is not None and x_max is not None and x_min < x_max:
+                # Create a mask for values within the domain
+                domain_mask = (x_values >= x_min) & (x_values <= x_max)
+                
+                # Filter the values based on the domain mask
+                if domain_mask.any():
+                    filtered_values = values[domain_mask]
+            elif x_min >= x_max:
+                QMessageBox.warning(
+                    None,
+                    "Invalid Axis Domain Range",
+                    "The minimum value must be less than the maximum value.",
+                )
+        
+        # Calculate min and max from the filtered values
+        min_val = filtered_values.min()
+        max_val = filtered_values.max()
+        
         if max_val > min_val:
+            # Apply normalization to all values using the filtered min/max
             return (values - min_val) / (max_val - min_val)
-        return values  # Return original if max=min to avoid division by zero
+        
+        return values
 
     def _make_vertical_line_trace(self, trace_model) -> go.Scatter:
         """

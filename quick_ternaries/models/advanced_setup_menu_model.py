@@ -24,6 +24,58 @@ class AdvancedPlotSettingsModel:
             "plot_types": ["cartesian"],
         },
     )
+    x_axis_custom_range_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Custom X-Axis Limits:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+        },
+    )
+    x_axis_min: float = field(
+        default=0.0,
+        metadata={
+            "label": "X-Axis Min:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "x_axis_custom_range_on",
+        },
+    )
+    x_axis_max: float = field(
+        default=1.0,
+        metadata={
+            "label": "X-Axis Max:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "x_axis_custom_range_on",
+        },
+    )
+    y_axis_custom_range_on: bool = field(
+        default=False,
+        metadata={
+            "label": "Custom Y-Axis Limits:",
+            "widget": QCheckBox,
+            "plot_types": ["cartesian"],
+        },
+    )
+    y_axis_min: float = field(
+        default=0.0,
+        metadata={
+            "label": "Y-Axis Min:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "y_axis_custom_range_on",
+        },
+    )
+    y_axis_max: float = field(
+        default=1.0,
+        metadata={
+            "label": "Y-Axis Max:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian"],
+            "depends_on": "y_axis_custom_range_on",
+        },
+    )
     zmap_colorscale: str = field(
         default="RdBu",
         metadata={
