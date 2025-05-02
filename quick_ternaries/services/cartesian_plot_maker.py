@@ -5,9 +5,10 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
 
-from quick_ternaries.services.cartesian_trace_maker import CartesianTraceMaker
-
 from PySide6.QtWidgets import QMessageBox
+
+from quick_ternaries.services.cartesian_trace_maker import CartesianTraceMaker
+from quick_ternaries.services.axis_formatter import AxisFormatter
 
 # TODO import and use the CartesianContourTraceMaker
 
@@ -20,6 +21,7 @@ class CartesianPlotMaker:
     def __init__(self):
         """Initialize the plot maker with supporting objects."""
         self.trace_maker = CartesianTraceMaker()
+        self.axis_formatter = AxisFormatter()
     
     def make_plot(self, setup_model, trace_models) -> Figure:
         """
