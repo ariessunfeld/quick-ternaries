@@ -140,14 +140,13 @@ class CartesianPlotMaker:
                 linewidth=1,
                 mirror=True
             ),
-            # legend=dict(
-            #     x=1,
-            #     y=1,
-            #     xanchor='right',
-            #     yanchor='top',
-            #     bordercolor='#888',
-            #     borderwidth=1
-            # )
+            legend=dict(
+                x=1.5,
+                y=1.5,
+                xanchor='right',
+                yanchor='top',
+                bordercolor='rgba(0,0,0,0)'
+            )
         )
         
         # Apply advanced settings if available
@@ -263,32 +262,32 @@ class CartesianPlotMaker:
         # Title font
         if layout.title:
             layout.title.font = font_settings
-        
+
         # Legend position
-        # if hasattr(advanced_settings, 'legend_position'):
-        #     position = advanced_settings.legend_position.lower()
-        #     layout.legend.font = font_settings
-            
-        #     if 'top' in position:
-        #         layout.legend.y = 1
-        #         layout.legend.yanchor = 'top'
-        #     elif 'bottom' in position:
-        #         layout.legend.y = 0
-        #         layout.legend.yanchor = 'bottom'
-        #     else:
-        #         layout.legend.y = 0.5
-        #         layout.legend.yanchor = 'middle'
-                
-        #     if 'left' in position:
-        #         layout.legend.x = 0
-        #         layout.legend.xanchor = 'left'
-        #     elif 'right' in position:
-        #         layout.legend.x = 1
-        #         layout.legend.xanchor = 'right'
-        #     else:
-        #         layout.legend.x = 0.5
-        #         layout.legend.xanchor = 'center'
-                
+        if hasattr(advanced_settings, 'legend_position'):
+            position = advanced_settings.legend_position.lower()
+            layout.legend.font = font_settings
+
+            if 'top' in position:
+                layout.legend.y = 1.1
+                layout.legend.yanchor = 'top'
+            elif 'bottom' in position:
+                layout.legend.y = -0.1
+                layout.legend.yanchor = 'bottom'
+            else:
+                layout.legend.y = 0.5
+                layout.legend.yanchor = 'middle'
+
+            if 'left' in position:
+                layout.legend.x = -0.1
+                layout.legend.xanchor = 'left'
+            elif 'right' in position:
+                layout.legend.x = 1.1
+                layout.legend.xanchor = 'right'
+            else:
+                layout.legend.x = 0.5
+                layout.legend.xanchor = 'center'
+
     def _add_axis_labels(self, layout: Layout, setup_model):
         """
         Adds formatted axis labels to the layout.
