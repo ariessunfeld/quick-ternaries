@@ -232,6 +232,12 @@ class SetupMenuView(QWidget):
                 field_widget.addItems([])
                 if f.name == 'aspect_ratio':
                     field_widget.addItems(["Automatic", "5x3", "2x1", "1x3", "1x1"])
+                elif f.name == 'legend_position':
+                    field_widget.addItems([
+                        "top-left", "top-center", "top-right",
+                        "middle-left", "middle-center", "middle-right",
+                        "bottom-left", "bottom-center", "bottom-right"
+                    ])
                 field_widget.setCurrentText(str(value))
                 field_widget.currentTextChanged.connect(
                     lambda text, fname=f.name, m=section_model: setattr(m, fname, text)

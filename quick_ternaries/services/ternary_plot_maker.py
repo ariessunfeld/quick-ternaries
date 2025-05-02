@@ -30,7 +30,15 @@ class LayoutCreator:
                 baxis=linestyle,
                 caxis=linestyle
             ),
-            paper_bgcolor="#ececec"
+            paper_bgcolor="#ececec",
+            legend=dict(
+                x=1,
+                y=1,
+                xanchor='right',
+                yanchor='top',
+                bordercolor='#888',
+                borderwidth=1
+            )
         )
 
     @staticmethod
@@ -53,25 +61,56 @@ class LayoutCreator:
                 ternary_sum = int(advanced_settings.ternary_sum)
             except (ValueError, AttributeError):
                 pass
+
+        # Create font settings for legend and title
+        font_settings = dict(
+            family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
+            size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 12,
+            color=advanced_settings.font_color if hasattr(advanced_settings, 'font_color') else '#000000'
+        )
         
-        return dict(
+        layout = dict(
             ternary=dict(
                 aaxis=axis_settings,
                 baxis=axis_settings,
                 caxis=axis_settings,
-                # TODO refactor to make this a utility func
                 bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.background_color) if hasattr(advanced_settings, 'background_color') else None,
                 sum=ternary_sum,
             ),
             title=dict(
-                font=dict(
-                    family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
-                    size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 12
-                )
+                font=font_settings
             ),
-            paper_bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.paper_color) if hasattr(advanced_settings, 'paper_color') else "#FFFFFF"
-
+            paper_bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.paper_color) if hasattr(advanced_settings, 'paper_color') else "#FFFFFF",
+            legend=dict(
+                font=font_settings,
+                bordercolor='rgba(0,0,0,0)' # remove frame from legend
+            )
         )
+        
+        if hasattr(advanced_settings, 'legend_position'):
+            position = advanced_settings.legend_position.lower()
+            
+            if 'top' in position:
+                layout['legend']['y'] = 1
+                layout['legend']['yanchor'] = 'top'
+            elif 'bottom' in position:
+                layout['legend']['y'] = 0
+                layout['legend']['yanchor'] = 'bottom'
+            else:  # middle
+                layout['legend']['y'] = 0.5
+                layout['legend']['yanchor'] = 'middle'
+                
+            if 'left' in position:
+                layout['legend']['x'] = 0
+                layout['legend']['xanchor'] = 'left'
+            elif 'right' in position:
+                layout['legend']['x'] = 1
+                layout['legend']['xanchor'] = 'right'
+            else:  # center
+                layout['legend']['x'] = 0.5
+                layout['legend']['xanchor'] = 'center'
+
+        return layout
 
     @staticmethod
     def create_axis_settings(advanced_settings) -> dict:

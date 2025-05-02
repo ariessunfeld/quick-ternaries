@@ -5,8 +5,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QComboBox,
     QDoubleSpinBox,
-    QFontComboBox,
-    QLineEdit
+    QFontComboBox
 )
 
 from quick_ternaries.views.widgets import (
@@ -145,7 +144,7 @@ class AdvancedPlotSettingsModel:
         default="top-right",
         metadata={
             "label": "Legend Position:",
-            "widget": QLineEdit,
+            "widget": ComboBox,
             "plot_types": ["cartesian", "histogram", "ternary"],
         },
     )
