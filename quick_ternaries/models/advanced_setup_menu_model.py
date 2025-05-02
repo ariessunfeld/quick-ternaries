@@ -4,7 +4,8 @@ from PySide6.QtWidgets import (
     QCheckBox, 
     QSpinBox,
     QComboBox,
-    QDoubleSpinBox, 
+    QDoubleSpinBox,
+    QFontComboBox,
     QLineEdit
 )
 
@@ -160,7 +161,7 @@ class AdvancedPlotSettingsModel:
         default="Arial",
         metadata={
             "label": "Font:",
-            "widget": QLineEdit,
+            "widget": QFontComboBox,
             "plot_types": ["cartesian", "histogram", "ternary"],
         },
     )
