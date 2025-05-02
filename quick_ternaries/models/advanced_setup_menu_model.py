@@ -144,7 +144,7 @@ class AdvancedPlotSettingsModel:
         default="top-right",
         metadata={
             "label": "Legend Position:",
-            "widget": ComboBox,
+            "widget": QComboBox,
             "plot_types": ["cartesian", "histogram", "ternary"],
         },
     )
