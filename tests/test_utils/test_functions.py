@@ -82,7 +82,7 @@ class TestUtilFunctions:
         """Test that get_sheet_names returns all sheet names for an Excel file with multiple sheets."""
         sheet_names = get_sheet_names(sample_excel_file_multi_sheet)
         # For debugging, print detected sheet names:
-        print("Detected sheet names:", sheet_names)
+        # print("Detected sheet names:", sheet_names)
         expected_sheet_names = {"Sheet1", "Sheet2"}
         assert set(sheet_names) == expected_sheet_names
     
@@ -284,7 +284,7 @@ class TestHeaderRowDetection:
         the header-detection algorithm should return 0.
         """
         header_row = find_header_row_csv(hardcopy_csv_standard, max_rows_scan=10)
-        print("Detected CSV standard header row:", header_row)
+        # print("Detected CSV standard header row:", header_row)
         assert header_row == 0
 
     def test_find_header_row_csv_header1(self, hardcopy_csv_header1):
@@ -293,7 +293,7 @@ class TestHeaderRowDetection:
         the header-detection algorithm should return 1.
         """
         header_row = find_header_row_csv(hardcopy_csv_header1, max_rows_scan=10)
-        print("Detected CSV header1 header row:", header_row)
+        # print("Detected CSV header1 header row:", header_row)
         assert header_row == 1
 
     def test_find_header_row_excel_standard(self, hardcopy_excel_standard):
@@ -302,7 +302,7 @@ class TestHeaderRowDetection:
         the header-detection algorithm should return 0.
         """
         header_row = find_header_row_excel(hardcopy_excel_standard, max_rows_scan=10, sheet_name='sheet_1')
-        print("Detected Excel standard header row:", header_row)
+        # print("Detected Excel standard header row:", header_row)
         assert header_row == 0
 
     def test_find_header_row_excel_header1(self, hardcopy_excel_header1):
@@ -311,5 +311,5 @@ class TestHeaderRowDetection:
         the header-detection algorithm should return 1.
         """
         header_row = find_header_row_excel(hardcopy_excel_header1, max_rows_scan=10, sheet_name='sheet_1')
-        print("Detected Excel header1 header row:", header_row)
+        # print("Detected Excel header1 header row:", header_row)
         assert header_row == 1
