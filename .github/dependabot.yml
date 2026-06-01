@@ -9,6 +9,8 @@ updates:
       - ci
   - package-ecosystem: pip
     directory: /
+    exclude-paths:
+      - launcher/**
     schedule:
       interval: weekly
     labels:
