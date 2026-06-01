@@ -53,7 +53,7 @@ If you found Quick Ternaries useful in your work, please feel free to cite it as
 
 Below are installation instructions for macOS and Windows. Regardless of your operating system, we recommend following the Automatic setup instructions, and launching the tool with the provided launcher. This way, each time you boot up the tool, it will check for updates and offer to install them if any are found.
 
-Note: This tool requires Python 3.11.
+Note: This tool requires Python 3.11. Newer Python versions, including Python 3.12 or 3.13, are not supported by the pinned scientific dependencies.
 
 For basic instructions on how to use the Terminal/Command Prompt, see the [New to the Terminal](#new-to-the-terminal) section.
 
@@ -125,11 +125,16 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
 ### Manual
 
 - Open the Command Prompt and navigate to the location where you want to install the tool
-- Create a new virtual environment called `ternaries-env` (or whatever you like) by running the command `python3.11 -m venv ternaries-env`
+- Confirm that Command Prompt can find Python 3.11 by running `py -3.11 --version`. It should print a version like `Python 3.11.x`.
+  - If that command is not recognized, install Python 3.11 from [python.org](https://www.python.org/downloads/windows/) and make sure to check **Add python.exe to PATH** during installation.
+  - Do not use Python 3.12 or 3.13 for the virtual environment; Quick Ternaries currently requires Python 3.11.
+- Create a new virtual environment called `ternaries-env` (or whatever you like) by running the command `py -3.11 -m venv ternaries-env`
 - Activate the virtual environment by running `call ternaries-env\Scripts\activate.bat`
-- Update `pip` by running `pip install --upgrade pip`
-- Build the `quick-ternaries` package from source by running the command `pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
-  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `pip install path\to\that\file.whl`
+- Verify that the active virtual environment is using Python 3.11 by running `python --version`
+- Update `pip` by running `python -m pip install --upgrade pip`
+- Build the `quick-ternaries` package from source by running the command `python -m pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
+  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `python -m pip install path\to\that\file.whl`
+  - If `pip` downloads `numpy-1.26.4.tar.gz` and reports `ERROR: Unknown compiler(s)` or `Could not find ... vswhere.exe`, the virtual environment is almost certainly not using Python 3.11. Delete the environment, install Python 3.11, and recreate it with `py -3.11 -m venv ternaries-env`.
 - Launch the tool (and test installation) by running the command `quick-ternaries`
 
 # Using Quick Ternaries
