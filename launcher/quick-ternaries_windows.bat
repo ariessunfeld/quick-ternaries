@@ -15,7 +15,15 @@ if not exist ".venv\" (
   ) else (
     REM If .venv doesn't exist either in the current directory or one level up
     echo Setting up virtual environment...
-    python -m venv .venv > NUL
+    SET "PYTHON_CMD="
+    for %%V in (3.14 3.13 3.12 3.11) do (
+      if not defined PYTHON_CMD (
+        py -%%V --version > NUL 2> NUL
+        if not errorlevel 1 SET "PYTHON_CMD=py -%%V"
+      )
+    )
+    if not defined PYTHON_CMD SET "PYTHON_CMD=python"
+    %PYTHON_CMD% -m venv .venv > NUL
     call ".venv\Scripts\activate.bat"
     echo Installing dependencies...
     pip install -r requirements.txt > NUL

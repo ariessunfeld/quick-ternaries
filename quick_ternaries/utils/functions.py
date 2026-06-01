@@ -42,6 +42,51 @@ def recursive_to_dict(obj):
         return {k: recursive_to_dict(v) for k, v in obj.items()}
     else:
         return obj
+
+
+def _is_empty_label(value) -> bool:
+    """Return True for blank or missing candidate header labels."""
+    if value is None:
+        return True
+    try:
+        if pd.isna(value):
+            return True
+    except TypeError:
+        pass
+    return isinstance(value, str) and value.strip() == ""
+
+
+def _is_numeric_like(value) -> bool:
+    """Return True when a candidate header label looks like data."""
+    if _is_empty_label(value):
+        return False
+    try:
+        float(value)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def _score_candidate_header(candidate_header, df, row_index, num_rows):
+    duplicate_count = len(candidate_header) - len(set(candidate_header))
+    empty_count = sum(_is_empty_label(label) for label in candidate_header)
+    numeric_label_count = sum(_is_numeric_like(label) for label in candidate_header)
+    text_label_count = len(candidate_header) - empty_count - numeric_label_count
+
+    type_consistency = 0
+    for col_idx in range(len(candidate_header)):
+        col_data = df.iloc[row_index + 1:, col_idx] if row_index + 1 < num_rows else pd.Series()
+        if not col_data.empty and col_data.apply(type).nunique() == 1:
+            type_consistency += 1
+
+    score = (
+        duplicate_count * 2
+        + numeric_label_count * 2
+        + empty_count
+        - type_consistency
+        - text_label_count
+    )
+    return score
     
 # def canonical_category(x):
 #     """
@@ -105,13 +150,13 @@ def find_header_row_excel(file, max_rows_scan=10, sheet_name='Sheet1'):
     The function reads the Excel sheet without a header, preserving the original data layout.
     It considers each row (up to max_rows_scan) as a potential header and computes a score based on:
     
-      - Duplicate count: Calculated as the total number of entries minus the number of unique entries.
-      - Type consistency: For each column, it checks whether all values (in the rows following the candidate header)
-        share the same type. A consistent column is scored as 1.
+      - Duplicate or empty labels: Penalized because headers should be unique and populated.
+      - Numeric-looking labels: Penalized because data rows often look like numbers.
+      - Text labels and type consistency below the candidate row: Rewarded.
     
     The score for a candidate header is given by:
     
-        score = duplicate_count - type_consistency
+        score = duplicate_penalty + numeric_label_penalty + empty_penalty - type_consistency - text_label_count
         
     Lower scores indicate a better candidate header.
     
@@ -136,25 +181,8 @@ def find_header_row_excel(file, max_rows_scan=10, sheet_name='Sheet1'):
     max_candidates = min(max_rows_scan, num_rows)
     
     for i in range(max_candidates):
-        # Candidate header row as a list
         candidate_header = df.iloc[i].tolist()
-        # Compute the duplicate count (raw count of duplicates)
-        duplicate_count = len(candidate_header) - len(set(candidate_header))
-        
-        # Evaluate type consistency for each column using all rows following the candidate header
-        type_consistency = 0
-        for col_idx in range(len(candidate_header)):
-            col_data = df.iloc[i+1:, col_idx] if i+1 < num_rows else pd.Series()
-            if not col_data.empty:
-                # Count the column as consistent if all values have the same type
-                if col_data.apply(type).nunique() == 1:
-                    type_consistency += 1
-        
-        # Calculate the overall score: lower is better
-        score = duplicate_count - type_consistency
-        
-        print(f"Row {i}: candidate header: {candidate_header}")
-        print(f"    Duplicate count: {duplicate_count}, Type consistency: {type_consistency}, Score: {score}")
+        score = _score_candidate_header(candidate_header, df, i, num_rows)
         
         if score < best_score:
             best_score = score
@@ -205,9 +233,9 @@ def find_header_row_csv(file, max_rows_scan=16):
     The function reads the CSV file without a header and considers each row (up to max_rows_scan)
     as a potential header row. It calculates a score based on two metrics:
     
-      - Duplicate Count: How many duplicate entries exist in the candidate header.
-      - Type Consistency: For each column, whether the data in the rows following the candidate header
-        have consistent types (i.e., all values in the column share the same type).
+      - Duplicate or empty labels: Penalized because headers should be unique and populated.
+      - Numeric-looking labels: Penalized because data rows often look like numbers.
+      - Text labels and type consistency below the candidate row: Rewarded.
     
     A lower score suggests a better candidate.
     
@@ -231,26 +259,8 @@ def find_header_row_csv(file, max_rows_scan=16):
     max_candidates = min(max_rows_scan, num_rows)
     
     for i in range(max_candidates):
-        # Use the candidate row as the header
         candidate_header = df.iloc[i].tolist()
-        # Calculate the duplicate count (raw duplicates, not the auto-renamed ones)
-        duplicate_count = len(candidate_header) - len(set(candidate_header))
-        
-        # Check type consistency in each column using all rows after the candidate header.
-        type_consistency = 0
-        for col in range(len(candidate_header)):
-            # Get all data for this column after the candidate header row.
-            col_data = df.iloc[i+1:, col] if i+1 < num_rows else pd.Series()
-            if not col_data.empty:
-                # If all values in the column share the same type, count this column as consistent.
-                if col_data.apply(type).nunique() == 1:
-                    type_consistency += 1
-        
-        # The scoring formula is a heuristic: lower scores are better.
-        score = duplicate_count - type_consistency
-        
-        print(f"Row {i}: candidate header: {candidate_header}")
-        print(f"    Duplicate count: {duplicate_count}, Type consistency: {type_consistency}, Score: {score}")
+        score = _score_candidate_header(candidate_header, df, i, num_rows)
         
         if score < best_score:
             best_score = score
