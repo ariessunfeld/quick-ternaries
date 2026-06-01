@@ -6,6 +6,7 @@ import json
 import os
 
 from quick_ternaries.utils.functions import util_convert_hex_to_rgba
+from quick_ternaries.utils.plotly_html import figure_to_html
 
 class ZmapPlotMaker:
     """
@@ -462,7 +463,13 @@ class ZmapPlotMaker:
             """ % (target, values_js, elements_js, category_column)
             
             # Generate HTML with Plotly and add webchannel script
-            html_str = fig.to_html(include_plotlyjs=True, full_html=True, div_id="plot", config={"doubleClick": False})
+            html_str = figure_to_html(
+                fig,
+                include_plotlyjs=True,
+                full_html=True,
+                div_id="plot",
+                config={"doubleClick": False},
+            )
             html_str = html_str.replace("</head>", webchannel_js + "\n</head>")
             
             # Write to file

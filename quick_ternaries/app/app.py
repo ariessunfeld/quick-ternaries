@@ -54,6 +54,8 @@ from quick_ternaries.utils.functions import (
     get_numeric_columns_from_dataframe,
     get_numeric_columns_from_file
 )
+from quick_ternaries.utils.fonts import OPEN_SANS_FONT_FILES
+from quick_ternaries.utils.plotly_html import figure_to_html, write_plotly_html
 from quick_ternaries.utils.constants import (
     ADD_TRACE_LABEL,
     SETUP_MENU_LABEL,
@@ -90,6 +92,7 @@ from quick_ternaries.controllers import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self._load_bundled_fonts()
         self.setWindowTitle("Quick Ternaries")
         self.resize(1200, 800)
 
@@ -360,6 +363,10 @@ class MainWindow(QMainWindow):
             
         return True
         
+    def _load_bundled_fonts(self):
+        for font_path in OPEN_SANS_FONT_FILES:
+            if font_path.is_file():
+                QFontDatabase.addApplicationFont(str(font_path))
 
     def setup_title(self, title: str):
         """
@@ -656,7 +663,7 @@ class MainWindow(QMainWindow):
         filepath = os.path.join(scatter_dir, filename)
         
         # Write the scatter plot HTML to a file
-        scatter_html = scatter_fig.to_html(include_plotlyjs=True, full_html=True)
+        scatter_html = figure_to_html(scatter_fig, include_plotlyjs=True, full_html=True)
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(scatter_html)
         
@@ -795,7 +802,7 @@ class MainWindow(QMainWindow):
             
             if str(filepath).lower().endswith('.html'):
                 
-                pio.write_html(fig, filepath)
+                write_plotly_html(fig, filepath)
                 
                 if Path(filepath).is_file():
                     QMessageBox.information(
@@ -1114,7 +1121,7 @@ class MainWindow(QMainWindow):
             return
 
         # Generate HTML with plotlyInterface for ternary/cartesian plots
-        html = fig.to_html()
+        html = figure_to_html(fig)
         javascript = """
             <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
             <script type="text/javascript">

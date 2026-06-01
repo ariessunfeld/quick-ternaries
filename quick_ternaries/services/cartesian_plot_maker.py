@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from plotly.graph_objects import Figure, Layout
 
 from quick_ternaries.services.cartesian_trace_maker import CartesianTraceMaker
+from quick_ternaries.utils.plotly_html import write_plotly_html
 
 from PySide6.QtWidgets import QMessageBox
 
@@ -379,8 +380,7 @@ class CartesianPlotMaker:
         """
         # Save as interactive HTML
         if filepath.endswith('.html'):
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(fig.to_html())
+            write_plotly_html(fig, filepath)
         # Save as static image
         else:
             # Reduce marker size for better appearance in static images
