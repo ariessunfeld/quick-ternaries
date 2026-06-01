@@ -7,15 +7,15 @@ Quick Ternaries is a python application designed to make ternary plotting a bree
 
 ## Citation
 
-If you found Quick Ternaries useful in your work, please feel free to cite it as follows:
+If Quick Ternaries is useful in your work, please cite the archived Zenodo record for the version you used. The DOI badge below resolves to the latest archived version, and Zenodo provides BibTeX and other export formats from that page.
+
+For a version-independent citation to the Quick Ternaries project, use the concept DOI:
 
 <pre>
-@misc{essunfeld2025quick,
+@software{essunfeld_quick_ternaries,
   author       = {Ari Essunfeld and Reid Morris},
-  title        = {Quick Ternaries: v0.5.3},
-  year         = {2025},
+  title        = {Quick Ternaries},
   publisher    = {Zenodo},
-  version      = {v0.5.3},
   doi          = {10.5281/zenodo.14511221},
   url          = {https://doi.org/10.5281/zenodo.14511221},
   howpublished = {Software available from Zenodo}
