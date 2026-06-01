@@ -22,7 +22,7 @@ For a version-independent citation to the Quick Ternaries project, use the conce
 }
 </pre>
 
-[![DOI](https://zenodo.org/badge/709465811.svg)](https://doi.org/10.5281/zenodo.14511221)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14511221.svg)](https://doi.org/10.5281/zenodo.14511221)
 
 # Table of Contents
 
