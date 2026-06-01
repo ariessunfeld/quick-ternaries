@@ -2,8 +2,7 @@ name: quick_ternaries
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - "python>=3.11,<3.15"
   - pip
   - pip:
-      - requests==2.31.0
-
+      - requests>=2.31,<3

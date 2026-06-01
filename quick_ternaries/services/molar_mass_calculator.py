@@ -13,9 +13,11 @@ class MolarMassCalculator:
 
     def get_molar_mass(self, formula: str):
         try:
+            if not isinstance(formula, str) or not formula.strip():
+                raise FormulaError("formula is empty")
+            formula = formula.strip()
             if formula.lower() == 'feot':
                 formula = 'FeO'
             return Formula(formula).mass
         except FormulaError as e:
             raise MolarMassCalculatorException(f"Invalid chemical formula '{formula}': {e}")
-
