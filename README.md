@@ -90,7 +90,7 @@ Two options exist for automatic setup on macOS: with and without Anaconda
 - Activate the virtual environment by running `source ternaries-env/bin/activate`
 - Update `pip` by running `pip install --upgrade pip`
 - Build the `quick-ternaries` package from source by running `pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
-  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [`dist`](https://github.com/ariessunfeld/quick-ternaries/tree/main/dist) folder in this repository and run `pip install path/to/that/file.whl`
+  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `pip install path/to/that/file.whl`
 - Launch the tool (and test installation) by running `quick-ternaries`
 
 ## Windows
@@ -129,7 +129,7 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
 - Activate the virtual environment by running `call ternaries-env\Scripts\activate.bat`
 - Update `pip` by running `pip install --upgrade pip`
 - Build the `quick-ternaries` package from source by running the command `pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
-  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [`dist`](https://github.com/ariessunfeld/quick-ternaries/tree/main/dist) folder in this repository and run `pip install path\to\that\file.whl`
+  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `pip install path\to\that\file.whl`
 - Launch the tool (and test installation) by running the command `quick-ternaries`
 
 # Using Quick Ternaries
