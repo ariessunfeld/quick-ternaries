@@ -1,6 +1,13 @@
 name: CI
 
 on:
+  workflow_dispatch:
+    inputs:
+      full_ci:
+        description: Run the full install matrix
+        required: false
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -21,8 +28,94 @@ env:
   XDG_CACHE_HOME: .cache/xdg
 
 jobs:
+  ci_scope:
+    name: CI scope
+    runs-on: ubuntu-latest
+    outputs:
+      run_full_ci: ${{ steps.scope.outputs.run_full_ci }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine CI scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          WORKFLOW_DISPATCH_FULL_CI: ${{ inputs.full_ci }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          elif [[ -n "${BEFORE_SHA:-}" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            base="$BEFORE_SHA"
+            head="$GITHUB_SHA"
+          else
+            base=""
+            head="$GITHUB_SHA"
+          fi
+
+          run_full_ci=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            run_full_ci="${WORKFLOW_DISPATCH_FULL_CI:-true}"
+            changed_files="manual workflow dispatch"
+          else
+            if [[ -z "$base" ]] || ! git cat-file -e "$base^{commit}" || ! git cat-file -e "$head^{commit}"; then
+              run_full_ci=true
+              changed_files="unknown"
+            else
+              changed_files="$(git diff --name-only "$base" "$head")"
+              if [[ -z "$changed_files" ]]; then
+                run_full_ci=true
+              else
+                while IFS= read -r file; do
+                  case "$file" in
+                    README.md|CITATION.cff|*.md|docs/*|docs/**|img/*|img/**)
+                      ;;
+                    *)
+                      run_full_ci=true
+                      ;;
+                  esac
+                done <<< "$changed_files"
+              fi
+
+              git diff --check "$base" "$head"
+            fi
+          fi
+
+          if [[ -f CITATION.cff ]]; then
+            ruby -e "require 'yaml'; YAML.load_file('CITATION.cff')"
+          fi
+
+          {
+            echo "run_full_ci=$run_full_ci"
+            echo "changed_files<<EOF"
+            printf '%s\n' "$changed_files"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### CI scope"
+            echo
+            echo "Full install matrix: \`$run_full_ci\`"
+            echo
+            echo "Changed files:"
+            echo
+            printf '%s\n' "$changed_files" | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   manual-install:
     name: Manual install (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: ci_scope
+    if: needs.ci_scope.outputs.run_full_ci == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -81,6 +174,8 @@ jobs:
 
   conda-install:
     name: Conda-assisted install (Python ${{ matrix.python-version }})
+    needs: ci_scope
+    if: needs.ci_scope.outputs.run_full_ci == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -142,6 +237,8 @@ jobs:
 
   conda-environment-file:
     name: Conda launcher environment file
+    needs: ci_scope
+    if: needs.ci_scope.outputs.run_full_ci == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
