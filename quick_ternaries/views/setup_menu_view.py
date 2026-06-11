@@ -711,8 +711,8 @@ class SetupMenuView(QWidget):
 
         # Update the column scaling widget
         self.update_scaling_widget()
-        
+
         # Update the chemical formula widget
         self.update_formula_widget()
-        
+
         self._update_field_visibility()
