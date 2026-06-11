@@ -12,6 +12,13 @@ from quick_ternaries.views.widgets import (
     ColorScaleDropdown, 
     ColorButton
 )
+from quick_ternaries.utils.legend_layout import (
+    LEGEND_COORDINATE_REFERENCE_OPTIONS,
+    LEGEND_ORIENTATION_OPTIONS,
+    LEGEND_POSITION_OPTIONS,
+    LEGEND_X_ANCHOR_OPTIONS,
+    LEGEND_Y_ANCHOR_OPTIONS,
+)
 
 
 @dataclass
@@ -144,8 +151,74 @@ class AdvancedPlotSettingsModel:
         default="top-right",
         metadata={
             "label": "Legend Position:",
-            "widget": QLineEdit,
+            "widget": QComboBox,
             "plot_types": ["cartesian", "histogram", "ternary"],
+            "options": LEGEND_POSITION_OPTIONS,
+        },
+    )
+    legend_x: float = field(
+        default=1.0,
+        metadata={
+            "label": "Legend X Position:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": ("legend_position", "custom"),
+            "minimum": -2.0,
+            "maximum": 3.0,
+            "single_step": 0.05,
+            "decimals": 3,
+        },
+    )
+    legend_y: float = field(
+        default=1.0,
+        metadata={
+            "label": "Legend Y Position:",
+            "widget": QDoubleSpinBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": ("legend_position", "custom"),
+            "minimum": -2.0,
+            "maximum": 3.0,
+            "single_step": 0.05,
+            "decimals": 3,
+        },
+    )
+    legend_coordinate_reference: str = field(
+        default="paper",
+        metadata={
+            "label": "Legend Coordinate Reference:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": ("legend_position", "custom"),
+            "options": LEGEND_COORDINATE_REFERENCE_OPTIONS,
+        },
+    )
+    legend_xanchor: str = field(
+        default="right",
+        metadata={
+            "label": "Legend X Anchor:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": ("legend_position", "custom"),
+            "options": LEGEND_X_ANCHOR_OPTIONS,
+        },
+    )
+    legend_yanchor: str = field(
+        default="top",
+        metadata={
+            "label": "Legend Y Anchor:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "depends_on": ("legend_position", "custom"),
+            "options": LEGEND_Y_ANCHOR_OPTIONS,
+        },
+    )
+    legend_orientation: str = field(
+        default="vertical",
+        metadata={
+            "label": "Legend Orientation:",
+            "widget": QComboBox,
+            "plot_types": ["cartesian", "histogram", "ternary"],
+            "options": LEGEND_ORIENTATION_OPTIONS,
         },
     )
     font_size: int = field(

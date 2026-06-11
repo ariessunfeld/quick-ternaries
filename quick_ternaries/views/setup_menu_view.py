@@ -204,6 +204,15 @@ class SetupMenuView(QWidget):
                     )
                 )
             elif isinstance(field_widget, QDoubleSpinBox):
+                if "minimum" in metadata or "maximum" in metadata:
+                    field_widget.setRange(
+                        float(metadata.get("minimum", field_widget.minimum())),
+                        float(metadata.get("maximum", field_widget.maximum())),
+                    )
+                if "single_step" in metadata:
+                    field_widget.setSingleStep(float(metadata["single_step"]))
+                if "decimals" in metadata:
+                    field_widget.setDecimals(int(metadata["decimals"]))
                 field_widget.setValue(float(value))
                 field_widget.valueChanged.connect(
                     lambda val, fname=f.name, m=section_model: setattr(m, fname, val)
@@ -229,12 +238,18 @@ class SetupMenuView(QWidget):
                     lambda _: self._update_field_visibility()
                 )
             elif isinstance(field_widget, QComboBox):
-                field_widget.addItems([])
+                options = list(metadata.get("options", []))
                 if f.name == 'aspect_ratio':
-                    field_widget.addItems(["Automatic", "5x3", "2x1", "1x3", "1x1"])
+                    options = ["Automatic", "5x3", "2x1", "1x3", "1x1"]
+                field_widget.addItems(options)
+                if value and field_widget.findText(str(value)) == -1:
+                    field_widget.addItem(str(value))
                 field_widget.setCurrentText(str(value))
                 field_widget.currentTextChanged.connect(
                     lambda text, fname=f.name, m=section_model: setattr(m, fname, text)
+                )
+                field_widget.currentTextChanged.connect(
+                    lambda _: self._update_field_visibility()
                 )
             elif isinstance(field_widget, MultiFieldSelector):
                 field_widget.set_selected_fields(value)
@@ -365,23 +380,14 @@ class SetupMenuView(QWidget):
                 
                 # Check dependency condition
                 dep = metadata["depends_on"]
-                dep_met = False
-                
                 if isinstance(dep, list):
                     # Multiple dependencies - all must be met
-                    dep_met = True
-                    for d in dep:
-                        if isinstance(d, str):
-                            # Simple dependency on a boolean field
-                            dep_met = dep_met and bool(getattr(section_model, d, False))
-                        elif isinstance(d, tuple) and len(d) == 2:
-                            # Dependency on field having specific value
-                            dep_met = dep_met and getattr(section_model, d[0], None) == d[1]
-                        else:
-                            dep_met = False
+                    dep_met = all(
+                        self._dependency_condition_met(section_model, d)
+                        for d in dep
+                    )
                 else:
-                    # Single dependency
-                    dep_met = bool(getattr(section_model, dep, False))
+                    dep_met = self._dependency_condition_met(section_model, dep)
                 
                 # Final visibility is base_visible AND dep_met
                 visible = base_visible and dep_met
@@ -401,6 +407,21 @@ class SetupMenuView(QWidget):
                         label = form_layout.labelForField(field_widget)
                         if label:
                             label.hide()
+
+    @staticmethod
+    def _dependency_condition_met(section_model, dependency):
+        """Return whether a form field dependency is currently satisfied."""
+        if isinstance(dependency, str):
+            return bool(getattr(section_model, dependency, False))
+
+        if isinstance(dependency, tuple) and len(dependency) == 2:
+            field_name, expected_value = dependency
+            actual_value = getattr(section_model, field_name, None)
+            if isinstance(actual_value, str) and isinstance(expected_value, str):
+                return actual_value.strip().lower() == expected_value.strip().lower()
+            return actual_value == expected_value
+
+        return False
 
     def on_scale_changed(self, axis_name, column_name, scale_factor):
         """Handle when a scale factor is changed in the scaling widget."""
@@ -693,3 +714,5 @@ class SetupMenuView(QWidget):
         
         # Update the chemical formula widget
         self.update_formula_widget()
+        
+        self._update_field_visibility()

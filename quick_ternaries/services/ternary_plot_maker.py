@@ -8,6 +8,7 @@ from plotly.graph_objects import Figure, Layout
 
 from quick_ternaries.services.ternary_trace_maker import TernaryTraceMaker
 from quick_ternaries.services.axis_formatter import AxisFormatter
+from quick_ternaries.utils.legend_layout import build_legend_layout
 
 class LayoutCreator:
     """
@@ -53,6 +54,12 @@ class LayoutCreator:
                 ternary_sum = int(advanced_settings.ternary_sum)
             except (ValueError, AttributeError):
                 pass
+
+        font_settings = dict(
+            family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
+            size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 12,
+            color=advanced_settings.font_color if hasattr(advanced_settings, 'font_color') else '#000000'
+        )
         
         return dict(
             ternary=dict(
@@ -64,11 +71,9 @@ class LayoutCreator:
                 sum=ternary_sum,
             ),
             title=dict(
-                font=dict(
-                    family=advanced_settings.font if hasattr(advanced_settings, 'font') else 'Arial',
-                    size=advanced_settings.font_size if hasattr(advanced_settings, 'font_size') else 12
-                )
+                font=font_settings
             ),
+            legend=build_legend_layout(advanced_settings, font_settings),
             paper_bgcolor=TernaryTraceMaker()._convert_hex_to_rgba(advanced_settings.paper_color) if hasattr(advanced_settings, 'paper_color') else "#FFFFFF"
 
         )
