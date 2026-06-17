@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: git-diff-check
+        name: Check staged whitespace with git diff --check
+        entry: git diff --cached --check
+        language: system
+        pass_filenames: false

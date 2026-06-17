@@ -50,6 +50,7 @@ For a version-independent citation to the Quick Ternaries project, use the conce
   - [Opening the Terminal / Command Prompt](#opening-the-terminal--command-prompt)
   - [Running Commands](#running-commands)
   - [Navigating to a Directory](#navigating-to-a-directory)
+- [Development Checks](#development-checks)
 - [Copyright and License](#copyright-and-license)
 - [Contact](#contact)
 
@@ -314,6 +315,17 @@ When you read "Run the following command...", that means to type the command int
 To move around different folders in the Terminal or Command Prompt, use the `cd` command. on macOS, the easiest way to get to a specific location is to open the Finder, locate the folder you want to be in, right-click the folder, then hold down the `option` key and choose `copy [foldername] as Pathname`. Then go back to the Terminal and type `cd`, then hit the `Space` bar, and then paste the pathname you copied by pressing `Cmd+V`. So, for example, if the path you copied was `/Users/yourname/Documents/someFolder/anotherFolder/`, the command would look like `cd /Users/yourname/Documents/someFolder/anotherFolder/`. 
 
 In the Command Prompt, the process is similar. The easiest way to get to a specific folder in the Command Prompt is to open the File Browser, navigate to the desired folder, then click in the textbox at the top of the window and copy the path shown there, likely starting with `C:\...`. Then go into the Command Prompt and run the command `cd C:\...`, pasting the path you copied where the `C:\...` is.
+
+# Development Checks
+
+For local development, install the development extra and enable the pre-commit hook:
+
+```bash
+python -m pip install ".[dev]"
+python -m pre_commit install
+```
+
+The hook runs `git diff --cached --check` before each commit. This matches the CI whitespace check and catches trailing whitespace in staged changes before the branch is pushed.
 
 # Copyright and License
 
