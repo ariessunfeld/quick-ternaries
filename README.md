@@ -327,6 +327,8 @@ python -m pre_commit install
 
 The hook runs `git diff --cached --check` before each commit. This matches the CI whitespace check and catches trailing whitespace in staged changes before the branch is pushed.
 
+Release steps are documented in [`docs/release.md`](docs/release.md).
+
 # Copyright and License
 
 O#: O4762  
