@@ -34,6 +34,7 @@ For a version-independent citation to the Quick Ternaries project, use the conce
   - [Windows](#windows)
     - [With Anaconda](#with-anaconda-1)
     - [Without Anaconda](#without-anaconda-1)
+  - [Updating a Manual Installation](#updating-a-manual-installation)
 - [Using Quick Ternaries](#using-quick-ternaries)
   - [Loading Data](#loading-data)
   - [Choosing a Plot Type](#choosing-a-plot-type)
@@ -154,6 +155,35 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
   - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `python -m pip install path\to\that\file.whl`
   - If `pip` tries to build large scientific packages from source and reports compiler errors, update `pip`, confirm the virtual environment is using Python 3.11-3.14, then recreate the environment if needed.
 - Launch the tool (and test installation) by running the command `quick-ternaries`
+
+## Updating a Manual Installation
+
+If you installed Quick Ternaries manually, updates are not checked automatically unless you run an update command from the same virtual environment you used for installation.
+
+On macOS:
+
+```bash
+source ternaries-env/bin/activate
+quick-ternaries --update
+quick-ternaries
+```
+
+On Windows:
+
+```bat
+call ternaries-env\Scripts\activate.bat
+quick-ternaries --update
+quick-ternaries
+```
+
+The update command checks the latest GitHub Release, upgrades the package with `pip`, and exits. Restart Quick Ternaries after it completes.
+
+If your installed version is older and does not recognize `--update`, install the latest release manually. Replace `X.Y.Z` with the newest version number from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest):
+
+```bash
+python -m pip install --upgrade https://github.com/ariessunfeld/quick-ternaries/archive/tags/vX.Y.Z.tar.gz
+quick-ternaries
+```
 
 # Using Quick Ternaries
 
@@ -317,6 +347,9 @@ To move around different folders in the Terminal or Command Prompt, use the `cd`
 In the Command Prompt, the process is similar. The easiest way to get to a specific folder in the Command Prompt is to open the File Browser, navigate to the desired folder, then click in the textbox at the top of the window and copy the path shown there, likely starting with `C:\...`. Then go into the Command Prompt and run the command `cd C:\...`, pasting the path you copied where the `C:\...` is.
 
 # Development Checks
+
+The complete local development, release smoke-test, and reporter-data workflow
+is documented in [`docs/development.md`](docs/development.md).
 
 For local development, install the development extra and enable the pre-commit hook:
 

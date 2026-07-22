@@ -91,3 +91,39 @@ so check that you are working with the latest version tag, not a launcher tag.
      https://github.com/ariessunfeld/quick-ternaries/archive/tags/vX.Y.Z.tar.gz
    quick-ternaries
    ```
+
+## Launcher Releases
+
+Launcher archives are generated from tracked source files. Never modify a ZIP
+by hand or use a cloud-only copy as the source of truth.
+
+1. Update the launcher source files and run the tests.
+
+   ```bash
+   python -m pytest tests/test_launcher_build.py -q
+   python scripts/build_launchers.py
+   ```
+
+2. Inspect the generated files under `dist/launchers/`.
+
+   ```text
+   quick-ternaries-mac-launcher.zip
+   quick-ternaries-windows-launcher.zip
+   quick-ternaries-mac-conda-launcher.zip
+   QuickTernaries.zip
+   ```
+
+3. Upload the appropriate generated file to its existing launcher release.
+   Use `--clobber` only after confirming the tag and filename.
+
+   ```bash
+   gh release upload mac-launcher \
+     dist/launchers/quick-ternaries-mac-launcher.zip \
+     --repo ariessunfeld/quick-ternaries --clobber
+   ```
+
+   The corresponding tags are `windows-launcher`, `mac-conda-launcher`, and
+   `windows-conda-launcher-2025-02-25`.
+
+4. Download the published asset and compare its SHA-256 digest with the local
+   generated archive before considering the launcher update complete.

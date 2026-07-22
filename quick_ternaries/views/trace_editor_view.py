@@ -49,6 +49,25 @@ if TYPE_CHECKING:
 
 
 class TraceEditorView(QWidget):
+    LARGE_VALUE_SPINBOX_FIELDS = frozenset(
+        {
+            "heatmap_min",
+            "heatmap_max",
+            "x_axis_min",
+            "x_axis_max",
+            "y_axis_min",
+            "y_axis_max",
+            "vertical_exaggeration_factor",
+            "vertical_offset_value",
+        }
+    )
+
+    @classmethod
+    def _configure_double_spinbox(cls, field_name, widget):
+        """Configure ranges that exceed Qt's default 0.0-99.99 bounds."""
+        if field_name in cls.LARGE_VALUE_SPINBOX_FIELDS:
+            widget.setRange(-1e10, 1e10)
+
     def __init__(self, model: "TraceEditorModel", parent=None):
         super().__init__(parent)
         self.model = model
@@ -415,23 +434,11 @@ class TraceEditorView(QWidget):
                     )
                 )
             elif isinstance(widget, QDoubleSpinBox):
+                self._configure_double_spinbox(f.name, widget)
                 widget.setValue(float(value))
                 widget.valueChanged.connect(
                     lambda val, fname=f.name: setattr(self.model, fname, val)
                 )
-                # Have to set range when building to allow large values to persist
-                # Without this the value would still take effect, 
-                # but it would display as 99.99 after switching tabs and change if the user
-                # clicks in the field and changes the value from 99.99
-                if f.name in (
-                        "x_axis_min",
-                        "x_axis_max",
-                        "y_axis_min",
-                        "y_axis_max",
-                        "vertical_exaggeration_factor",
-                        "vertical_offset_value"
-                    ):
-                    widget.setRange(-1e10, 1e10)
             elif isinstance(widget, QSpinBox):
                 widget.setValue(int(value))
                 widget.valueChanged.connect(
@@ -972,6 +979,7 @@ class TraceEditorView(QWidget):
             if isinstance(widget, QLineEdit):
                 widget.setText(str(value))
             elif isinstance(widget, QDoubleSpinBox):
+                self._configure_double_spinbox(f.name, widget)
                 widget.setValue(float(value))
             elif isinstance(widget, QCheckBox):
                 widget.setChecked(bool(value))
