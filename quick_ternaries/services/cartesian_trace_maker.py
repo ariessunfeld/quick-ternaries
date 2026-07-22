@@ -1322,7 +1322,7 @@ class CartesianTraceMaker:
                 
             sizeref = 2. * max(size_normalized) / (max_size**2)
             data_df[size_column_sorted] = size_normalized
-            data_df[size_column_sorted].fillna(min_size, inplace=True)
+            data_df[size_column_sorted] = data_df[size_column_sorted].fillna(min_size)
         else:
             # Handle empty dataframe
             sizeref = 1.0
@@ -1395,7 +1395,7 @@ class CartesianTraceMaker:
                 size_normalized = pd.Series([min_size + (size_range/2)] * len(data_df), index=data_df.index)
                 
             data_df[sizemap_sorted_col] = size_normalized
-            data_df[sizemap_sorted_col].fillna(min_size, inplace=True)
+            data_df[sizemap_sorted_col] = data_df[sizemap_sorted_col].fillna(min_size)
         
         # Handle heatmap sort mode
         if trace_model.heatmap_sort_mode == 'high on top':

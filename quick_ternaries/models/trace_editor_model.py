@@ -102,7 +102,7 @@ class TraceEditorModel:
     heatmap_min: float = field(
         default=0.0,
         metadata={
-            "label": "Heatmap Min:",
+            "label": "Color Scale Min:",
             "widget": QDoubleSpinBox,
             "plot_types": ["ternary", "cartesian"],
             "depends_on": "heatmap_on",
@@ -112,7 +112,7 @@ class TraceEditorModel:
     heatmap_max: float = field(
         default=1.0,
         metadata={
-            "label": "Heatmap Max:",
+            "label": "Color Scale Max:",
             "widget": QDoubleSpinBox,
             "plot_types": ["ternary", "cartesian"],
             "depends_on": "heatmap_on",
@@ -261,7 +261,7 @@ class TraceEditorModel:
     sizemap_min: float = field(
         default=2.0,
         metadata={
-            "label": "Sizemap Min:",
+            "label": "Minimum Marker Size:",
             "widget": QDoubleSpinBox,
             "plot_types": ["ternary", "cartesian"],
             "depends_on": "sizemap_on",
@@ -271,7 +271,7 @@ class TraceEditorModel:
     sizemap_max: float = field(
         default=6.0,
         metadata={
-            "label": "Sizemap Max:",
+            "label": "Maximum Marker Size:",
             "widget": QDoubleSpinBox,
             "plot_types": ["ternary", "cartesian"],
             "depends_on": "sizemap_on",

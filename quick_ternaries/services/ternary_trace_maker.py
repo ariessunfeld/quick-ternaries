@@ -1799,7 +1799,7 @@ class TernaryTraceMaker:
                          (data_df[size_column_sorted].max() - data_df[size_column_sorted].min())) * size_range + min_size
         sizeref = 2. * max(size_normalized) / (max_size**2)
         data_df[size_column_sorted] = size_normalized
-        data_df[size_column_sorted].fillna(0.0, inplace=True)
+        data_df[size_column_sorted] = data_df[size_column_sorted].fillna(min_size)
         
         # Apply sorting
         if trace_model.sizemap_sort_mode == 'high on top':
@@ -1861,7 +1861,7 @@ class TernaryTraceMaker:
         size_normalized = ((data_df[sizemap_sorted_col] - data_df[sizemap_sorted_col].min()) /
                         (data_df[sizemap_sorted_col].max() - data_df[sizemap_sorted_col].min())) * size_range + min_size
         data_df[sizemap_sorted_col] = size_normalized
-        data_df[sizemap_sorted_col].fillna(0.0, inplace=True)
+        data_df[sizemap_sorted_col] = data_df[sizemap_sorted_col].fillna(min_size)
         
         # Handle heatmap sort mode
         if trace_model.heatmap_sort_mode == 'high on top':
@@ -1892,7 +1892,7 @@ class TernaryTraceMaker:
             data_df = data_df.sample(frac=1)
         
         # Update marker properties
-        sizeref = 2. * max(size_normalized) / (max_size**2)
+        sizeref = 2. * data_df[sizemap_sorted_col].max() / (max_size**2)
         
         marker['size'] = data_df[sizemap_sorted_col]
         marker['sizemin'] = min_size

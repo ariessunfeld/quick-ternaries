@@ -348,6 +348,9 @@ In the Command Prompt, the process is similar. The easiest way to get to a speci
 
 # Development Checks
 
+The complete local development, release smoke-test, and reporter-data workflow
+is documented in [`docs/development.md`](docs/development.md).
+
 For local development, install the development extra and enable the pre-commit hook:
 
 ```bash

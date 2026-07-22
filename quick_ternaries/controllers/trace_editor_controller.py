@@ -33,7 +33,7 @@ class TraceEditorController:
         self.connect_heatmap_column_change()
 
     def _update_heatmap_min_max_for_column(self, column_name: str):
-        """Update heatmap min/max based on the selected column's median."""
+        """Set the heatmap color-scale bounds from the selected column."""
         if not column_name:
             return
             
@@ -46,17 +46,15 @@ class TraceEditorController:
         if df is None or column_name not in df.columns:
             return
             
-        # Calculate the median
-        # TODO fix this lazy try/except
         try:
-            # Filter to only numeric values and drop NaNs for median calculation
-            numeric_values = pd.to_numeric(df[column_name], errors='coerce').dropna()
-            if len(numeric_values) > 0:
-                median_value = np.nanmedian(numeric_values)
-                
-                # Set min to 0 and max to 2x median
-                self.model.heatmap_min = 0.0
-                self.model.heatmap_max = float(median_value * 2)
+            numeric_values = (
+                pd.to_numeric(df[column_name], errors="coerce")
+                .replace([np.inf, -np.inf], np.nan)
+                .dropna()
+            )
+            if not numeric_values.empty:
+                self.model.heatmap_min = float(numeric_values.min())
+                self.model.heatmap_max = float(numeric_values.max())
                 
                 # Update the UI widgets if they exist
                 if hasattr(self.view, "widgets"):
@@ -73,7 +71,7 @@ class TraceEditorController:
                         max_widget.setValue(self.model.heatmap_max)
                         max_widget.blockSignals(False)
         except Exception as e:
-            print(f"Error calculating median for column {column_name}: {e}")
+            print(f"Error calculating heatmap bounds for column {column_name}: {e}")
 
 
     def connect_heatmap_column_change(self):
@@ -449,4 +447,3 @@ class TraceEditorController:
                     
                     # Trigger an update of the value widgets based on new column type
                     current_filter_editor.update_filter_value_widgets()
-

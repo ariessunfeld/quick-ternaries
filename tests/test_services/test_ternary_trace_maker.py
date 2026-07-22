@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import MagicMock, patch
 from quick_ternaries.services.ternary_trace_maker import TernaryTraceMaker
+from quick_ternaries.models.trace_editor_model import TraceEditorModel
 from quick_ternaries.utils.functions import format_scale_factor
 
 class TestTernaryTraceMaker:
@@ -35,6 +36,22 @@ class TestTernaryTraceMaker:
         assert format_scale_factor(1.0000000001) == "1"
         assert format_scale_factor(2.2499999999) == "2.25"
         assert format_scale_factor(3.12345678) == "3.123"
+
+    def test_sizemap_normalizes_negative_data_to_positive_marker_sizes(self):
+        data = pd.DataFrame({"elev": [-3657.18, -3610.2, -3595.06, None]})
+        model = TraceEditorModel(
+            sizemap_column="elev",
+            sizemap_min=2.0,
+            sizemap_max=6.0,
+        )
+
+        marker, _ = self.trace_maker._update_marker_with_sizemap(
+            {}, model, data.copy(), "negative"
+        )
+
+        assert min(marker["size"]) == pytest.approx(2.0)
+        assert max(marker["size"]) == pytest.approx(6.0)
+        assert not marker["size"].isna().any()
     
     @patch('quick_ternaries.services.ternary_trace_maker.np')
     def test_get_hover_data_and_template_basic(self, mock_np):

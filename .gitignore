@@ -22,3 +22,8 @@ src3/from-ellie
 src3/from-steph
 src2/demo-data/matplotvenv
 quick_ternaries/app/__tmp.html
+
+# Local-only reporter workbooks and manual reproduction inputs.
+# Durable, minimized regression fixtures belong in tests/data/ instead.
+/local-test-data/*
+!/local-test-data/README.md
