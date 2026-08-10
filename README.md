@@ -1,3 +1,5 @@
+
+
 # quick-ternaries
 
 Quick Ternaries is a python application designed to make ternary plotting a breeze.  
@@ -89,7 +91,7 @@ Two options exist for automatic setup on macOS: with and without Anaconda
 - Download the macOS Anaconda launcher zipfile from the [macOS Anaconda Launcher Release](https://github.com/ariessunfeld/quick-ternaries/releases/download/mac-conda-launcher/quick-ternaries-mac-conda-launcher.zip)
 - Open the Finder and unzip the launcher by double-clicking the zipfile
 - Right-click the file `quick-ternaries_mac_conda.command`, click `Open`, and then click `Open Anyway`
-  - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_mac.command` to launch the app.)
+  - (After doing this once, your computer will trust the file, and you can just double-click `quick-ternaries_mac_conda.command` to launch the app.)
 - Follow the prompts in the Terminal and agree to update if asked
 - **Note:** This method assumes that `conda` is a recognized command in the macOS Terminal
 
