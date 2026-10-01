@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import spearmanr, pearsonr
 import plotly.graph_objects as go
 import json
 import os
@@ -196,6 +195,9 @@ class ZmapPlotMaker:
         if not category_values:
             return False
             
+        # Load SciPy only when a correlation plot is requested.
+        from scipy.stats import spearmanr
+
         # Compute correlations for each category value
         correlations = {}
         pvals = {}

@@ -1,11 +1,8 @@
 # TODO: remove lazy try/except and find the problematic color scale
 
-import numpy as np
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-from plotly.colors import get_colorscale
+from plotly.colors import get_colorscale, unlabel_rgb
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox
-from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtCore import Signal
 
 class ColorScaleDropdown(QWidget):
@@ -143,24 +140,21 @@ class ColorScaleDropdown(QWidget):
                 print(f"Failed to get colorscale for scale name {colorscale_name}")
                 colorscale = [(0, "lightblue"), (0.5, "blue"), (1, "darkblue")]
 
-            fig = make_subplots(rows=1, cols=1)
-            heatmap_data = np.array([list(range(width))])
-            fig.add_trace(
-                go.Heatmap(z=heatmap_data, colorscale=colorscale, showscale=False)
-            )
-            fig.update_layout(
-                width=width,
-                height=height,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False),
-                showlegend=False,
-            )
-            img_bytes = fig.to_image(format="png")
-            pixmap = QPixmap()
-            pixmap.loadFromData(img_bytes)
+            # Draw the Plotly color stops directly; an icon should not start
+            # Kaleido/Chrome or render an entire plot during window construction.
+            gradient = QLinearGradient(0.5, 0, width - 0.5, 0)
+            for position, color in colorscale:
+                if color.startswith("rgb("):
+                    qcolor = QColor.fromRgb(*(round(channel) for channel in unlabel_rgb(color)))
+                else:
+                    qcolor = QColor(color)
+                gradient.setColorAt(position, qcolor)
+            pixmap = QPixmap(width, height)
+            painter = QPainter(pixmap)
+            try:
+                painter.fillRect(pixmap.rect(), QBrush(gradient))
+            finally:
+                painter.end()
             icon = QIcon(pixmap)
             self._icon_cache[cache_key] = icon
             return icon
