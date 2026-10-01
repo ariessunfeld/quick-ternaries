@@ -364,12 +364,8 @@ class DensityContourMaker:
                 filter_strategy = self.operation_strategies.get(operation)
                 if filter_strategy:
                     try:
-                        # Apply filter and handle empty result case
-                        result_df = filter_strategy.filter(filtered_df, filter_params)
-                        if len(result_df) > 0:
-                            filtered_df = result_df
-                        else:
-                            print(f"Warning: Filter '{filter_obj.filter_name}' resulted in zero rows")
+                        # Zero matches are a valid result; never restore excluded rows.
+                        filtered_df = filter_strategy.filter(filtered_df, filter_params)
                     except Exception as e:
                         raise ValueError(f"Error applying filter '{filter_obj.filter_name}': {str(e)}")
                 else:
@@ -1430,6 +1426,11 @@ class TernaryTraceMaker:
                 trace_data_df[self.APEX_PATTERN.format(apex=apex_name, us=unique_str)] = \
                     trace_data_df[scaled_cols].sum(axis=1)
         
+        # Keep the empty axis columns for plotting, but skip marker normalization
+        # and sorting, which require at least one matching point.
+        if trace_data_df.empty:
+            return marker, trace_data_df
+
         # First, check for custom colorscale, then fallback to heatmap
         if getattr(trace_model, "custom_colorscale_on", False):
             marker, trace_data_df = self._apply_custom_colorscale(
@@ -1585,12 +1586,8 @@ class TernaryTraceMaker:
                 filter_strategy = self.operation_strategies.get(operation)
                 if filter_strategy:
                     try:
-                        # Apply filter and handle empty result case
-                        result_df = filter_strategy.filter(filtered_df, filter_params)
-                        if len(result_df) > 0:
-                            filtered_df = result_df
-                        else:
-                            print(f"Warning: Filter '{filter_obj.filter_name}' resulted in zero rows")
+                        # Zero matches are a valid result; never restore excluded rows.
+                        filtered_df = filter_strategy.filter(filtered_df, filter_params)
                     except Exception as e:
                         raise ValueError(f"Error applying filter '{filter_obj.filter_name}': {str(e)}")
                 else:
