@@ -942,6 +942,11 @@ class CartesianTraceMaker:
                     # Handle empty column lists
                     trace_data_df[f'__{axis_name}_scaled_sum_{unique_str}'] = 0
         
+        # Keep the empty axis columns for plotting, but skip marker normalization
+        # and sorting, which require at least one matching point.
+        if trace_data_df.empty:
+            return marker, trace_data_df
+
         # Configure markers based on heatmap and sizemap settings
         if trace_model.heatmap_on and trace_model.sizemap_on:
             # Sort and style considering both heatmap and sizemap columns
@@ -1082,12 +1087,8 @@ class CartesianTraceMaker:
                 filter_strategy = self.operation_strategies.get(operation)
                 if filter_strategy:
                     try:
-                        # Apply filter and handle empty result case
-                        result_df = filter_strategy.filter(filtered_df, filter_params)
-                        if len(result_df) > 0:
-                            filtered_df = result_df
-                        else:
-                            print(f"Warning: Filter '{filter_obj.filter_name}' resulted in zero rows")
+                        # Zero matches are a valid result; never restore excluded rows.
+                        filtered_df = filter_strategy.filter(filtered_df, filter_params)
                     except Exception as e:
                         raise ValueError(f"Error applying filter '{filter_obj.filter_name}': {str(e)}")
                 else:
