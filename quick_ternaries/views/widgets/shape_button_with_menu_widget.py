@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap, QAction
+from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -7,8 +9,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QMenu
 )
-from plotly.subplots import make_subplots
-from plotly import graph_objects as go
+
+MARKER_ICON_DIR = Path(__file__).resolve().parents[2] / "resources" / "markers"
 
 
 class ShapeButtonWithMenu(QWidget):
@@ -125,36 +127,12 @@ class ShapeButtonWithMenu(QWidget):
         return self.current_shape
 
     def create_plotly_marker_icon(self, shape, size=32):
+        """Load a bundled Plotly marker preview without starting an image exporter."""
+        if shape not in self.PLOTLY_SHAPES:
+            shape = "circle"
         cache_key = (shape, size)
         if cache_key in self._icon_cache:
             return self._icon_cache[cache_key]
-        try:
-            fig = make_subplots(rows=1, cols=1)
-            fig.add_trace(
-                go.Scatter(
-                    x=[0],
-                    y=[0],
-                    mode="markers",
-                    marker=dict(symbol=shape, size=size * 0.8, color="black"),
-                )
-            )
-            fig.update_layout(
-                width=size,
-                height=size,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                xaxis=dict(visible=False, range=[-1, 1]),
-                yaxis=dict(visible=False, range=[-1, 1]),
-                showlegend=False,
-            )
-            img_bytes = fig.to_image(format="png")
-            pixmap = QPixmap()
-            pixmap.loadFromData(img_bytes)
-            icon = QIcon(pixmap)
-            self._icon_cache[cache_key] = icon
-            return icon
-        except Exception as e:
-            print(f"Error generating shape icon: {e}")
-            return QIcon()
-
+        icon = QIcon(str(MARKER_ICON_DIR / f"{shape}.svg"))
+        self._icon_cache[cache_key] = icon
+        return icon

@@ -2,8 +2,6 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
 
 def transform_to_cartesian(
         df: pd.DataFrame, 
@@ -25,6 +23,10 @@ def compute_kde_contours(
         levels: List[float]=[0.68], 
         grid_points: int=400):
     """Compute KDE on 2D data and determine contour lines for specific data coverage levels."""
+    # Contour dependencies are expensive to import and are not needed at startup.
+    import matplotlib.pyplot as plt
+    from scipy.stats import gaussian_kde
+
     kde = gaussian_kde(data.T)
     default_bandwith = kde.factor
     kde.set_bandwidth(default_bandwith*2)

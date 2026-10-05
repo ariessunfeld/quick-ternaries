@@ -62,6 +62,31 @@ python -m pytest tests/path/to/test_file.py -q
 python -m pytest
 ```
 
+## Keep startup previews inexpensive
+
+Color-scale previews use Qt gradients with Plotly's color stops. Marker previews
+are bundled SVGs under `quick_ternaries/resources/markers/`, generated from
+Plotly's own marker paths. Keep these assets in both the wheel and source
+distribution (see `setup.cfg`). Window construction must not call Plotly's image
+exporter: doing so starts Kaleido/Chrome repeatedly before the window appears.
+
+After changing the supported marker list, regenerate the SVGs and review them:
+
+```bash
+python scripts/build_marker_icons.py
+python -m pytest tests/test_views/test_preview_icons.py tests/test_startup.py -q
+```
+
+Regeneration needs Kaleido and, for Kaleido 1.x, Chrome. Displaying the controls
+does not. Actual chart image exports still use the normal Plotly export path.
+SciPy statistics and Matplotlib load only when a contour or correlation plot
+needs them.
+
+The startup regression opens the complete window in a separate interpreter with
+empty Python and Matplotlib caches, rejects any image-export attempts, and logs
+timings on every CI platform. These timings are diagnostics, not a fixed speed
+requirement; they do not simulate a cold OS disk cache or antivirus scanning.
+
 ## Build launcher archives
 
 Launcher ZIPs are generated from the tracked text files in `launcher/`:
