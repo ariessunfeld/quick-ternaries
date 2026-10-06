@@ -30,7 +30,7 @@ from quick_ternaries.utils.constants import (
 )
 
 from quick_ternaries.models.trace_editor_model import TraceEditorModel
-from quick_ternaries.views.accessibility import describe_control
+from quick_ternaries.views.accessibility import add_focus_shortcut, describe_control
 
 # --------------------------------------------------------------------
 # TabListWidget and TabPanel (for managing tabs)
@@ -158,7 +158,7 @@ class TabListWidget(QListWidget):
 class TabPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.listWidget = TabListWidget()
+        self.listWidget = TabListWidget(self)
         describe_control(
             self.listWidget, "workspace.traces", "Plot setup and traces",
             "Enter or Space activates a row. F2 renames a trace; Delete removes it. "
@@ -168,6 +168,7 @@ class TabPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.listWidget)
+        add_focus_shortcut(self, self.listWidget, "Ctrl+Alt+T")
 
         self.tabSelectedCallback = None  # (unique_id) -> ...
         self.tabRenamedCallback = None  # (unique_id, new_label) -> ...

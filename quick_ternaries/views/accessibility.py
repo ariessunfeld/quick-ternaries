@@ -6,6 +6,7 @@ application model and must never be inferred from an accessibility identifier.
 """
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QComboBox, QWidget
 
 
@@ -38,3 +39,15 @@ def focus_through(widget: QWidget, control: QWidget) -> None:
     """Let a form label/buddy focus the meaningful child of a composite."""
     widget.setFocusProxy(control)
     widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+
+def add_focus_shortcut(owner: QWidget, control: QWidget, keys: str) -> QShortcut:
+    """Provide a direct focus path independent of platform Tab preferences."""
+    sequence = QKeySequence(keys)
+    shortcut = QShortcut(sequence, owner)
+    shortcut.activated.connect(lambda: control.setFocus(Qt.FocusReason.ShortcutFocusReason))
+    hint = f"Press {sequence.toString(QKeySequence.SequenceFormat.NativeText)} to focus."
+    description = control.accessibleDescription().rstrip(".")
+    control.setAccessibleDescription(f"{description}. {hint}" if description else hint)
+    control.setToolTip(hint)
+    return shortcut

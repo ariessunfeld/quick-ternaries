@@ -167,6 +167,11 @@ This increment adds:
   checkable shape menu actions expose the current selection.
 - Focus proxies for composite controls so keyboard focus reaches their
   interactive child.
+- Direct focus shortcuts: Ctrl+Alt+T for the trace list, Ctrl+Alt+C for the
+  current filter's column, and Ctrl+Alt+O for its operation. On macOS, use
+  Command+Option in place of Ctrl+Alt. Tooltips and accessible descriptions
+  show the platform's shortcut notation. These avoid depending on the OS's
+  choice of controls included in ordinary Tab navigation.
 - Enter/Space activation for trace/filter lists, F2 rename, Delete through the
   existing remove callbacks, and Alt+Up/Down trace reordering between the fixed
   Setup and Add rows. Keyboard context menus operate on the current trace.
@@ -216,6 +221,36 @@ reacquire controls; render a small bundled dataset; inspect the plot and its
 future semantic summary. Test with the platform accessibility inspector and a
 screen reader, then with an agent. Use synthetic data and retain diagnostics
 without user datasets or authentication material.
+
+### Initial native macOS smoke test
+
+Using Codex computer use with Python 3.11.14 and Qt 6.11.2, the test imported
+this synthetic CSV through the file/header dialogs, assigned A/B/C to the three
+apices, created and renamed a trace, and rendered five points:
+
+```csv
+A,B,C,Sample
+70,20,10,Alpha
+20,70,10,Beta
+20,20,60,Gamma
+33,33,34,Delta
+50,25,25,Epsilon
+```
+
+The test then enabled filters, created and named a filter, selected `Sample`,
+and visually verified `is Alpha` produced one point, `is not Alpha` produced
+four, and `is No such sample` produced zero. Save/reopen preserved the setup
+and trace. File import, field edits, and rendering used native accessibility
+actions; trace/filter creation and dropdown selection needed keyboard paths.
+
+Observed limitation: this native tool sometimes returned invalid list elements,
+omitted list rows, or did not open a combo box when asked to click it. Fresh
+snapshots and direct keyboard focus paths allowed the workflow to continue.
+This is a reproducible follow-up for the native Qt bridge/tool interaction,
+not evidence that all list actions or screen readers work. The plot exposed
+titles, axes, and toolbar labels, but not a reliable semantic point count;
+the point-count checks above used screenshots. Windows UIA, Linux AT-SPI,
+and screen-reader smoke tests remain outstanding.
 
 Subsequent PR-sized milestones:
 

@@ -142,3 +142,30 @@ def test_filter_keyboard_activation_and_dynamic_value_metadata(qt_app):
     assert_accessible(view.widgets["filter_value1"], "trace.filter.filter_value1", "Filter value A")
     view.close()
     tabs.close()
+
+
+def test_direct_focus_shortcuts_reach_filter_dropdowns(qt_app):
+    view = FilterEditorView(FilterModel())
+    view.show()
+    view.activateWindow()
+    qt_app.processEvents()
+    name = view.widgets["filter_name"]
+    name.setFocus()
+    for key, field in [(Qt.Key.Key_C, "filter_column"), (Qt.Key.Key_O, "filter_operation")]:
+        QTest.keyClick(name, key, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier)
+        qt_app.processEvents()
+        assert QApplication.focusWidget() is view.widgets[field]
+    view.close()
+
+
+def test_direct_focus_shortcut_reaches_trace_list(qt_app):
+    panel = TabPanel()
+    panel.show()
+    panel.activateWindow()
+    qt_app.processEvents()
+    panel.listWidget.clearFocus()
+    QTest.keyClick(panel, Qt.Key.Key_T,
+                   Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier)
+    qt_app.processEvents()
+    assert QApplication.focusWidget() is panel.listWidget
+    panel.close()

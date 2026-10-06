@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtCore import Qt
 from dataclasses import fields
-from quick_ternaries.views.accessibility import describe_control, describe_field
+from quick_ternaries.views.accessibility import add_focus_shortcut, describe_control, describe_field
 
 from quick_ternaries.views.widgets import FilterTabWidget, MultiFieldSelector
 from quick_ternaries.models.filter_model import FilterModel
@@ -118,6 +118,9 @@ class FilterEditorView(QWidget):
                     lambda text, fname=f.name: self._on_field_changed(fname, text)
                 )
             self.form_layout.addRow(label_text, widget)
+            focus_keys = {"filter_column": "Ctrl+Alt+C", "filter_operation": "Ctrl+Alt+O"}
+            if f.name in focus_keys:
+                add_focus_shortcut(self, widget, focus_keys[f.name])
 
         # For filter_operation, update its behavior to trigger updating value widgets.
         if "filter_operation" in self.widgets:
