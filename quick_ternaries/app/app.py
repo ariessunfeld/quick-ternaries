@@ -93,6 +93,7 @@ from quick_ternaries.controllers import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.agent_dialog = None
         self._load_bundled_fonts()
         self.setWindowTitle("Quick Ternaries")
         self.resize(1200, 800)
@@ -211,6 +212,7 @@ class MainWindow(QMainWindow):
             "Rendered plot. Use Render Plot to display changes made in the editors.",
         )
         for widget, identifier in (
+            (self.agentButton, "agent_connection"),
             (self.settingsButton, "settings"),
             (self.previewButton, "render"),
             (self.saveButton, "save"),
@@ -443,9 +445,25 @@ class MainWindow(QMainWindow):
         self.plotTypeSelector = QComboBox()
         self.plotTypeSelector.addItems(["Ternary", "Cartesian", "Histogram", "Zmap"])
         layout.addWidget(self.plotTypeSelector)
+        self.agentButton = QPushButton("Agent API: Off")
+        self.agentButton.clicked.connect(self.show_agent_connection)
+        layout.addWidget(self.agentButton)
         self.settingsButton = QPushButton("Settings")
         layout.addWidget(self.settingsButton)
         return container
+
+    def show_agent_connection(self):
+        if self.agent_dialog is None:
+            from quick_ternaries.agent_api.dialog import AgentConnectionDialog
+            self.agent_dialog = AgentConnectionDialog(self)
+        self.agent_dialog.show()
+        self.agent_dialog.raise_()
+        self.agent_dialog.activateWindow()
+
+    def closeEvent(self, event):
+        if self.agent_dialog is not None:
+            self.agent_dialog.stop()
+        super().closeEvent(event)
 
     # Modify the bottom banner method to add Zmap buttons
     def _create_bottom_banner(self):

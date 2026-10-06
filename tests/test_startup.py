@@ -43,6 +43,13 @@ assert render.text(QAccessible.Text.Name) == window.previewButton.text()
 assert not exports, exports
 assert 'scipy.stats' not in sys.modules
 assert 'matplotlib' not in sys.modules
+assert 'h11' not in sys.modules
+assert window.agent_dialog is None
+window.agentButton.click()
+assert not window.agent_dialog.api.running
+window.agent_dialog.toggle.click()
+assert window.agent_dialog.api.running
+assert window.agent_dialog.api._reader.snapshot()['trace_count'] == 0
 print('STARTUP_RESULT ' + json.dumps({
     'imports_seconds': imports_done - start,
     'window_seconds': perf_counter() - construction_start,
@@ -50,6 +57,7 @@ print('STARTUP_RESULT ' + json.dumps({
     'icon_exports': len(exports),
 }))
 window.close()
+assert not window.agent_dialog.api.running
 """
     project_root = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
