@@ -1,5 +1,8 @@
 # Local Development and Bug-Report Workflow
 
+The [agent integration architecture](agent-integration.md) describes the planned
+live API, shared command boundary, accessibility work, and staged validation.
+
 ## Run the checked-out source
 
 The existing `qtvenv` environment is an editable installation of this

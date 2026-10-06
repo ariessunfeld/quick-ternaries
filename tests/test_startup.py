@@ -15,7 +15,8 @@ import sys
 from time import perf_counter
 
 start = perf_counter()
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QAccessible
+from PySide6.QtWidgets import QApplication, QWidget
 from quick_ternaries.app import MainWindow
 import plotly.io as pio
 imports_done = perf_counter()
@@ -33,6 +34,12 @@ window.show()
 app.processEvents()
 assert window.isVisible()
 assert window.windowTitle() == 'Quick Ternaries'
+identifiers = [widget.accessibleIdentifier() for widget in window.findChildren(QWidget)
+               if widget.accessibleIdentifier()]
+assert len(identifiers) == len(set(identifiers)), identifiers
+render = QAccessible.queryAccessibleInterface(window.previewButton)
+assert render.text(QAccessible.Text.Identifier) == 'workspace.render'
+assert render.text(QAccessible.Text.Name) == window.previewButton.text()
 assert not exports, exports
 assert 'scipy.stats' not in sys.modules
 assert 'matplotlib' not in sys.modules

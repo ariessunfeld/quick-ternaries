@@ -1,4 +1,5 @@
 from PySide6.QtCore import Signal
+from quick_ternaries.views.accessibility import describe_control, focus_through
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QWidget,
@@ -34,6 +35,7 @@ class ColorButton(QWidget):
         # Add widgets to layout
         layout.addWidget(self.colorPreview)
         layout.addWidget(self.button)
+        self.set_accessible_field("color", "Color")
 
         # Set the initial color
         self.setColor(color)
@@ -85,6 +87,18 @@ class ColorButton(QWidget):
             self.colorPreview.setPalette(palette)
             self.current_color = "#000000"
             self.qcolor = QColor("#000000")
+
+        self.button.setAccessibleDescription(f"Current color: {self.current_color}")
+        self.colorPreview.setAccessibleName(f"{self._accessible_field_name}: {self.current_color}")
+
+    def set_accessible_field(self, identifier, name):
+        self._accessible_field_name = name
+        describe_control(self.button, f"{identifier}.choose", f"Choose {name}")
+        describe_control(self.colorPreview, f"{identifier}.preview", f"{name} preview")
+        focus_through(self, self.button)
+        if hasattr(self, "current_color"):
+            self.button.setAccessibleDescription(f"Current color: {self.current_color}")
+            self.colorPreview.setAccessibleName(f"{name}: {self.current_color}")
 
     def openColorDialog(self):
         """Open the color picker dialog."""

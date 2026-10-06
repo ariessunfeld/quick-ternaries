@@ -1,4 +1,5 @@
 from dataclasses import fields
+from quick_ternaries.views.accessibility import describe_field
 from typing import TYPE_CHECKING
 
 # ---------------------------------
@@ -377,6 +378,7 @@ class TraceEditorView(QWidget):
             if f.name == "datafile":
                 # Create our custom datafile selector widget instead of the default widget
                 widget = DatafileSelector(self)
+                describe_field(widget, "trace.datafile", label_text)
                 widget.setDatafile(getattr(self.model, f.name))
                 
                 # Set the main window reference for access to controller
@@ -398,6 +400,8 @@ class TraceEditorView(QWidget):
                 
             # Normal handling for other fields
             widget = widget_cls(self)
+            if label_text:
+                describe_field(widget, f"trace.{f.name}", label_text)
             self.widgets[f.name] = widget
             value = getattr(self.model, f.name)
             if isinstance(widget, QLineEdit):

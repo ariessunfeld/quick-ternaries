@@ -1,4 +1,5 @@
 from pathlib import Path
+from quick_ternaries.views.accessibility import describe_control, focus_through
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QAction
@@ -67,6 +68,7 @@ class ShapeButtonWithMenu(QWidget):
         # Add widgets to layout
         layout.addWidget(self.shapePreview)
         layout.addWidget(self.button)
+        self.set_accessible_field("shape", "Marker shape")
 
         # Create the menu but don't show it yet
         self.createMenu()
@@ -85,6 +87,7 @@ class ShapeButtonWithMenu(QWidget):
         for shape_name in self.PLOTLY_SHAPES:
             icon = self.create_plotly_marker_icon(shape_name)
             action = QAction(icon, shape_name, self)
+            action.setCheckable(True)
             action.triggered.connect(
                 lambda checked=False, s=shape_name: self.onShapeSelected(s)
             )
@@ -116,6 +119,19 @@ class ShapeButtonWithMenu(QWidget):
             icon = self.create_plotly_marker_icon("circle")
             if not icon.isNull():
                 self.shapePreview.setPixmap(icon.pixmap(24, 24))
+
+        self.button.setAccessibleDescription(f"Current shape: {self.current_shape}")
+        self.shapePreview.setAccessibleName(f"{self._accessible_field_name}: {self.current_shape}")
+        for action in self.menu.actions():
+            action.setChecked(action.text() == self.current_shape)
+
+    def set_accessible_field(self, identifier, name):
+        self._accessible_field_name = name
+        describe_control(self.button, f"{identifier}.choose", f"Choose {name}")
+        describe_control(self.shapePreview, f"{identifier}.preview", f"{name} preview")
+        focus_through(self, self.button)
+        if hasattr(self, "current_shape"):
+            self.shapePreview.setAccessibleName(f"{name}: {self.current_shape}")
 
     def onShapeSelected(self, shape_name):
         """Handle selection of a shape from the menu."""

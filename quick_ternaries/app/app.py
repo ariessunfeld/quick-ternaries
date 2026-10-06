@@ -80,6 +80,7 @@ from quick_ternaries.views.widgets import (
 )
 
 from quick_ternaries.views.tab_panel_widget import TabPanel
+from quick_ternaries.views.accessibility import describe_control
 from quick_ternaries.views.setup_menu_view import SetupMenuView
 from quick_ternaries.views.trace_editor_view import TraceEditorView
 
@@ -197,6 +198,29 @@ class MainWindow(QMainWindow):
         self.ternary_contour_maker = TernaryContourTraceMaker()
         self.cartesian_plot_maker = CartesianPlotMaker()
         self.density_contour_maker = DensityContourMaker()
+        self._describe_accessibility()
+
+    def _describe_accessibility(self):
+        """Stable names for the main regions and actions of the desktop UI."""
+        describe_control(self, "quick_ternaries.window", "Quick Ternaries")
+        describe_control(self.setupMenuView, "workspace.setup", "Plot setup")
+        describe_control(self.traceEditorView, "workspace.trace_editor", "Current trace editor")
+        describe_control(self.plotTypeSelector, "workspace.plot_type", "Plot type")
+        describe_control(
+            self.plotView, "workspace.plot", "Plot preview",
+            "Rendered plot. Use Render Plot to display changes made in the editors.",
+        )
+        for widget, identifier in (
+            (self.settingsButton, "settings"),
+            (self.previewButton, "render"),
+            (self.saveButton, "save"),
+            (self.loadButton, "load"),
+            (self.exportButton, "export"),
+            (self.bootstrapButton, "bootstrap"),
+            (self.zmapPrevButton, "zmap_previous"),
+            (self.zmapNextButton, "zmap_next"),
+        ):
+            describe_control(widget, f"workspace.{identifier}", widget.text())
 
     def duplicate_trace(self, uid):
         """Handle the duplication of a trace."""

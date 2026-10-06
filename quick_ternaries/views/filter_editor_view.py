@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtCore import Qt
 from dataclasses import fields
+from quick_ternaries.views.accessibility import add_focus_shortcut, describe_control, describe_field
 
 from quick_ternaries.views.widgets import FilterTabWidget, MultiFieldSelector
 from quick_ternaries.models.filter_model import FilterModel
@@ -32,6 +33,7 @@ class FilterEditorView(QWidget):
         # Add a remove button at the bottom
         # TODO make this button's position more consistent
         self.remove_button = QPushButton("Remove Filter", self)
+        describe_control(self.remove_button, "trace.filter.remove", "Remove current filter")
         self.remove_button.clicked.connect(self._on_remove_clicked)
         self.form_layout.addRow("", self.remove_button)
 
@@ -63,6 +65,8 @@ class FilterEditorView(QWidget):
                 continue
             label_text = metadata["label"]
             widget = widget_cls(self)
+            if label_text:
+                describe_field(widget, f"trace.filter.{f.name}", label_text)
             self.widgets[f.name] = widget
             value = getattr(self.filter_model, f.name)
             if isinstance(widget, QLineEdit):
@@ -114,6 +118,9 @@ class FilterEditorView(QWidget):
                     lambda text, fname=f.name: self._on_field_changed(fname, text)
                 )
             self.form_layout.addRow(label_text, widget)
+            focus_keys = {"filter_column": "Ctrl+Alt+C", "filter_operation": "Ctrl+Alt+O"}
+            if f.name in focus_keys:
+                add_focus_shortcut(self, widget, focus_keys[f.name])
 
         # For filter_operation, update its behavior to trigger updating value widgets.
         if "filter_operation" in self.widgets:
@@ -285,6 +292,8 @@ class FilterEditorView(QWidget):
 
         # Add new row with a label.
         label1 = QLabel("Value A:", self)
+        describe_field(new_w, "trace.filter.filter_value1", "Filter value A")
+        label1.setBuddy(new_w)
         self.widgets["filter_value1_label"] = label1
         self.widgets["filter_value1"] = new_w
         self.form_layout.addRow(label1, new_w)
@@ -309,6 +318,8 @@ class FilterEditorView(QWidget):
             if self.filter_model.filter_value2:
                 new_w2.setText(str(self.filter_model.filter_value2))
             label2 = QLabel("Value B:", self)
+            describe_field(new_w2, "trace.filter.filter_value2", "Filter value B")
+            label2.setBuddy(new_w2)
             self.widgets["filter_value2_label"] = label2
             self.widgets["filter_value2"] = new_w2
             self.form_layout.addRow(label2, new_w2)
