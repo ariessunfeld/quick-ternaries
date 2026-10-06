@@ -8,6 +8,13 @@ from the corresponding tag archive.
 Use version tags in the form `vX.Y.Z`. The repository also has launcher tags,
 so check that you are working with the latest version tag, not a launcher tag.
 
+The GitHub **tag** (`tag_name`), **display title** (`name`), and release notes
+are separate fields. All current package/launcher updaters use `tag_name`.
+A title such as `v1.3.0 — Keyboard navigation and accessibility` is safe when
+the tag is exactly `v1.3.0`. Never put descriptive text in the version tag.
+Release notes do not configure the updater; this guide and automated tests
+enforce the publishing procedure.
+
 ## Prepare
 
 1. Start from an up-to-date `main`.
@@ -46,6 +53,28 @@ so check that you are working with the latest version tag, not a launcher tag.
    dist/quick_ternaries-X.Y.Z.tar.gz
    ```
 
+5. Test upgrades using the previous release's code, before publishing.
+
+   Run the updater contract tests and the isolated upgrade smoke test:
+
+   ```bash
+   python -m pytest tests/test_utils/test_updater.py tests/test_launcher_updater.py -q
+   python scripts/check_upgrade.py --from-ref v1.2.2 --wheel-dir dist
+   ```
+
+   Replace `v1.2.2` with the previous package release when preparing a newer
+   release. Fetch that exact tag if it is missing locally. The script builds
+   that release, installs it in disposable environments, executes its package
+   CLI and both launcher updater variants, then verifies the candidate version
+   and entry point. It substitutes only GitHub's release metadata and the
+   artifact download location; pip performs the real installation. Dependencies
+   come from the already validated parent environment, so this test complements
+   the full install matrix rather than repeating dependency downloads.
+
+   The focused upgrade CI workflow runs this on macOS, Windows, and Linux.
+   Keep its `PREVIOUS_RELEASE` baseline current when bumping the package version.
+   Review the release notes against the tagged changes and actual check results.
+
 ## Publish
 
 1. Commit the version bump and any release-prep metadata changes.
@@ -83,14 +112,27 @@ so check that you are working with the latest version tag, not a launcher tag.
      --json tagName,name,publishedAt,url,assets
    ```
 
-5. Smoke-test the updater path in a disposable environment if the release
-   affects install metadata or launch behavior.
+   Verify `tagName` is exactly `vX.Y.Z`, independently of `name`. Download the
+   wheel and source archive and compare their SHA-256 digests to the tested
+   local artifacts. Confirm the tag resolves to the intended commit on `main`.
+
+5. Smoke-test the published updater path from the previous version in a
+   disposable environment. The normal launcher activation must put that
+   environment's Python first on PATH.
 
    ```bash
-   python -m pip install --upgrade \
-     https://github.com/ariessunfeld/quick-ternaries/archive/tags/vX.Y.Z.tar.gz
-   quick-ternaries
+   python -m pip install \
+     https://github.com/ariessunfeld/quick-ternaries/archive/tags/vPREVIOUS.tar.gz
+   quick-ternaries --update
+   python -m pip show quick-ternaries
+   python -m pip check
    ```
+
+   Substitute the real previous tag, verify the installed version becomes the
+   newly published version, and start the application. Unlike the candidate CI
+   test, this checks GitHub's live latest-release selection and archive URL.
+   Keep live-network smoke checks in the release process: ordinary PR tests
+   must not change behavior when a different release becomes "latest".
 
 ## Launcher Releases
 
