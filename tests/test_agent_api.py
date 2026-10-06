@@ -10,7 +10,7 @@ from time import monotonic, sleep
 from uuid import uuid4
 
 import pytest
-from PySide6.QtCore import QThread, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QThread, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QComboBox, QPushButton, QWidget
 
@@ -68,6 +68,8 @@ def api(app):
     api.start()
     yield api
     api.stop()
+    api.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     app.processEvents()
 
 
@@ -237,6 +239,8 @@ def window(app, tmp_path):
     window.tabPanel.add_tab(trace.trace_name, trace)
     yield window
     window.close()
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_snapshot_tracks_human_edits_without_file_io_or_model_mutation(app, window, monkeypatch):
@@ -250,6 +254,7 @@ def test_snapshot_tracks_human_edits_without_file_io_or_model_mutation(app, wind
     assert "file_path" not in json.dumps(initial)
     assert initial == reader.snapshot()
     view = SetupMenuView(window.setupMenuModel)
+    view.setParent(window)
     title = view.section_widgets["plot_labels"]["title"]
     QTest.keyClicks(title, "Human edit")
     updated = reader.snapshot()
