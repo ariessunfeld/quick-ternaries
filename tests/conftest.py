@@ -1,5 +1,11 @@
 import sys
 import os
+
+# Scientific tests calculate contours/images without an interactive Matplotlib
+# window. Select that backend before imports, regardless of whether earlier Qt
+# tests have already created a QApplication.
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import pytest
 import pandas as pd
 import numpy as np
