@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from PySide6.QtCore import Signal
+from quick_ternaries.views.accessibility import describe_control, focus_through
 
 # --------------------------------------------------------------------
 # MultiFieldSelector Widget
@@ -37,6 +38,13 @@ class MultiFieldSelector(QWidget):
         btn_layout.addStretch()
         self.addButton.clicked.connect(self.add_field)
         self.removeButton.clicked.connect(self.remove_field)
+        self.set_accessible_field("fields", "Fields")
+
+    def set_accessible_field(self, identifier, name):
+        describe_control(self.listWidget, f"{identifier}.selected", f"Selected {name}")
+        describe_control(self.addButton, f"{identifier}.add", f"Add to {name}")
+        describe_control(self.removeButton, f"{identifier}.remove", f"Remove from {name}")
+        focus_through(self, self.listWidget)
 
     def set_available_options(self, options):
         # Store options as list of strings

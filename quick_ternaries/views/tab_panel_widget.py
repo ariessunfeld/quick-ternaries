@@ -3,10 +3,13 @@ import uuid
 from PySide6.QtCore import (
     QEvent, 
     QRect, 
-    Qt
+    Qt,
+    Signal,
+    QSignalBlocker,
 )
 from PySide6.QtGui import (
     QCursor,
+    QContextMenuEvent,
     QIcon,
     QPainter,
     QPixmap
@@ -27,11 +30,14 @@ from quick_ternaries.utils.constants import (
 )
 
 from quick_ternaries.models.trace_editor_model import TraceEditorModel
+from quick_ternaries.views.accessibility import describe_control
 
 # --------------------------------------------------------------------
 # TabListWidget and TabPanel (for managing tabs)
 # --------------------------------------------------------------------
 class TabListWidget(QListWidget):
+    removeRequested = Signal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
@@ -40,7 +46,8 @@ class TabListWidget(QListWidget):
         self.viewport().installEventFilter(self)
 
     def contextMenuEvent(self, event):
-        item = self.itemAt(event.pos())
+        keyboard = event.reason() == QContextMenuEvent.Reason.Keyboard
+        item = self.currentItem() if keyboard else self.itemAt(event.pos())
         if item is None:
             return
         
@@ -51,12 +58,46 @@ class TabListWidget(QListWidget):
         # Create context menu
         menu = QMenu(self)
         duplicate_action = menu.addAction("Duplicate")
-        action = menu.exec(event.globalPos())
+        position = (self.viewport().mapToGlobal(self.visualItemRect(item).center())
+                    if keyboard else event.globalPos())
+        action = menu.exec(position)
         
         if action == duplicate_action:
             uid = item.data(Qt.ItemDataRole.UserRole)
             # Signal to parent that we want to duplicate this trace
             self.parent().duplicate_trace(uid)
+
+    def keyPressEvent(self, event):
+        item = self.currentItem()
+        if item is None or self.state() == QAbstractItemView.State.EditingState:
+            return super().keyPressEvent(event)
+        key = event.key()
+        modifiers = event.modifiers()
+        special = item.text() in (SETUP_MENU_LABEL, ADD_TRACE_LABEL)
+        if modifiers == Qt.KeyboardModifier.NoModifier:
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+                # Activation must not inspect the mouse position: it might be
+                # resting on a trace's delete icon during keyboard navigation.
+                self.itemActivated.emit(item)
+                return
+            if not special and key == Qt.Key.Key_Delete:
+                self.removeRequested.emit(item.data(Qt.ItemDataRole.UserRole))
+                return
+            if not special and key == Qt.Key.Key_F2:
+                self.editItem(item)
+                return
+        if (not special and modifiers == Qt.KeyboardModifier.AltModifier
+                and key in (Qt.Key.Key_Up, Qt.Key.Key_Down)):
+            old_row = self.row(item)
+            new_row = old_row + (-1 if key == Qt.Key.Key_Up else 1)
+            if 1 <= new_row < self.count() - 1:
+                # Keep the selection and model identity while moving the row.
+                with QSignalBlocker(self):
+                    self.takeItem(old_row)
+                    self.insertItem(new_row, item)
+                    self.setCurrentItem(item)
+            return
+        super().keyPressEvent(event)
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Drop and source is self.viewport():
@@ -118,6 +159,11 @@ class TabPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.listWidget = TabListWidget()
+        describe_control(
+            self.listWidget, "workspace.traces", "Plot setup and traces",
+            "Enter or Space activates a row. F2 renames a trace; Delete removes it. "
+            "Alt+Up and Alt+Down reorder traces. The context menu offers Duplicate.",
+        )
         self.listWidget.itemSelectionChanged.connect(self._on_item_selection_changed)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -149,6 +195,8 @@ class TabPanel(QWidget):
         self.removeIcon.addPixmap(pm)
 
         self.listWidget.itemClicked.connect(self._on_item_clicked)
+        self.listWidget.itemActivated.connect(self._on_item_activated)
+        self.listWidget.removeRequested.connect(self._request_remove)
         self.listWidget.itemChanged.connect(self._on_item_changed)
 
         app = QApplication.instance()
@@ -199,6 +247,8 @@ class TabPanel(QWidget):
         if len(selected_items) == 1:
             item = selected_items[0]
             label = item.text()
+            if label == SETUP_MENU_LABEL and self.tabSelectedCallback:
+                self.tabSelectedCallback("setup-menu-id")
             if label not in (SETUP_MENU_LABEL, ADD_TRACE_LABEL):
                 uid = item.data(Qt.ItemDataRole.UserRole)
                 if uid and self.tabSelectedCallback:
@@ -291,6 +341,20 @@ class TabPanel(QWidget):
                 if self.listWidget.count() > 0:
                     self.listWidget.setCurrentRow(0)
 
+    def _request_remove(self, uid):
+        if self.tabRemovedCallback:
+            self.tabRemovedCallback(uid)
+
+    def _on_item_activated(self, item):
+        """Activate the row without the mouse-only remove-icon hit test."""
+        if item.text() == ADD_TRACE_LABEL:
+            if self.tabAddRequestedCallback:
+                self.tabAddRequestedCallback()
+        elif self.tabSelectedCallback:
+            uid = ("setup-menu-id" if item.text() == SETUP_MENU_LABEL
+                   else item.data(Qt.ItemDataRole.UserRole))
+            self.tabSelectedCallback(uid)
+
     def _on_item_clicked(self, item: QListWidgetItem):
 
         # If right-click, don't process further since context menu will handle it
@@ -323,10 +387,9 @@ class TabPanel(QWidget):
         if uid and self.tabRenamedCallback:
             self.tabRenamedCallback(uid, label)
         
-        # Only emit itemClicked if the change wasn't programmatic
-        # This is the key change to prevent focus loss
+        # Renaming is an activation, never a mouse click on the remove icon.
         if not self.is_programmatic_change:
-            self.listWidget.itemClicked.emit(item)
+            self._on_item_activated(item)
 
     def _clicked_on_remove_icon(self, item: QListWidgetItem) -> bool:
         pos = self.listWidget.viewport().mapFromGlobal(QCursor.pos())

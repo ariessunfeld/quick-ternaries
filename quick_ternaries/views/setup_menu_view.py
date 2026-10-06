@@ -1,4 +1,5 @@
 from dataclasses import fields
+from quick_ternaries.views.accessibility import describe_control, describe_field
 
 from typing import TYPE_CHECKING
 from PySide6.QtWidgets import (
@@ -70,6 +71,9 @@ class SetupMenuView(QWidget):
         btn_layout = QHBoxLayout()
         self.addDataButton = QPushButton("Add Data", self)
         self.removeDataButton = QPushButton("Remove Data", self)
+        describe_control(self.dataLibraryList, "setup.data_library.files", "Loaded data files")
+        describe_control(self.addDataButton, "setup.data_library.add", "Add data")
+        describe_control(self.removeDataButton, "setup.data_library.remove", "Remove selected data file")
         btn_layout.addWidget(self.addDataButton)
         btn_layout.addWidget(self.removeDataButton)
         data_library_layout.addLayout(btn_layout)
@@ -183,6 +187,8 @@ class SetupMenuView(QWidget):
             widget_cls = metadata["widget"]
             label_text = metadata["label"]
             field_widget = widget_cls(self)
+            if label_text:
+                describe_field(field_widget, f"setup.{model_attr_name}.{f.name}", label_text)
             value = getattr(section_model, f.name)
             if isinstance(field_widget, QLineEdit):
                 field_widget.setText(str(value))

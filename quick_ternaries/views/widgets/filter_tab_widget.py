@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
+from quick_ternaries.views.accessibility import describe_control
 
 
 class FilterTabWidget(QListWidget):
@@ -10,14 +11,33 @@ class FilterTabWidget(QListWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        describe_control(self, "trace.filters", "Trace filters",
+                         "Enter or Space activates a row; Delete removes a filter; F2 renames it.")
         self.setDragDropMode(QListWidget.NoDragDrop)
         self.setEditTriggers(QListWidget.DoubleClicked)
         self.viewport().installEventFilter(self)
         self.itemClicked.connect(self._on_item_clicked)
+        self.itemActivated.connect(self._on_item_clicked)
         self.itemChanged.connect(self._on_item_changed)
         self.currentItemChanged.connect(self._on_current_item_changed)
         self.filters = []
         self._refresh_tabs()
+
+    def keyPressEvent(self, event):
+        item = self.currentItem()
+        if (item is not None and self.state() != QListWidget.State.EditingState
+                and event.modifiers() == Qt.KeyboardModifier.NoModifier):
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+                self.itemActivated.emit(item)
+                return
+            if self.row(item) < len(self.filters):
+                if event.key() == Qt.Key.Key_Delete:
+                    self.filterRemoveRequestedCallback.emit(self.row(item))
+                    return
+                if event.key() == Qt.Key.Key_F2:
+                    self.editItem(item)
+                    return
+        super().keyPressEvent(event)
 
     # Add this method to handle changes in current item (including via arrow keys)
     def _on_current_item_changed(self, current, previous):

@@ -2,6 +2,7 @@
 
 from plotly.colors import get_colorscale, unlabel_rgb
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox
+from quick_ternaries.views.accessibility import describe_control, focus_through
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtCore import Signal
 
@@ -96,8 +97,13 @@ class ColorScaleDropdown(QWidget):
             self.comboBox.addItem(icon, cs_name)
 
         layout.addWidget(self.comboBox)
+        self.set_accessible_field("colorscale", "Color scale")
         self.setColorScale(colorscale)
         self.comboBox.currentTextChanged.connect(self.onColorScaleSelected)
+
+    def set_accessible_field(self, identifier, name):
+        describe_control(self.comboBox, f"{identifier}.select", name)
+        focus_through(self, self.comboBox)
 
     def setColorScale(self, colorscale_name):
         """Set the color scale from its name."""

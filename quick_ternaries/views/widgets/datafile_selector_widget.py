@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from quick_ternaries.views.accessibility import describe_control, focus_through
 if TYPE_CHECKING:
     from quick_ternaries.controllers import TraceEditorController
     from quick_ternaries.app import MainWindow
@@ -66,10 +67,22 @@ class DatafileSelector(QWidget):
         self._datafile = None
         self._all_datafiles = []
         self.main_window = None
+        self.set_accessible_field("datafile", "Data file")
+
+    def set_accessible_field(self, identifier, name):
+        describe_control(self.change_button, f"{identifier}.choose", f"Choose {name}")
+        describe_control(self.display, f"{identifier}.current", f"Current {name}")
+        focus_through(self, self.change_button)
+        self.change_button.setAccessibleDescription(
+            str(self._datafile) if self._datafile else "No data file selected"
+        )
 
     def setDatafile(self, datafile):
         """Set the current datafile and update the display."""
         self._datafile = datafile
+        self.change_button.setAccessibleDescription(
+            str(datafile) if datafile else "No data file selected"
+        )
         if datafile:
             text = str(datafile)
             self.display.setText(text)
