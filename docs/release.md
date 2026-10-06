@@ -17,12 +17,15 @@ enforce the publishing procedure.
 
 ## Prepare
 
-1. Start from an up-to-date `main`.
+1. Start from a clean checkout of up-to-date `main` and create a release branch.
+   Preserve unrelated work in other checkouts; do not reset or stash it as part
+   of releasing.
 
    ```bash
    git switch main
    git pull --ff-only
-   git fetch --tags --prune-tags
+   git fetch --tags
+   git switch -c codex/release-X-Y-Z
    ```
 
 2. Choose the next semantic version.
@@ -77,18 +80,26 @@ enforce the publishing procedure.
 
 ## Publish
 
-1. Commit the version bump and any release-prep metadata changes.
+1. Commit the version bump and release-prep metadata changes on the release
+   branch. Push it and open a pull request against `main`. Require the applicable
+   install, test, and upgrade checks to pass before merging.
 
    ```bash
    git status --short
    git add setup.cfg
    git commit -m "Bump package version for vX.Y.Z release"
-   git push origin main
+   git push -u origin codex/release-X-Y-Z
+   gh pr create --base main --head codex/release-X-Y-Z
    ```
 
-2. Tag the exact commit on `main`.
+2. After the release pull request is merged, update the clean checkout to
+   `main`. Build the final artifacts from that merged commit into a fresh output
+   directory, and rerun the candidate upgrade smoke test against them. Tag that
+   exact commit, not the earlier release-branch commit.
 
    ```bash
+   git switch main
+   git pull --ff-only
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
@@ -102,7 +113,7 @@ enforce the publishing procedure.
      --repo ariessunfeld/quick-ternaries \
      --target main \
      --title vX.Y.Z \
-     --notes "Release notes go here."
+     --notes-file /path/to/reviewed-release-notes.md
    ```
 
 4. Verify that GitHub now reports the new release as latest.
