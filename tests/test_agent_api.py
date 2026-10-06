@@ -6,7 +6,7 @@ import json
 import socket
 import subprocess
 import sys
-from time import monotonic
+from time import monotonic, sleep
 from uuid import uuid4
 
 import pytest
@@ -26,8 +26,10 @@ from quick_ternaries.views.setup_menu_view import SetupMenuView
 from quick_ternaries.views.tab_panel_widget import TabPanel
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def app():
+    # Keep the single QApplication alive across later test modules and cached
+    # QIcons. Destroying/recreating it mid-suite can crash inside native Qt.
     return QApplication.instance() or QApplication([])
 
 
@@ -38,9 +40,19 @@ def in_client_thread(app, callback):
         deadline = monotonic() + 8
         while not future.done() and monotonic() < deadline:
             app.processEvents()
-            QTest.qWait(1)
+            # Yield Python's GIL as well as servicing Qt. QTest.qWait alone can
+            # starve the Python client thread on Linux/other Python versions.
+            sleep(0.001)
         assert future.done(), "Loopback request did not finish"
         return future.result()
+
+
+def wait_for(app, predicate):
+    deadline = monotonic() + 2
+    while not predicate() and monotonic() < deadline:
+        app.processEvents()
+        sleep(0.001)
+    assert predicate()
 
 
 class Reader:
@@ -160,9 +172,12 @@ def test_stop_disconnects_clients_and_restart_rotates_identity_and_secret(app, a
     old = api.connection_details()
     port = int(old["url"].rsplit(":", 1)[1])
     connection = socket.create_connection(("127.0.0.1", port), timeout=5)
-    app.processEvents()
+    wait_for(app, lambda: len(api._connections) == 1)
     api.stop()
-    assert connection.recv(1) == b""
+    try:
+        assert connection.recv(1) == b""
+    except ConnectionResetError:
+        pass  # Windows reports an aborted socket as RST rather than EOF.
     connection.close()
     with pytest.raises(RuntimeError):
         api.connection_details()
@@ -185,13 +200,11 @@ def test_connection_limit_closes_excess_clients_and_frees_slots(app, api, monkey
     monkeypatch.setattr("quick_ternaries.agent_api.server.MAX_CONNECTIONS", 1)
     port = int(api.connection_details()["url"].rsplit(":", 1)[1])
     with socket.create_connection(("127.0.0.1", port), timeout=5) as held:
-        app.processEvents()
-        assert len(api._connections) == 1
+        wait_for(app, lambda: len(api._connections) == 1)
         assert in_client_thread(app, lambda: raw_request(api, b"GET /")) == b""
-    app.processEvents()
+    wait_for(app, lambda: len(api._connections) == 0)
     assert in_client_thread(app, lambda: request(api))[0] == 200
-    app.processEvents()
-    assert len(api._connections) == 0
+    wait_for(app, lambda: len(api._connections) == 0)
 
 
 def test_command_line_client_uses_stdin_and_ignores_proxy_environment(app, api, monkeypatch):
