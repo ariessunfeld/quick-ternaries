@@ -1,6 +1,7 @@
 # Release Checklist
 
-Quick Ternaries releases are GitHub Releases. The launcher updater reads
+Quick Ternaries releases are published on GitHub and PyPI. Both receive the same
+wheel and source distribution; the portable skill ZIP remains a GitHub asset. The launcher updater reads
 `https://api.github.com/repos/ariessunfeld/quick-ternaries/releases/latest`,
 compares the latest release tag to the installed package version, and installs
 from the corresponding tag archive.
@@ -155,6 +156,53 @@ enforce the publishing procedure.
    test, this checks GitHub's live latest-release selection and archive URL.
    Keep live-network smoke checks in the release process: ordinary PR tests
    must not change behavior when a different release becomes "latest".
+
+## PyPI publishing
+
+The `Publish to PyPI` workflow (`.github/workflows/publish-pypi.yml`) runs when a
+stable GitHub package release is published. It downloads the exact wheel and
+sdist attached to that release, verifies their GitHub SHA-256 digests, checks
+package/tag metadata and that the tag is on `main`, and runs strict Twine checks.
+Fresh macOS, Windows and Linux jobs install the base wheel and then its agent
+extra, check dependencies, start the desktop with access off, and validate the
+MCP adapter and bundled skill outside a source checkout. Only then can the
+separate `pypi` environment job obtain a short-lived publishing credential.
+The skill ZIP is never uploaded to PyPI.
+
+One-time setup, using an owner-controlled PyPI account with verified email and
+2FA:
+
+1. Add a pending GitHub Trusted Publisher at
+   <https://pypi.org/manage/account/publishing/> (or configure the existing
+   project's Publishing page). Set project `quick-ternaries`, owner
+   `ariessunfeld`, repository `quick-ternaries`, workflow `publish-pypi.yml`, and
+   environment `pypi`. No long-lived PyPI token belongs in repository secrets.
+2. Create the GitHub `pypi` environment and restrict deployment branches/tags to
+   `main` and version tags `v*`. Keep repository release permissions controlled.
+3. For the first publication of an existing GitHub release, dispatch
+   `publish-pypi.yml` **from main**, with its exact tag (initially `v1.5.0`).
+   Do not move the tag or rebuild/replace that release's distributions merely
+   to introduce PyPI. For future versions, follow the full checklist above;
+   publishing the GitHub release triggers this workflow automatically.
+
+After the workflow succeeds, verify PyPI's release version and file SHA-256
+values match GitHub, then use a disposable environment outside the checkout:
+
+```sh
+python -m pip install "quick-ternaries==X.Y.Z"
+python -m pip check
+quick-ternaries
+python -m pip install "quick-ternaries[agent]==X.Y.Z"
+quick-ternaries-mcp --help
+```
+
+A failed upload does not roll back the GitHub release. Inspect PyPI before
+retrying: published filenames cannot be replaced. If a partial upload needs
+recovery, upload only missing distributions with their original verified bytes;
+do not skip an existing-file error without checking the matching hashes.
+Continue testing the live GitHub updater path: the current launchers and
+`quick-ternaries --update` still use GitHub release tags. Normal pip upgrades use
+PyPI; publishing there does not add automatic checks to desktop startup.
 
 ## Launcher Releases
 

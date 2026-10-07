@@ -27,6 +27,7 @@ For a version-independent citation to the Quick Ternaries project, use the conce
 # Table of Contents
 
 - [Installation](#installation)
+  - [Install with pip](#install-with-pip)
   - [Supported Python Versions](#supported-python-versions)
   - [macOS](#macos)
     - [With Anaconda](#with-anaconda)
@@ -57,13 +58,37 @@ For a version-independent citation to the Quick Ternaries project, use the conce
 
 # Installation
 
-Below are installation instructions for macOS and Windows. Regardless of your operating system, we recommend following the Automatic setup instructions, and launching the tool with the provided launcher. This way, each time you boot up the tool, it will check for updates and offer to install them if any are found.
+Install the published package from [PyPI](https://pypi.org/project/quick-ternaries/) with pip, or use the macOS/Windows launchers below. The launchers check for updates at startup and offer to install them. Launching `quick-ternaries` directly does not automatically check for updates.
 
 Quick Ternaries supports Python 3.11, 3.12, 3.13, and 3.14. Use the latest patch release available for your chosen Python version.
 
 For basic instructions on how to use the Terminal/Command Prompt, see the [New to the Terminal](#new-to-the-terminal) section.
 
 **Important:** Before installing or launching the tool, disconnect from any VPNs that block python package managers like `pip` or `conda`.
+
+## Install with pip
+
+In an activated Python 3.11–3.14 virtual environment:
+
+```sh
+python -m pip install quick-ternaries
+quick-ternaries
+```
+
+If you need help creating an environment, follow the macOS or Windows manual
+instructions below. To update, use `python -m pip install --upgrade quick-ternaries`
+or the existing `quick-ternaries --update` command.
+
+The desktop API, shared editing, accessibility improvements and portable skill
+files are included. For the optional MCP adapter's dependencies, install:
+
+```sh
+python -m pip install "quick-ternaries[agent]"
+```
+
+Then follow [agent setup](docs/agent-mcp.md) to register the adapter and install
+the skill. Agent access remains off until enabled in **Settings → Agent API**;
+installing the package does not grant access or change agent configuration.
 
 ## Supported Python Versions
 
@@ -109,8 +134,8 @@ Two options exist for automatic setup on macOS: with and without Anaconda
   - You can use `python3.13`, `python3.12`, or `python3.11` instead if that is the supported version installed on your computer.
 - Activate the virtual environment by running `source ternaries-env/bin/activate`
 - Update `pip` by running `pip install --upgrade pip`
-- Build the `quick-ternaries` package from source by running `pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
-  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `pip install path/to/that/file.whl`
+- Install the latest published package with `python -m pip install quick-ternaries`
+  - Alternatively, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `pip install path/to/that/file.whl`
 - Launch the tool (and test installation) by running `quick-ternaries`
 
 ## Windows
@@ -151,8 +176,8 @@ Two options exist for automatic setup on Windows: with and without Anaconda.
 - Activate the virtual environment by running `call ternaries-env\Scripts\activate.bat`
 - Verify that the active virtual environment is using Python 3.11, 3.12, 3.13, or 3.14 by running `python --version`
 - Update `pip` by running `python -m pip install --upgrade pip`
-- Build the `quick-ternaries` package from source by running the command `python -m pip install git+https://github.com/ariessunfeld/quick-ternaries.git`
-  - NOTE: If you do not have Git installed, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `python -m pip install path\to\that\file.whl`
+- Install the latest published package with `python -m pip install quick-ternaries`
+  - Alternatively, download the latest `.whl` file from the [latest Quick Ternaries release](https://github.com/ariessunfeld/quick-ternaries/releases/latest) under **Assets** and run `python -m pip install path\to\that\file.whl`
   - If `pip` tries to build large scientific packages from source and reports compiler errors, update `pip`, confirm the virtual environment is using Python 3.11-3.14, then recreate the environment if needed.
 - Launch the tool (and test installation) by running the command `quick-ternaries`
 
