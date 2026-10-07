@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import fields
 from quick_ternaries.views.accessibility import describe_control, describe_field
 
@@ -134,7 +135,13 @@ class SetupMenuView(QWidget):
 
     def on_formula_changed(self, axis_name, column_name, formula):
         """Handle when a formula is changed in the formula widget."""
-        self.model.chemical_formulas.set_formula(axis_name, column_name, formula)
+        commands = getattr(self.window(), 'workspace_commands', None)
+        if commands is not None:
+            values = deepcopy(self.model.chemical_formulas.formulas)
+            values.setdefault(axis_name, {})[column_name] = formula
+            commands.edit_plot({'formulas': values})
+        else:
+            self.model.chemical_formulas.set_formula(axis_name, column_name, formula)
 
     def update_formula_widget(self):
         """Update all axes in the formula widget."""
@@ -186,28 +193,29 @@ class SetupMenuView(QWidget):
                 continue
             widget_cls = metadata["widget"]
             label_text = metadata["label"]
-            field_widget = widget_cls(self)
+            field_widget = widget_cls(parent=self) if widget_cls is ColorScaleDropdown else widget_cls(self)
+            from quick_ternaries.workspace.schema import PLOT_FIELDS
+            spec = PLOT_FIELDS.get(f.name)
+            if isinstance(field_widget, (QSpinBox, QDoubleSpinBox)) and spec is not None:
+                field_widget.setRange(spec.minimum, spec.maximum)
             if label_text:
                 describe_field(field_widget, f"setup.{model_attr_name}.{f.name}", label_text)
             value = getattr(section_model, f.name)
             if isinstance(field_widget, QLineEdit):
+                field_widget.setMaxLength(512)
                 field_widget.setText(str(value))
                 field_widget.textChanged.connect(
-                    lambda text, fname=f.name, m=section_model: setattr(m, fname, text)
+                    lambda text, fname=f.name, m=section_model: self._edit_field(m, fname, text)
                 )
             elif isinstance(field_widget, ColorButton):
                 field_widget.setColor(value)
                 field_widget.colorChanged.connect(
-                    lambda color_str, fname=f.name, m=section_model: setattr(
-                        m, fname, color_str
-                    )
+                    lambda color_str, fname=f.name, m=section_model: self._edit_field(m, fname, color_str)
                 )
             elif isinstance(field_widget, ColorScaleDropdown):
                 field_widget.setColorScale(value)
                 field_widget.colorScaleChanged.connect(
-                    lambda color_str, fname=f.name, m=section_model: setattr(
-                        m, fname, color_str
-                    )
+                    lambda color_str, fname=f.name, m=section_model: self._edit_field(m, fname, color_str)
                 )
             elif isinstance(field_widget, QDoubleSpinBox):
                 if "minimum" in metadata or "maximum" in metadata:
@@ -221,24 +229,22 @@ class SetupMenuView(QWidget):
                     field_widget.setDecimals(int(metadata["decimals"]))
                 field_widget.setValue(float(value))
                 field_widget.valueChanged.connect(
-                    lambda val, fname=f.name, m=section_model: setattr(m, fname, val)
+                    lambda val, fname=f.name, m=section_model: self._edit_field(m, fname, val)
                 )
                 # Configure axis range spinboxes
                 if f.name in ["x_axis_min", "x_axis_max", "y_axis_min", "y_axis_max"]:
-                    field_widget.setRange(-1e6, 1e6) 
+                    field_widget.setRange(spec.minimum, spec.maximum)
                     field_widget.setSingleStep(0.1)
                     field_widget.setDecimals(3)
             elif isinstance(field_widget, QSpinBox):
                 field_widget.setValue(int(value))
                 field_widget.valueChanged.connect(
-                    lambda val, fname=f.name, m=section_model: setattr(m, fname, val)
+                    lambda val, fname=f.name, m=section_model: self._edit_field(m, fname, val)
                 )
             elif isinstance(field_widget, QCheckBox):
                 field_widget.setChecked(bool(value))
                 field_widget.stateChanged.connect(
-                    lambda state, fname=f.name, m=section_model: setattr(
-                        m, fname, bool(state)
-                    )
+                    lambda state, fname=f.name, m=section_model: self._edit_field(m, fname, bool(state))
                 )
                 field_widget.stateChanged.connect(
                     lambda _: self._update_field_visibility()
@@ -252,7 +258,7 @@ class SetupMenuView(QWidget):
                     field_widget.addItem(str(value))
                 field_widget.setCurrentText(str(value))
                 field_widget.currentTextChanged.connect(
-                    lambda text, fname=f.name, m=section_model: setattr(m, fname, text)
+                    lambda text, fname=f.name, m=section_model: self._edit_field(m, fname, text)
                 )
                 field_widget.currentTextChanged.connect(
                     lambda _: self._update_field_visibility()
@@ -285,44 +291,17 @@ class SetupMenuView(QWidget):
     #     # Update the widgets for this axis
     #     self.update_scaling_widget_for_axis(field_name)
     #     self.update_formula_widget_for_axis(field_name)
+    def _edit_field(self, model, name, value):
+        commands = getattr(self.window(), 'workspace_commands', None)
+        if commands is not None and (model is self.model.plot_labels or model is self.model.axis_members or model is self.model.advanced_settings):
+            if commands.edit_plot({name: value}) or commands.updating:
+                return
+        setattr(model, name, value)
+
     def on_field_selection_changed(self, field_name, selection, model):
-        """Handle when a field selection changes in axis members."""
-        # Get the previous selection before updating
-        previous_selection = getattr(model, field_name, [])
-        
-        # Update the model
-        setattr(model, field_name, selection)
-
-        # Clean up any scaling factors for columns no longer selected
-        self.model.column_scaling.clean_unused_scales(field_name, selection)
-        
-        # Clean up any formulas for columns no longer selected
-        self.model.chemical_formulas.clean_unused_formulas(field_name, selection)
-        
-        # If this is an apex field, sync new columns to hover data
-        if field_name in ['top_axis', 'left_axis', 'right_axis', 'x_axis', 'y_axis']:
-            # Find columns that were added
-            new_columns = [col for col in selection if col not in previous_selection]
-            
-            if new_columns:
-                # Get current hover data
-                current_hover_data = getattr(self.model.axis_members, 'hover_data', [])
-                
-                # Add new columns to hover data if they're not already there
-                updated_hover_data = current_hover_data.copy()
-                for col in new_columns:
-                    if col not in updated_hover_data:
-                        updated_hover_data.append(col)
-                
-                # Update the hover data in the model
-                self.model.axis_members.hover_data = updated_hover_data
-                
-                # Update the hover data widget if it exists
-                hover_widget = self.section_widgets.get("axis_members", {}).get("hover_data")
-                if hover_widget and hasattr(hover_widget, "set_selected_fields"):
-                    hover_widget.set_selected_fields(updated_hover_data)
-
-        # Update the widgets for this axis
+        # Preserve scaling/formulas for deselected columns: undoing an axis
+        # change must recover its configuration. Unused entries do not render.
+        self._edit_field(model, field_name, selection)
         self.update_scaling_widget_for_axis(field_name)
         self.update_formula_widget_for_axis(field_name)
 
@@ -431,7 +410,13 @@ class SetupMenuView(QWidget):
 
     def on_scale_changed(self, axis_name, column_name, scale_factor):
         """Handle when a scale factor is changed in the scaling widget."""
-        self.model.column_scaling.set_scale(axis_name, column_name, scale_factor)
+        commands = getattr(self.window(), 'workspace_commands', None)
+        if commands is not None:
+            values = deepcopy(self.model.column_scaling.scaling_factors)
+            values.setdefault(axis_name, {})[column_name] = scale_factor
+            commands.edit_plot({'scaling_factors': values})
+        else:
+            self.model.column_scaling.set_scale(axis_name, column_name, scale_factor)
 
     def get_valid_axes_for_current_plot_type(self):
         """Return a list of axis names valid for the current plot type."""
@@ -626,6 +611,9 @@ class SetupMenuView(QWidget):
 
             # Add the file to the data library
             if self.model.data_library.add_file(metadata):
+                commands = getattr(self.window(), "workspace_commands", None)
+                if commands is not None:
+                    commands.data_boundary()
                 # Display the metadata with the full display string
                 self.dataLibraryList.addItem(str(metadata))
                 if self.controller:
@@ -664,6 +652,9 @@ class SetupMenuView(QWidget):
             row = self.dataLibraryList.row(current_item)
             self.dataLibraryList.takeItem(row)
             self.model.data_library.remove_file(display_str)
+            commands = getattr(self.window(), "workspace_commands", None)
+            if commands is not None:
+                commands.data_boundary()
 
             if self.controller:
                 self.controller.update_axis_options()

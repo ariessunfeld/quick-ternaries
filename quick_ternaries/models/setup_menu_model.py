@@ -9,6 +9,7 @@ from quick_ternaries.models.advanced_setup_menu_model import AdvancedPlotSetting
 
 @dataclass
 class SetupMenuModel:
+    plot_type: str = "ternary"
     data_library: DataLibraryModel = field(default_factory=DataLibraryModel)
     axis_members: AxisMembersModel = field(default_factory=AxisMembersModel)
     plot_labels: PlotLabelsModel = field(default_factory=PlotLabelsModel)
@@ -19,6 +20,8 @@ class SetupMenuModel:
     def to_dict(self):
         """Convert the model to a dictionary for serialization."""
         result = asdict(self)
+        # Keep the established on-disk top-level plot_type field.
+        result.pop('plot_type')
         result['data_library'] = self.data_library.to_dict()
         return result
 

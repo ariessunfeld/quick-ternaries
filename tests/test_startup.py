@@ -16,7 +16,7 @@ from time import perf_counter
 
 start = perf_counter()
 from PySide6.QtGui import QAccessible
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 from quick_ternaries.app import MainWindow
 import plotly.io as pio
 imports_done = perf_counter()
@@ -44,11 +44,29 @@ assert not exports, exports
 assert 'scipy.stats' not in sys.modules
 assert 'matplotlib' not in sys.modules
 assert 'h11' not in sys.modules
+assert 'mcp' not in sys.modules
 assert window.agent_dialog is None
-window.agentButton.click()
+assert window.settings_dialog is None
+assert not any(button.text().startswith('Agent API') for button in window.findChildren(QPushButton))
+window.settingsButton.click()
+settings = window.settings_dialog
+assert settings.isVisible() and window.agent_dialog is None
+assert 'h11' not in sys.modules
+assert settings.agentButton.window() is settings
+agent_action = QAccessible.queryAccessibleInterface(settings.agentButton)
+assert agent_action.text(QAccessible.Text.Identifier) == 'settings.agent_connection'
+settings.agentButton.click()
 assert not window.agent_dialog.api.running
 window.agent_dialog.toggle.click()
 assert window.agent_dialog.api.running
+assert settings.agentButton.text() == 'Agent API: Read only'
+assert agent_action.text(QAccessible.Text.Name) == settings.agentButton.text()
+window.agent_dialog.close()
+settings.close()
+assert window.agent_dialog.api.running
+window.settingsButton.click()
+assert window.settings_dialog is settings and settings.isVisible()
+assert settings.agentButton.text() == 'Agent API: Read only'
 assert window.agent_dialog.api._reader.snapshot()['trace_count'] == 0
 print('STARTUP_RESULT ' + json.dumps({
     'imports_seconds': imports_done - start,

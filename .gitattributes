@@ -4,3 +4,6 @@ quick_ternaries/resources/*.html linguist-vendored
 # Ensure Python files are correctly detected
 *.py linguist-language=Python
 
+# Skill archives and the released migration fixture use stable text bytes.
+quick_ternaries/resources/quick-ternaries/** text eol=lf
+tests/fixtures/skill-v1.4.0/** text eol=lf

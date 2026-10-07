@@ -1,3 +1,6 @@
+from urllib.parse import quote
+from quick_ternaries.views.accessibility import describe_control
+
 from typing import TYPE_CHECKING
 
 
@@ -136,7 +139,9 @@ class ErrorEntryWidget(QWidget):
         
         # Create spin box for error input
         spin_box = QDoubleSpinBox()
-        spin_box.setRange(0.0, 100.0)  # Reasonable range for error values
+        describe_control(spin_box, f"trace.uncertainty.{quote(str(component), safe='')}",
+                         f"{component} absolute uncertainty")
+        spin_box.setRange(0.0, 1e10)
         spin_box.setSingleStep(0.1)
         spin_box.setDecimals(4)  # More precision for small values
         

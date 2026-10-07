@@ -1,3 +1,6 @@
+from urllib.parse import quote
+from quick_ternaries.views.accessibility import describe_control
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -72,6 +75,8 @@ class ColumnScalingWidget(QWidget):
 
             for column in columns:
                 spin_box = QDoubleSpinBox()
+                describe_control(spin_box, f"setup.scale.{axis_name}.{quote(str(column), safe='')}",
+                                 f"{display_name}: {column} scale factor")
                 spin_box.setRange(0.01, 1000.0)  # Wide range for flexibility
                 spin_box.setSingleStep(0.1)
                 spin_box.setDecimals(2)  # More precision

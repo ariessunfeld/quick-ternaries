@@ -12,7 +12,7 @@ import pytest
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 
-from quick_ternaries.agent_api.mcp import create_server, install_skill
+from quick_ternaries.agent_api.mcp import create_server
 from quick_ternaries.agent_api.session import Session
 from test_agent_api import app, window, live_api, in_client_thread
 
@@ -32,8 +32,8 @@ def test_official_sdk_reads_and_explicit_changes(app, window, live_api, mode):
             tools = (await client.list_tools()).tools
             names = {t.name for t in tools}
             assert names == {"connect_from_clipboard", "disconnect", "get_capabilities", "get_workspace_overview",
-                             "get_plot_settings", "list_traces", "list_datasets", "get_trace", "get_dataset_schema", "get_changes"}
-            assert all(t.annotations.read_only_hint for t in tools if t.name not in ("connect_from_clipboard", "disconnect"))
+                             "get_plot_settings", "list_traces", "list_datasets", "get_trace", "get_dataset_schema", "get_changes", "get_trace_color_state", "set_trace_color", "get_edit_state", "apply_edits", "change_trace_structure", "change_history", "render_plot", "get_render_status"}
+            assert all(t.annotations.read_only_hint for t in tools if t.name not in ("connect_from_clipboard", "disconnect", "set_trace_color", "apply_edits", "change_trace_structure", "change_history", "render_plot"))
             missing = await client.call_tool("get_workspace_overview")
             assert missing.is_error and missing.structured_content["error"] == "not_connected"
             connected = await client.call_tool("connect_from_clipboard")
@@ -82,7 +82,7 @@ create_server(Session(clipboard)).run(transport="stdio")
     })
     async def scenario():
         async with Client(params, mode=mode, read_timeout_seconds=5) as client:
-            assert len((await client.list_tools()).tools) == 10
+            assert len((await client.list_tools()).tools) == 18
             assert not (await client.call_tool("connect_from_clipboard")).is_error
             for _ in range(3):
                 result = await client.call_tool("get_workspace_overview")
@@ -128,26 +128,16 @@ def test_reconnect_read_calls_are_serialized_and_unexpected_errors_redacted():
     asyncio.run(scenario())
 
 
-def test_bundled_skill_install_preserves_existing_customizations(tmp_path):
-    target = tmp_path / 'skill'
-    install_skill(target)
-    assert (target / 'references/connection.md').exists()
-    install_skill(target)
-    customized = target / 'SKILL.md'
-    customized.write_text('custom instructions')
-    with pytest.raises(ValueError, match='Existing skill differs'):
-        install_skill(target)
-    assert customized.read_text() == 'custom instructions'
-
-
 def test_mcp_module_import_and_skill_install_do_not_import_qt_or_sdk(tmp_path):
     script = '''import sys
 from quick_ternaries.agent_api.mcp import install_skill
 assert 'mcp' not in sys.modules
 assert not any(k.startswith('PySide6') for k in sys.modules)
 install_skill(sys.argv[1])
+assert 'mcp' not in sys.modules
+assert not any(k.startswith('PySide6') for k in sys.modules)
 '''
-    result = subprocess.run([sys.executable, '-c', script, str(tmp_path/'skill')], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, '-c', script, str(tmp_path/'quick-ternaries')], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
 
 

@@ -29,21 +29,48 @@ def validate_connection(connection):
 
 
 def read(connection, endpoint="workspace", **params):
-    allowed = ("capabilities", "workspace", "overview", "plot", "changes", "traces", "datasets")
+    allowed = ("capabilities", "workspace", "overview", "plot", "changes", "traces", "datasets", "edit-state", "render-status")
     if endpoint not in allowed:
         try:
             kind, uid = endpoint.split("/")
-            if kind not in ("traces", "datasets"):
+            if kind not in ("traces", "datasets", "trace-colors"):
                 raise ValueError()
             UUID(uid)
         except (ValueError, AttributeError):
             raise ApiError("invalid_query", "Unknown read endpoint.") from None
-    port = validate_connection(connection)
     query = "?" + urlencode(params) if params else ""
+    return _request(connection, "GET", f"/v1/{endpoint}{query}")
+
+
+def set_trace_color(connection, **command):
+    """One explicit command; never automatically retries an uncertain result."""
+    return _request(connection, "POST", "/v1/commands/set-trace-color", command)
+
+
+def command(connection, operation, **arguments):
+    allowed = {'apply_edits', 'undo', 'redo', 'create_trace', 'duplicate_trace',
+               'delete_trace', 'reorder_traces', 'render_plot'}
+    if operation not in allowed:
+        raise ApiError('invalid_command', 'Unknown workspace operation.')
+    return _request(connection, 'POST', '/v1/commands/' + operation.replace('_', '-'), arguments)
+
+
+def _request(connection, method, path, command=None):
+    port = validate_connection(connection)
     # Direct loopback connection; proxy environment variables are never consulted.
     client = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     try:
-        client.request("GET", f"/v1/{endpoint}{query}", headers={"Authorization": f"Bearer {connection['token']}"})
+        headers = {"Authorization": f"Bearer {connection['token']}"}
+        body = None
+        if command is not None:
+            try:
+                body = json.dumps(command, allow_nan=False).encode()
+            except (TypeError, ValueError):
+                raise ApiError("invalid_command", "Command must contain JSON-compatible values.") from None
+            if len(body) > 8192:
+                raise ApiError("invalid_command", "Command exceeds the input limit.")
+            headers["Content-Type"] = "application/json"
+        client.request(method, path, body=body, headers=headers)
         response = client.getresponse()
         body = response.read(MAX_RESPONSE_BYTES + 1)
         if len(body) > MAX_RESPONSE_BYTES:
@@ -59,6 +86,15 @@ def read(connection, endpoint="workspace", **params):
         if response.status != 200:
             # Never repeat arbitrary server text from a misidentified local service.
             known = {
+                "read_only": "Workspace editing is disabled in the desktop connection panel.",
+                "editor_busy": "The person is editing a field or dialog. Let them finish, then retry the same request.",
+                "edit_conflict": "Requested fields or workspace history changed. Read current edit state before deciding on another edit.",
+                "history_empty": "No workspace change is available to undo or redo.",
+                "render_busy": "A render is already in progress. Read render status.",
+                "color_conflict": "Trace color changed. Read its current color state before deciding on another edit.",
+                "workspace_changed": "Workspace was replaced. Read a new overview and edit state.",
+                "request_id_reused": "Request ID was already used with different arguments.",
+                "invalid_command": "Invalid command. Check the editing contract and capabilities.",
                 "trace_not_found": "Trace unavailable. Refresh the overview.",
                 "dataset_not_found": "Dataset unavailable. Refresh the overview.",
                 "invalid_query": "Unsupported query parameters. Check the API guide.",

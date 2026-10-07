@@ -109,7 +109,11 @@ class ColorScaleDropdown(QWidget):
         """Set the color scale from its name."""
         try:
             # Find the index of the color scale in the combobox
-            index = self.PLOTLY_COLOR_SCALES.index(colorscale_name)
+            index = self.comboBox.findText(colorscale_name)
+            if index < 0:
+                get_colorscale(colorscale_name)  # Validate any additional Plotly scale.
+                self.comboBox.addItem(self.create_colorscale_icon(colorscale_name), colorscale_name)
+                index = self.comboBox.count() - 1
             self.comboBox.setCurrentIndex(index)
 
             # Update the preview

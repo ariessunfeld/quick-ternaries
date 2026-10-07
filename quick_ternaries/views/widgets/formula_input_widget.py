@@ -1,3 +1,6 @@
+from urllib.parse import quote
+from quick_ternaries.views.accessibility import describe_control
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget,
@@ -87,6 +90,9 @@ class FormulaInputWidget(QWidget):
                 
                 # Formula input field
                 formula_input = QLineEdit()
+                describe_control(formula_input, f"setup.formula.{axis_name}.{quote(str(column), safe='')}",
+                                 f"{display_name}: {column} chemical formula")
+                formula_input.setMaxLength(512)
                 formula_input.setPlaceholderText("Enter formula (e.g. Al2O3)")
                 
                 # Set current value from the model or default to empty string

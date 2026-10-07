@@ -1,5 +1,3 @@
-import uuid
-
 from PySide6.QtCore import (
     QEvent, 
     QRect, 
@@ -30,6 +28,7 @@ from quick_ternaries.utils.constants import (
 )
 
 from quick_ternaries.models.trace_editor_model import TraceEditorModel
+from quick_ternaries.workspace.session import WorkspaceSession
 from quick_ternaries.views.accessibility import add_focus_shortcut, describe_control
 
 # --------------------------------------------------------------------
@@ -156,7 +155,7 @@ class TabListWidget(QListWidget):
 
 
 class TabPanel(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, workspace_session=None):
         super().__init__(parent)
         self.listWidget = TabListWidget(self)
         describe_control(
@@ -176,7 +175,8 @@ class TabPanel(QWidget):
         self.tabAddRequestedCallback = None  # () -> ...
 
         # Map unique_id -> associated model (TraceEditorModel or SetupMenuModel)
-        self.id_to_widget = {}
+        self.workspace_session = workspace_session if workspace_session is not None else WorkspaceSession()
+        self.id_to_widget = self.workspace_session.traces
 
         setup_item = self._create_setup_item()
         self.listWidget.addItem(setup_item)
@@ -299,9 +299,14 @@ class TabPanel(QWidget):
     def on_palette_changed(self):
         self.apply_dynamic_style()
 
-    def add_tab(self, title: str, model) -> str:
-        unique_id = str(uuid.uuid4())
-        self.id_to_widget[unique_id] = model
+    def add_tab(self, title: str, model, trace_id=None) -> str:
+        commands = getattr(self.window(), 'workspace_commands', None)
+        record = commands is not None and not getattr(self.window(), '_agent_loading_workspace', False)
+        unique_id = self.workspace_session.add_trace(model, trace_id, record=record)
+        if record:
+            with QSignalBlocker(self.listWidget):
+                self.select_tab_by_id(unique_id)
+            return unique_id
 
         new_item = QListWidgetItem(title)
         new_item.setFlags(new_item.flags() | Qt.ItemFlag.ItemIsEditable)
@@ -325,6 +330,10 @@ class TabPanel(QWidget):
                     break
 
     def remove_tab_by_id(self, unique_id: str):
+        if (getattr(self.window(), 'workspace_commands', None) is not None
+                and not getattr(self.window(), '_agent_loading_workspace', False)):
+            self.workspace_session.remove_trace(unique_id, record=True)
+            return
         old_selected_item = self.listWidget.currentItem()
         old_selected_uid = None
         if old_selected_item:
@@ -333,7 +342,7 @@ class TabPanel(QWidget):
             it = self.listWidget.item(i)
             if it is not None and it.data(Qt.ItemDataRole.UserRole) == unique_id:
                 self.listWidget.takeItem(i)
-                self.id_to_widget.pop(unique_id, None)
+                self.workspace_session.remove_trace(unique_id)
                 break
         if old_selected_uid != unique_id:
             if old_selected_item and self.listWidget.row(old_selected_item) != -1:

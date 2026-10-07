@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 
-from .client import read, validate_connection
+from .client import read, set_trace_color, validate_connection, command as send_command
 from .contract import ApiError
 
 MAX_INPUT_BYTES = 16 * 1024
@@ -128,8 +128,45 @@ class Session:
             self.connection = {key: connection[key] for key in ("url", "token", "protocol_version", "instance_id")}
             return {"status": "connected", "capabilities": capabilities,
                     "connection_lifetime": "this_process_until_disconnect_or_desktop_revocation"}
+        if op in ('edit_state', 'render_status', 'apply_edits', 'undo', 'redo', 'create_trace',
+                  'duplicate_trace', 'delete_trace', 'reorder_traces', 'render_plot'):
+            if self.connection is None:
+                raise ApiError('not_connected', 'Connect before requesting workspace operations.')
+            params = {k: v for k, v in command.items() if k != 'op'}
+            try:
+                if op in ('edit_state', 'render_status'):
+                    if op == 'edit_state' and isinstance(params.get('fields'), list):
+                        params['fields'] = ','.join(params['fields'])
+                    return read(self.connection, op.replace('_', '-'), **params)
+                result = send_command(self.connection, op, **params)
+            except ApiError as error:
+                if error.code in ('access_revoked', 'instance_changed'):
+                    self.close()
+                raise
+            self.clear_cache()
+            return result
+        if op in ("color_state", "set_trace_color"):
+            fields = {"op", "trace_id"}
+            if op == "set_trace_color":
+                fields.update(("color", "expected_color_revision", "workspace_epoch", "request_id"))
+            if set(command) != fields:
+                raise ApiError("invalid_command", "Supply exactly the fields documented for the color command.")
+            if self.connection is None:
+                raise ApiError("not_connected", "Connect before requesting a color operation.")
+            try:
+                if op == "color_state":
+                    return read(self.connection, "trace-colors/" + str(command["trace_id"]))
+                result = set_trace_color(self.connection, **{k: v for k, v in command.items() if k != "op"})
+            except ApiError as error:
+                if error.code in ("access_revoked", "instance_changed"):
+                    self.close()
+                raise
+            # Focused reads after a command must use fresh state, including when
+            # the command response is a historical receipt from a retry.
+            self.clear_cache()
+            return result
         if op != "read" or command.keys() - {"op", "resource", "id", "sections", "offset", "limit", "since", "refresh"}:
-            raise ApiError("invalid_command", "Use connect, read, disconnect, or quit. See the session guide.")
+            raise ApiError("invalid_command", "Use connect, read, color_state, set_trace_color, disconnect, or quit. See the session guide.")
         if self.connection is None:
             raise ApiError("not_connected", "Connect once before requesting reads.")
         resource = command.get("resource", "overview")
