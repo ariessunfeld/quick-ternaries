@@ -38,7 +38,7 @@ Use this existing worktree and PR. Preserve other checkouts and their changes.
   live heatmap/filter edits, unchanged reads, independent clients, cursor expiry,
   object deletion/workspace replacement, pagination and malformed requests,
   redaction/limits, and existing read-only/auth/lifecycle regression coverage.
-- [ ] Validation: focused suite, full local suite, package/entry-point check,
+- [x] Validation: focused suite, full local suite, package/entry-point check,
   then push and require the existing macOS/Windows/Linux Python 3.11–3.14 CI
   matrix on the final PR head. Update PR title/body around the final change.
 
@@ -72,9 +72,21 @@ Use this existing worktree and PR. Preserve other checkouts and their changes.
 - Read-only observation revisions deliberately cover the bounded public schema;
   focused reads can access objects/pages beyond the tracking limits. Truncated
   tracking results require resync, never an unqualified unchanged claim.
-- Pending: commit/push, check final-head cross-platform CI, and update PR #39's
-  description and this record with the results. The user's open app is still
-  running the earlier code; save/restart is needed to use these new endpoints.
+- Implementation committed and pushed as `2d047502`. All **18 CI jobs passed**
+  in [run 37549608619](https://github.com/ariessunfeld/quick-ternaries/actions/runs/37549608619):
+  macOS/Windows/Linux manual installs across Python 3.11–3.14, Linux conda-assisted
+  installs across those versions, launcher environment validation, and CI scope.
+- Synthetic payload measurement (one trace, four columns): broad read 3,377 B,
+  overview 1,316 B, heatmap 1,323 B, unchanged heatmap 447 B, one-field delta
+  521 B. These measure encoded JSON size, not tokens or desktop latency.
+- This closeout update changes documentation only. Current-head CI status and
+  final validation also live on [PR #39](https://github.com/ariessunfeld/quick-ternaries/pull/39).
+  The PR stays draft and unmerged; no release or dependency upgrade was made.
+- The user's open app is still running the earlier code; save/restart is needed
+  to use these new endpoints. Tests used separate synthetic/offscreen workspaces.
+  Clipboard command selection/failure/timeout is covered on the CI platforms;
+  real Windows/Linux clipboard permissions and native accessibility are not
+  certified by those tests. No outstanding implementation tasks in this increment.
 
 ## Follow-on work
 
