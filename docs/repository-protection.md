@@ -39,15 +39,15 @@ the updater can parse unprotected. Ordinary contributor branches remain usable.
 
 The `pypi` environment accepts only branch `main` and tags `v*`, and requires
 approval from `ariessunfeld`. Self-approval is allowed for that account so an
-owner-initiated release is possible; Reid cannot approve it. GitHub's repository
-owner retains administrative recovery authority. Follow the
+owner-initiated release is possible. GitHub's repository owner retains
+administrative recovery authority. Follow the
 [release checklist](release.md) and obtain Ari's explicit approval for a specific
 release before an agent approves its deployment on his behalf.
 
 ## Limits and recovery
 
-These controls contain ordinary collaborator write access; they cannot protect
-against compromise of the owner account or an owner-authorized credential.
+These settings separate development, review, and publishing responsibilities.
+The owner account and owner-authorized credentials retain administrative access.
 Protect GitHub and PyPI accounts with strong two-factor authentication and
 review third-party application access.
 
