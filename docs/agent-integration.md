@@ -16,9 +16,9 @@ remains a prerequisite for exposing edits.
 
 The current draft also includes a persistent JSON-lines client, focused reads,
 heatmap coverage, bounded observation cursors, and portable skill guidance.
-See the [execution plan](agent-api-plan.md) for scope and validation. Observation
-revisions cover only the public projection; they do not implement the complete
-document revision/undo boundary described below. The stdio client is not MCP.
+Observation revisions cover only the public projection; they do not implement
+the complete document revision/undo boundary described below. The stdio client
+is not MCP.
 
 ## Development and Git policy
 
