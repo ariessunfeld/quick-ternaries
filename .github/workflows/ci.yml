@@ -261,3 +261,33 @@ jobs:
 
       - name: Validate launcher environment
         run: conda run -n quick_ternaries python -c "import requests; import sys; assert (3, 11) <= sys.version_info[:2] < (3, 15)"
+
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [ci_scope, manual-install, conda-install, conda-environment-file]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require every applicable check to pass
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        shell: python
+        run: |
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          scope = needs["ci_scope"]
+          if scope["result"] != "success":
+              sys.exit("CI scope did not succeed")
+          full = scope["outputs"].get("run_full_ci")
+          if full not in ("true", "false"):
+              sys.exit("CI scope did not select a valid test plan")
+          expected = "success" if full == "true" else "skipped"
+          for job in ("manual-install", "conda-install", "conda-environment-file"):
+              result = needs[job]["result"]
+              if result != expected:
+                  sys.exit(f"{job}: expected {expected}, got {result}")
+          print("All applicable CI checks passed")
