@@ -100,8 +100,8 @@ Desktop **Disconnect agent access** revokes all clients on that connection.
 Errors never repeat raw clipboard contents, arbitrary server error text or
 exception details. Diagnose using the code, not by printing the token.
 
-This is a JSON-lines CLI protocol, **not MCP**. The future official-SDK MCP
-adapter can reuse it, but agents currently need a persistent command execution
-session. If their host kills that session, a new explicit handoff is required;
+This is a JSON-lines CLI protocol, **not MCP**. The [official-SDK MCP adapter](agent-mcp.md) reuses the Python client logic
+and is preferred for supported hosts. This CLI requires a persistent command
+execution session. If their host kills that session, a new explicit handoff is required;
 the clipboard is not a credential store. The one-shot CLI remains useful for
 isolated reads but is not the recommended repeated-inspection workflow.
