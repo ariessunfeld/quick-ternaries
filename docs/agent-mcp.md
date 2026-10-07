@@ -3,8 +3,9 @@
 Quick Ternaries provides an optional local MCP adapter for inspecting a chosen
 open desktop window. It exposes focused read tools, retains a connection after
 the clipboard changes, and works independently of the window's lifetime. It
-cannot edit, import, render, save or export. The desktop still enforces its
-read-only API and access controls.
+cannot import, render, save or export. Released v1.4.0 is read-only; this
+development branch adds optional [trace-color editing](agent-editing.md).
+The desktop enforces access controls for both inspection and edits.
 
 ## Install and register
 
@@ -82,6 +83,14 @@ number of filtered points. See [the API contract](agent-api.md) for details.
 
 Errors set MCP's error flag and return a redacted code/message. See the
 [session recovery table](agent-api-session.md#lifetime-and-recovery).
+
+## Development color-edit tools
+
+This branch also exposes `get_trace_color_state` and `set_trace_color`. The
+desktop requires separate color-edit opt-in; attaching remains read-only by
+default. These tools are not in v1.4.0. See the [editing contract](agent-editing.md)
+for scoped revisions, retries, undo and limitations. Tools are discoverable even
+when permission is off or the connected desktop is older; check capabilities.
 
 ## Optional skill
 

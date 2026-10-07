@@ -3,6 +3,9 @@
 The [API guide](agent-api.md) defines coverage, endpoints, cursor scope and limits.
 This guide describes how an agent keeps a reliable, economical client session.
 
+The development [color-edit extension](agent-editing.md) adds `color_state` and
+`set_trace_color` operations; these are not available in v1.4.0.
+
 ## Start and connect once
 
 Use Python with this branch installed, or this checkout as the working directory

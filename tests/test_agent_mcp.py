@@ -32,8 +32,8 @@ def test_official_sdk_reads_and_explicit_changes(app, window, live_api, mode):
             tools = (await client.list_tools()).tools
             names = {t.name for t in tools}
             assert names == {"connect_from_clipboard", "disconnect", "get_capabilities", "get_workspace_overview",
-                             "get_plot_settings", "list_traces", "list_datasets", "get_trace", "get_dataset_schema", "get_changes"}
-            assert all(t.annotations.read_only_hint for t in tools if t.name not in ("connect_from_clipboard", "disconnect"))
+                             "get_plot_settings", "list_traces", "list_datasets", "get_trace", "get_dataset_schema", "get_changes", "get_trace_color_state", "set_trace_color"}
+            assert all(t.annotations.read_only_hint for t in tools if t.name not in ("connect_from_clipboard", "disconnect", "set_trace_color"))
             missing = await client.call_tool("get_workspace_overview")
             assert missing.is_error and missing.structured_content["error"] == "not_connected"
             connected = await client.call_tool("connect_from_clipboard")
@@ -82,7 +82,7 @@ create_server(Session(clipboard)).run(transport="stdio")
     })
     async def scenario():
         async with Client(params, mode=mode, read_timeout_seconds=5) as client:
-            assert len((await client.list_tools()).tools) == 10
+            assert len((await client.list_tools()).tools) == 12
             assert not (await client.call_tool("connect_from_clipboard")).is_error
             for _ in range(3):
                 result = await client.call_tool("get_workspace_overview")

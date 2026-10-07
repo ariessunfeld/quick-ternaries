@@ -379,3 +379,6 @@ Inspect an open workspace from Codex or Claude Code with the optional
 [local MCP integration](docs/agent-mcp.md). Agent access is visibly opt-in and
 read-only; focused tools cover trace styles, heatmaps, filters, and dataset
 schemas. You can continue editing in the app while an agent inspects it.
+
+The development branch adds optional [undoable trace-color editing](docs/agent-editing.md)
+with a separate permission toggle. This extension is not in v1.4.0.

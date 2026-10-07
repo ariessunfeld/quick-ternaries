@@ -4,6 +4,7 @@ from time import time
 import re
 import traceback
 import webbrowser
+from uuid import UUID, uuid4
 from dataclasses import fields
 from pathlib import Path
 
@@ -79,6 +80,7 @@ from quick_ternaries.views.widgets import (
     ColorButton
 )
 
+from quick_ternaries.workspace.session import WorkspaceSession, WorkspaceError
 from quick_ternaries.views.tab_panel_widget import TabPanel
 from quick_ternaries.views.accessibility import describe_control
 from quick_ternaries.views.setup_menu_view import SetupMenuView
@@ -94,6 +96,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.agent_dialog = None
+        self.workspace_session = WorkspaceSession()
         self._load_bundled_fonts()
         self.setWindowTitle("Quick Ternaries")
         self.resize(1200, 800)
@@ -123,7 +126,7 @@ class MainWindow(QMainWindow):
         main_vlayout.addWidget(bottom_banner)
 
         # Left: TabPanel
-        self.tabPanel = TabPanel()
+        self.tabPanel = TabPanel(workspace_session=self.workspace_session)
         self.h_splitter.addWidget(self.tabPanel)
 
         self.zmap_plot_maker = ZmapPlotMaker()
@@ -157,6 +160,9 @@ class MainWindow(QMainWindow):
             self.setupMenuModel.data_library,
         )
         self.traceEditorView.traceNameChangedCallback = self.on_trace_name_changed
+        self.traceEditorView.traceColorChangedCallback = self.change_trace_color
+        self.workspace_session.changed = self._on_shared_color_changed
+        self._create_color_history_controls()
         self.centerStack.addWidget(self.traceEditorView)
 
         # Right: Plot Window (placeholder)
@@ -1544,6 +1550,59 @@ class MainWindow(QMainWindow):
     def _show_setup_content(self):
         self.centerStack.setCurrentWidget(self.setupMenuView)
 
+    def _create_color_history_controls(self):
+        toolbar = self.addToolBar("Trace color history")
+        toolbar.setObjectName("trace-color-history")
+        self.undoColorButton = QPushButton("Undo color")
+        self.redoColorButton = QPushButton("Redo color")
+        describe_control(self.undoColorButton, "workspace.undo_color", "Undo trace color")
+        describe_control(self.redoColorButton, "workspace.redo_color", "Redo trace color")
+        toolbar.addWidget(self.undoColorButton)
+        toolbar.addWidget(self.redoColorButton)
+        self.undoColorButton.clicked.connect(lambda: self._move_color_history(False))
+        self.redoColorButton.clicked.connect(lambda: self._move_color_history(True))
+        self._update_color_history_controls()
+
+    def _update_color_history_controls(self):
+        history = self.workspace_session.history()
+        for button, kind in ((self.undoColorButton, "undo"), (self.redoColorButton, "redo")):
+            button.setEnabled(bool(history[f"{kind}_count"]))
+            label = history[f"{kind}_label"]
+            button.setToolTip(f"{kind.title()} {label}" if label else f"No color change to {kind}")
+            button.setAccessibleDescription(button.toolTip())
+
+    def _move_color_history(self, redo):
+        try:
+            (self.workspace_session.redo if redo else self.workspace_session.undo)()
+        except WorkspaceError as error:
+            self.statusBar().showMessage(str(error), 8000)
+        self._update_color_history_controls()
+
+    def change_trace_color(self, model, color):
+        uid = next((uid for uid, item in self.workspace_session.traces.items() if item is model), None)
+        if uid is None:
+            return
+        state = self.workspace_session.color_state(uid)
+        try:
+            self.workspace_session.set_color(trace_id=uid, color=color,
+                expected_color_revision=state["color_revision"], workspace_epoch=state["workspace_epoch"],
+                request_id=str(uuid4()), actor="human")
+        except WorkspaceError as error:
+            self.statusBar().showMessage(str(error), 8000)
+            self._on_shared_color_changed(uid)
+
+    def _on_shared_color_changed(self, uid):
+        model = self.workspace_session.traces.get(uid)
+        # Update only this field, never rebuild the form or change selection.
+        if model is not None and self.traceEditorView.model is model:
+            button = self.traceEditorView.widgets.get("trace_color")
+            if button:
+                button.setColor(model.trace_color)
+        self.on_trace_color_changed(None)
+        self._update_color_history_controls()
+        if model is not None:
+            self.statusBar().showMessage("Trace color updated. Render to refresh the plot.", 8000)
+
     def on_trace_color_changed(self, new_color):
         """Handle when a trace's color is manually changed."""
         # Refresh our color tracking by examining all traces
@@ -1563,18 +1622,6 @@ class MainWindow(QMainWindow):
         for widget_name, widget in self.traceEditorView.widgets.items():
             if hasattr(widget, "blockSignals"):
                 widget.blockSignals(True)
-
-        # Connect to the color change signal
-        color_button = self.traceEditorView.widgets.get("trace_color")
-        if color_button and isinstance(color_button, ColorButton):
-            # Disconnect any existing connections to avoid duplicates
-            try:
-                color_button.colorChanged.disconnect(self.on_trace_color_changed)
-            except (TypeError, RuntimeError):
-                pass  # No connection existed
-            
-            # Connect our handler
-            color_button.colorChanged.connect(self.on_trace_color_changed)
 
         # Handle the datafile selector widget
         datafile_selector = self.traceEditorView.widgets.get("datafile")
@@ -1786,6 +1833,8 @@ class MainWindow(QMainWindow):
                 # Nested Qt events must not expose a half-replaced workspace.
                 self._agent_loading_workspace = True
                 self._agent_document_epoch = getattr(self, "_agent_document_epoch", 0) + 1
+                self.workspace_session.reset()
+                self._update_color_history_controls()
 
                 # Validate data files and get mapping for any relocated files
                 file_path_mapping = validate_data_library(
@@ -1882,8 +1931,16 @@ class MainWindow(QMainWindow):
 
                 # Add each loaded trace to the TabPanel
                 trace_ids = []
-                for trace_model in workspace.traces:
-                    uid = self.tabPanel.add_tab(trace_model.trace_name, trace_model)
+                used_ids = set()
+                for index, trace_model in enumerate(workspace.traces):
+                    try:
+                        restored_id = str(UUID(workspace.order[index]))
+                        if restored_id in used_ids:
+                            raise ValueError()
+                    except (ValueError, TypeError, AttributeError, IndexError, KeyError):
+                        restored_id = str(uuid4())
+                    used_ids.add(restored_id)
+                    uid = self.tabPanel.add_tab(trace_model.trace_name, trace_model, restored_id)
                     trace_ids.append((uid, trace_model))
 
                 # IMPORTANT: Force content update before changing tab selection

@@ -8,17 +8,16 @@ agent works with it. The desktop application owns the live document. Human
 actions and agent commands must eventually share validation, history, and state
 updates. Accessibility provides a complementary way to operate the interface.
 
-The accessibility increment added control metadata and keyboard paths. The next
-increment implements an opt-in [read-only desktop API](agent-api.md), without
-changing workspace files. Read-only inspection can safely precede command-layer
-migration because it does not mutate models. The shared command boundary below
-remains a prerequisite for exposing edits.
+v1.4.0 ships [read-only inspection](agent-api.md), focused reads, bounded
+observation cursors, and the optional [MCP adapter](agent-mcp.md). Its stdio
+JSON-lines client is a separate non-MCP interface using the same HTTP client.
 
-The current draft also includes a persistent JSON-lines client, focused reads,
-heatmap coverage, bounded observation cursors, and portable skill guidance.
-Observation revisions cover only the public projection; they do not implement
-the complete document revision/undo boundary described below. The stdio client
-is not MCP. A separate [MCP adapter](agent-mcp.md) reuses its client logic.
+This development branch implements the first [shared undoable edit](agent-editing.md):
+trace color. `WorkspaceSession` owns the trace model mapping and color command
+history; both the color picker and the API call that command on the GUI thread.
+Other fields still use their existing models. Color revisions are per trace,
+not whole-document revisions, and observation cursors remain read-only tokens.
+The broader architecture below remains the target as more commands migrate.
 
 ## Development and Git policy
 
@@ -46,16 +45,16 @@ remain separate decisions; this increment does not bump the package version.
 | State | Current owner | Consequence for integration |
 | --- | --- | --- |
 | Plot configuration | `SetupMenuModel` and its section dataclasses | Reuse the domain fields, but separate public schemas from Qt widget metadata. |
-| Traces and their order | `TabPanel.id_to_widget` and its list rows | Move ownership into a workspace session; list position and display names cannot be API identities. |
+| Traces and their order | `WorkspaceSession.traces`; Qt list rows still own order | `TabPanel.id_to_widget` aliases the session mapping. Valid saved trace UUIDs survive load; order migration remains future work. |
 | Active editor | `MainWindow` and `TraceEditorView` | Changing agent data must not force the human to change tabs. |
 | Data files | `DataFileMetadata` and `DataframeManager` | Define stable dataset IDs, provenance, and replacement semantics. |
 | Plot type | Main window combo box | Move into the document model. |
-| Persistence | Main-window save/load code plus `WorkspaceManager` | Consolidate into one versioned serializer before publishing a write API. |
+| Persistence | Main-window save/load code plus `WorkspaceManager` | Color edits reuse existing persistence and restore trace UUIDs; consolidate serialization before broader document commands. |
 | Rendered plot and selection | Plotly/QWebEngine, `PlotlyInterface`, and main-window callbacks | Document revisions and completed renders are different events. |
 
-Widgets currently write directly into dataclasses. Adding a network handler that
-also writes those fields would bypass validation and make simultaneous work
-unreliable. The service boundary comes first.
+Most widgets still write directly into dataclasses. Only trace color has moved
+behind the shared command boundary so far. Expose further edits only after their
+GUI paths, validation, revisions, and undo semantics migrate together.
 
 ## Target application boundary
 

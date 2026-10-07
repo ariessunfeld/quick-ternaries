@@ -1,13 +1,14 @@
 ---
 name: quick-ternaries
-description: Inspect the person's open Quick Ternaries scientific plotting workspace, including trace styles, heatmaps, filters, dataset schemas, and changes, using its local MCP tools.
+description: Inspect the person's open Quick Ternaries scientific plotting workspace and, when supported and enabled, edit trace colors through its local MCP tools.
 ---
 
 # Quick Ternaries
 
-Use the person's chosen running window. The current agent interface is read-only;
-it cannot import, edit, render or export. Inspect capabilities before assuming a
-setting is exposed. Do not modify application code to operate the app.
+Use the person's chosen running window. Access starts read-only. Some desktop
+versions support optional undoable trace color edits; check capabilities before
+assuming support or permission. Import, render, export and other edits remain
+unavailable through the API. Do not modify application code to operate the app.
 
 Prefer the `quick-ternaries` MCP tools. If they are unavailable, or attachment
 fails, read [connection guidance](references/connection.md). After the person
@@ -28,6 +29,20 @@ Missing settings are unknown. Coverage/truncation describes exposed fields;
 it does not promise complete app state. Cached dataset row counts are not
 filtered/rendered point counts. Stored settings do not prove the plot finished
 rendering. Read cursors are not document revisions or write preconditions.
+
+For requested color edits, check `trace_color.edit` in capabilities. The person
+must enable **Allow agent trace color edits** in the desktop connection panel.
+Read `get_trace_color_state` for the chosen trace, then call `set_trace_color`
+with its `workspace_epoch`, `color_revision` as `expected_color_revision`, a hex
+color (`#RRGGBB` or `#AARRGGBB`), and a new request UUID. On timeout/retry, reuse
+that exact UUID and arguments; never create a new request merely to retry.
+`replayed` is a historical receipt, not current state. Read current color again
+before describing it. On `color_conflict`, inspect the new state before deciding
+whether another change is appropriate. On `workspace_changed`, refresh identities.
+On `editor_busy`, let the person finish the dialog. Human **Undo color** can
+reverse either actor's color edits. Rendering is manual; an accepted edit only
+changes stored settings. Other fields and structural edits are outside this undo
+history; adding/removing traces or loading a workspace clears it.
 
 Use available computer-use tools for requested visual inspection or UI actions;
 recheck controls and selection after navigation. An editor control identifier

@@ -4,6 +4,9 @@ Available in v1.4.0, this interface lets a local program inspect a **chosen open
 Quick Ternaries window** while the person continues editing it. No server starts
 automatically, and enabling access is not saved in a workspace or preference.
 
+This development branch adds an optional [shared trace-color edit](agent-editing.md).
+It is not part of v1.4.0. The read contract below remains compatible.
+
 ## Connect
 
 1. Open **Agent API: Off** in the top bar.
@@ -64,9 +67,9 @@ connection is for local programs; browser JavaScript clients are rejected.
 ## Version 1 read contract
 
 All routes require `Authorization: Bearer <token>` and the exact
-`Host: 127.0.0.1:<port>` header. Only bodyless GET requests are accepted. There
-are no mutation, render, file-read, export, evaluation, or arbitrary-widget
-endpoints. Origin-bearing requests are rejected, and CORS is not enabled.
+`Host: 127.0.0.1:<port>` header. v1.4.0 accepts only bodyless GET requests. The development
+color-edit extension adds one bounded POST command after separate opt-in.
+There are no render, file-read, export, evaluation, or arbitrary-widget endpoints. Origin-bearing requests are rejected, and CORS is not enabled.
 
 | Endpoint | Result |
 | --- | --- |

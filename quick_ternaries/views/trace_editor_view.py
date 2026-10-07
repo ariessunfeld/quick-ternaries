@@ -416,11 +416,12 @@ class TraceEditorView(QWidget):
                     )
             elif isinstance(widget, ColorButton):
                 widget.setColor(value)
-                widget.colorChanged.connect(
-                    lambda color_str, fname=f.name: setattr(
-                        self.model, fname, color_str
+                if f.name == "trace_color":
+                    widget.colorChanged.connect(self._on_trace_color_changed)
+                else:
+                    widget.colorChanged.connect(
+                        lambda color_str, fname=f.name: setattr(self.model, fname, color_str)
                     )
-                )
             elif isinstance(widget, ColorScaleDropdown):
                 # Handle our custom ColorScaleDropdown
                 widget.setColorScale(value)
@@ -1116,6 +1117,13 @@ class TraceEditorView(QWidget):
         self.connect_datafile_selector()
         self.connect_column_change_handlers()
 
+
+    def _on_trace_color_changed(self, color: str):
+        callback = getattr(self, "traceColorChangedCallback", None)
+        if callback:
+            callback(self.model, color)
+        else:
+            self.model.trace_color = color
 
     def _on_trace_name_changed(self, text: str):
         self.model.trace_name = text
