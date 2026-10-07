@@ -12,7 +12,7 @@ from uuid import uuid4
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QThread, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QComboBox, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QWidget
 
 from quick_ternaries.agent_api.client import read
 from quick_ternaries.agent_api.dialog import AgentConnectionDialog
@@ -227,7 +227,6 @@ def test_command_line_client_uses_stdin_and_ignores_proxy_environment(app, api, 
 @pytest.fixture
 def window(app, tmp_path):
     window = QWidget()
-    window.agentButton = QPushButton("Agent API: Off", window)
     window.setupMenuModel = SetupMenuModel()
     window.plotTypeSelector = QComboBox(window)
     window.plotTypeSelector.addItems(["Ternary", "Cartesian"])
@@ -287,9 +286,11 @@ def test_snapshot_bounds_and_thread_guard(app, window):
 
 def test_dialog_opt_in_live_read_disconnect_and_clipboard(app, window):
     dialog = AgentConnectionDialog(window)
+    states = []
+    dialog.connection_state_changed.connect(states.append)
     assert not dialog.api.running
     QTest.mouseClick(dialog.toggle, Qt.MouseButton.LeftButton)
-    assert dialog.api.running and "Read only" in window.agentButton.text()
+    assert dialog.api.running and states[-1] == "Read only"
     result = in_client_thread(app, lambda: read(dialog.api.connection_details()))
     assert result["workspace"]["traces"][0]["name"] == "Synthetic samples"
     assert "1 reads" in dialog.activity.text()
@@ -297,6 +298,7 @@ def test_dialog_opt_in_live_read_disconnect_and_clipboard(app, window):
     assert json.loads(app.clipboard().text())["token"] == dialog.api.connection_details()["token"]
     dialog.stop()
     assert not dialog.api.running and not app.clipboard().text()
+    assert states[-1] == "Off"
     dialog.toggle_connection()
     dialog.copy_details()
     app.clipboard().setText("user's next clipboard value")

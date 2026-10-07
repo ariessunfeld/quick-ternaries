@@ -39,7 +39,7 @@ access to the desktop's loopback interface or clipboard.
 
 ## Connect once
 
-1. Open the desired window's **Agent API** panel.
+1. Open **Settings → Agent API** in the desired window.
 2. Enable the read-only connection and click **Copy connection details**.
 3. Tell the agent: “Use Quick Ternaries to connect from the clipboard, inspect my
    workspace overview, and tell me which traces and datasets are available.”

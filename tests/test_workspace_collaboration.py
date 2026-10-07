@@ -60,14 +60,17 @@ path.write_text('A,B,C,Sample,Temperature\n70,20,10,Alpha,400\n20,70,10,Beta,600
 metadata = DataFileMetadata(str(path), header_row=0)
 assert window.setupMenuModel.data_library.add_file(metadata)
 window.setupController.update_axis_options()
-window.agentButton.click()
+window.settingsButton.click()
+window.settings_dialog.agentButton.click()
 dialog = window.agent_dialog
 dialog.toggle.click()
 assert not dialog.api.edit_enabled
 dialog.allow_edit.click()
 assert dialog.api.edit_enabled
+assert window.settings_dialog.agentButton.text() == 'Agent API: Editing'
 details = dialog.api.connection_details()
 dialog.close()
+window.settings_dialog.close()
 window.activateWindow()
 app.processEvents()
 server = create_server(Session(lambda: details))

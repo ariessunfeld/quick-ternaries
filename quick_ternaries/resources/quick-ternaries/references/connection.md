@@ -52,7 +52,8 @@ is not an MCP server URL.
 
 ## Attach to the chosen window
 
-1. Have the person open that window's **Agent API** panel, enable the read-only
+1. Have the person open **Settings → Agent API** in that window (the top-bar
+   **Agent API** button on older releases), enable the read-only
    connection and click **Copy connection details**. Copy any prompts first.
 2. Call `connect_from_clipboard` once; it retains the secret in memory. Never
    inspect or echo the clipboard to diagnose it.

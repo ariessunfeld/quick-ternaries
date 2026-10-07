@@ -9,8 +9,8 @@ It is not part of v1.4.0. The read contract below remains compatible.
 
 ## Connect
 
-1. Open **Agent API: Off** in the top bar.
-2. Choose **Enable read-only connection**. The top bar stays visibly marked
+1. Open **Settings**, then **Agent API: Off**.
+2. Choose **Enable read-only connection**. Settings displays
    **Agent API: Read only** while access is enabled.
 3. Choose **Copy connection details** when the chosen local agent is ready to
    connect. It contains an ephemeral address, instance ID, protocol version,

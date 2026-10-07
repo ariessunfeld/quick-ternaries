@@ -95,6 +95,7 @@ from quick_ternaries.controllers import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.settings_dialog = None
         self.agent_dialog = None
         self.workspace_session = WorkspaceSession()
         self._load_bundled_fonts()
@@ -217,7 +218,6 @@ class MainWindow(QMainWindow):
             "Rendered plot. Use Render Plot to display changes made in the editors.",
         )
         for widget, identifier in (
-            (self.agentButton, "agent_connection"),
             (self.settingsButton, "settings"),
             (self.previewButton, "render"),
             (self.saveButton, "save"),
@@ -450,17 +450,27 @@ class MainWindow(QMainWindow):
         self.plotTypeSelector = QComboBox()
         self.plotTypeSelector.addItems(["Ternary", "Cartesian", "Histogram", "Zmap"])
         layout.addWidget(self.plotTypeSelector)
-        self.agentButton = QPushButton("Agent API: Off")
-        self.agentButton.clicked.connect(self.show_agent_connection)
-        layout.addWidget(self.agentButton)
         self.settingsButton = QPushButton("Settings")
+        self.settingsButton.clicked.connect(self.show_settings)
         layout.addWidget(self.settingsButton)
         return container
 
+    def show_settings(self):
+        if self.settings_dialog is None:
+            from quick_ternaries.views.dialogs.settings_dialog import SettingsDialog
+            self.settings_dialog = SettingsDialog(self)
+            self.settings_dialog.agentButton.clicked.connect(self.show_agent_connection)
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
+        self.settings_dialog.activateWindow()
+
     def show_agent_connection(self):
+        if self.settings_dialog is None:
+            self.show_settings()
         if self.agent_dialog is None:
             from quick_ternaries.agent_api.dialog import AgentConnectionDialog
             self.agent_dialog = AgentConnectionDialog(self)
+            self.agent_dialog.connection_state_changed.connect(self.settings_dialog.set_agent_state)
         self.agent_dialog.show()
         self.agent_dialog.raise_()
         self.agent_dialog.activateWindow()

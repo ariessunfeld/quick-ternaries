@@ -2,6 +2,7 @@
 
 import json
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
 
 from quick_ternaries.views.accessibility import describe_control
@@ -10,6 +11,8 @@ from .snapshot import WorkspaceReader
 
 
 class AgentConnectionDialog(QDialog):
+    connection_state_changed = Signal(str)
+
     def __init__(self, window):
         super().__init__(window)
         self.window = window
@@ -27,7 +30,7 @@ class AgentConnectionDialog(QDialog):
             "Optional editing lets your agent change plot settings, styles, filters and traces, and render the plot. Workspace edits can be undone from the Edit menu. File import and export remain under your control.\n\n"
             "Share connection details with your chosen agent once. Its persistent client "
             "can keep reading after you copy something else. Access lasts until "
-            "you disconnect or close this window."
+            "you disconnect or close the Quick Ternaries window."
         )
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
@@ -75,8 +78,7 @@ class AgentConnectionDialog(QDialog):
         self.toggle.setAccessibleName(self.toggle.text())
         self.copy.setEnabled(True)
         self.allow_edit.setEnabled(self.api.workspace_session is not None)
-        self.window.agentButton.setText("Agent API: Read only")
-        self.window.agentButton.setAccessibleName(self.window.agentButton.text())
+        self.connection_state_changed.emit("Read only")
 
     def _set_edit_permission(self, enabled):
         self.api.edit_enabled = bool(enabled and self.api.running and self.api.workspace_session is not None)
@@ -85,8 +87,7 @@ class AgentConnectionDialog(QDialog):
         if self.api.running:
             mode = "Editing" if self.api.edit_enabled else "Read only"
             self.status.setText(f"Connected · {mode}")
-            self.window.agentButton.setText(f"Agent API: {mode}")
-            self.window.agentButton.setAccessibleName(self.window.agentButton.text())
+            self.connection_state_changed.emit(mode)
 
     def _edit_completed(self, label):
         self.activity.setText(f"Last agent action: {label}")
@@ -113,10 +114,9 @@ class AgentConnectionDialog(QDialog):
         self.copy.setEnabled(False)
         self.toggle.setText("Enable read-only connection")
         self.toggle.setAccessibleName(self.toggle.text())
-        self.window.agentButton.setText("Agent API: Off")
-        self.window.agentButton.setAccessibleName(self.window.agentButton.text())
+        self.connection_state_changed.emit("Off")
 
     def closeEvent(self, event):
         # Closing this settings panel keeps the explicitly enabled connection;
-        # the main window always displays its state and closes it on exit.
+        # Settings displays its state and the main window closes it on exit.
         event.accept()
