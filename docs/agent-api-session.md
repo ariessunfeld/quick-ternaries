@@ -3,15 +3,14 @@
 The [API guide](agent-api.md) defines coverage, endpoints, cursor scope and limits.
 This guide describes how an agent keeps a reliable, economical client session.
 
-The development [editing extension](agent-editing.md) adds focused `edit_state`,
+The [editing extension](agent-editing.md) adds focused `edit_state`,
 atomic `apply_edits`, trace lifecycle, `undo`/`redo`, `render_plot` and
-`render_status` operations. These are not available in v1.4.0; check capabilities.
+`render_status` operations. Check the running desktop's capabilities before using them.
 
 ## Start and connect once
 
-Use Python with this branch installed, or this checkout as the working directory
-with its dependencies installed. A host must retain the subprocess's stdin and
-stdout between tool calls. Start:
+Use the installed app environment's Python. A host must retain the subprocess's
+stdin and stdout between tool calls. Start:
 
 ```bash
 python -u -m quick_ternaries.agent_api session

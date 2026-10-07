@@ -1,9 +1,24 @@
 # Local Development and Bug-Report Workflow
 
-The [agent integration architecture](agent-integration.md) describes the planned
-live API, shared command boundary, accessibility work, and staged validation.
-The [experimental desktop API](agent-api.md) documents its current read-only
-connection flow, client, limits, and tests.
+The [agent integration architecture](agent-integration.md) describes the live API, shared
+command boundary, accessibility work, and validation. The [desktop API](agent-api.md)
+documents connection setup, client, limits, and tests; [workspace editing](agent-editing.md)
+describes shared human/agent changes and rendering.
+
+## Branches and releases
+
+`main` is the trunk. Published packages come from version
+tags such as `v1.5.0`; features merged after that tag remain unreleased until the
+next release. Use short-lived feature branches and PRs into `main`. GitHub deletes
+merged PR branches automatically; the merged code, PR history, and release tags
+remain available.
+
+Before removing an older branch, verify its current tip is included in `main` or
+in a merged PR's exact source history. Squash merges produce new commit IDs, so
+`git branch --merged` alone does not recognize every completed branch. Preserve
+branches with later commits, open PRs, or active worktrees until accounted for.
+Keep uncommitted work and local-only commits; never reset a checkout to tidy its
+branch list. A worktree is just a separate checkout, not another release line.
 
 ## Run the checked-out source
 

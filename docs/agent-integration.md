@@ -1,18 +1,17 @@
 # Agent integration architecture
 
-Status: accessibility foundation released in v1.3.0; read-only desktop
-connection and optional MCP adapter available in v1.4.0. Reviewed October 2026.
+Status: accessibility foundation released in v1.3.0; read-only desktop access and
+MCP in v1.4.0; shared editing, history and rendering in v1.5.0. Reviewed October 2026.
 
 Quick Ternaries remains a visible, editable scientific workspace while an agent
 works alongside the person. The desktop owns the live document; local clients
 submit structured commands. Accessibility complements the API for remaining
 dialogs and visual checks.
 
-v1.4.0 ships [focused read-only inspection](agent-api.md), bounded observation
-cursors and the optional [MCP adapter](agent-mcp.md). This development branch adds
-[workspace editing](agent-editing.md): atomic multi-object edits, trace lifecycle,
-shared undo/redo, scientific settings and explicit render jobs. It replaces the
-initial color-only prototype. No package version is changed by this PR.
+[Focused inspection](agent-api.md), bounded observation cursors and the optional
+[MCP adapter](agent-mcp.md) support efficient reads. [Workspace editing](agent-editing.md)
+adds atomic multi-object edits, trace lifecycle, shared undo/redo, scientific
+settings and explicit render jobs. It replaces the initial color-only prototype.
 
 ## Development and Git policy
 
@@ -22,7 +21,7 @@ same repository, useful when another checkout contains unfinished work. Each
 worktree has its own files and active branch; commits and remote references are
 shared. Folder names are not release versions or the source of truth.
 
-Use one feature worktree for this increment. After review and passing checks,
+Reuse a suitable clean worktree for each new feature. After review and passing checks,
 squash-merge the PR, then archive the temporary worktree using its managing
 tool. Do not reset, delete, or reuse another checkout until its local changes
 and branch have been accounted for. Longer term, keep one everyday checkout on
@@ -33,7 +32,7 @@ CI currently runs on every pull request, including drafts, on pushes to `main`,
 and on manual dispatch. A feature-branch push alone does not trigger this
 workflow. Opening its PR does. Source changes run the full matrix; changes
 limited to documentation use the existing reduced checks. Merge and release
-remain separate decisions; this increment does not bump the package version.
+remain separate decisions; merging a feature does not publish a package.
 
 ## Implemented application boundary
 

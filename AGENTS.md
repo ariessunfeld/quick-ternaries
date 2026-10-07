@@ -22,3 +22,17 @@
 - Keep release-specific instructions in `docs/release.md`; keep this mandatory
   reading rule here so coding agents discover it. `CONTRIBUTING.md` is the
   human-oriented entry point and links to the same guide.
+
+## Trunk-based development
+
+- `main` is the trunk and canonical starting point. Use short-lived PR branches
+  for review; do not maintain a separate long-lived development or integration
+  branch. Merge promptly after the applicable checks pass.
+- Delete merged PR branches after confirming their current tips contain no
+  later work. GitHub is configured to do this automatically for future merges.
+  Account for squash merges using the merged PR's source history.
+- Reuse suitable clean worktrees. Preserve unrelated changes and local-only
+  commits; do not reset a checkout or delete an active worktree to tidy branches.
+- Keep the README describing the current application. Version tags and GitHub
+  Releases identify published packages; update release instructions and package
+  metadata as part of publishing, rather than maintaining README feature matrices.
