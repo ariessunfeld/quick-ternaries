@@ -372,3 +372,10 @@ see `LICENSE` file for OSS and MIT license details
 We would truly love to hear from you, whether you need help getting set up, have found a bug, have suggestions for changes or new features, or just want to chat! Please feel free to reach out to us via email:
 - Ari Essunfeld — `ariessunfeld [at] gmail`
 - Reid Morris — `reidmorris0419 [at] gmail`
+
+### Agent access
+
+Inspect an open workspace from Codex or Claude Code with the optional
+[local MCP integration](docs/agent-mcp.md). Agent access is visibly opt-in and
+read-only; focused tools cover trace styles, heatmaps, filters, and dataset
+schemas. You can continue editing in the app while an agent inspects it.

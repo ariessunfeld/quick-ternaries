@@ -36,8 +36,8 @@ process or reread the clipboard for every read.
 
 See [Session commands and recovery](agent-api-session.md) for the complete
 handoff procedure, focused-read examples, compact comparisons and diagnostics.
-The repository includes a portable skill at
-[`skills/quick-ternaries/SKILL.md`](../skills/quick-ternaries/SKILL.md).
+The package includes a [portable skill](../quick_ternaries/resources/agent_skill/SKILL.md);
+see [MCP setup](agent-mcp.md#optional-skill) for installation.
 
 For isolated reads, the CLI also accepts connection JSON as one line on stdin:
 
@@ -198,3 +198,5 @@ both human and agent edits. Add secure automatic discovery and a stdio MCP
 adapter using the official SDK. Extend the portable skill to use that tested
 adapter. Mutation support must wait for the shared command boundary;
 the read adapter is not permission to write directly into Qt models.
+
+For Codex and Claude Code, use the [optional MCP adapter](agent-mcp.md).

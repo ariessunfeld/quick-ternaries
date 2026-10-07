@@ -18,7 +18,7 @@ The current draft also includes a persistent JSON-lines client, focused reads,
 heatmap coverage, bounded observation cursors, and portable skill guidance.
 Observation revisions cover only the public projection; they do not implement
 the complete document revision/undo boundary described below. The stdio client
-is not MCP.
+is not MCP. A separate [MCP adapter](agent-mcp.md) reuses its client logic.
 
 ## Development and Git policy
 
