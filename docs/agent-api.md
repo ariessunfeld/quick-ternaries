@@ -1,9 +1,8 @@
 # Desktop agent API: read-only sessions and focused inspection
 
-This development milestone lets a local program inspect a **chosen open Quick
-Ternaries window** while the person continues editing it. It is not included in
-v1.3.0. No server starts automatically, and enabling access is not saved in a
-workspace or preference.
+Available in v1.4.0, this interface lets a local program inspect a **chosen open
+Quick Ternaries window** while the person continues editing it. No server starts
+automatically, and enabling access is not saved in a workspace or preference.
 
 ## Connect
 

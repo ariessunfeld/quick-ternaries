@@ -1,7 +1,7 @@
 # Agent integration architecture
 
-Status: accessibility foundation released in v1.3.0; experimental read-only
-desktop connection in development. Reviewed October 2026.
+Status: accessibility foundation released in v1.3.0; read-only desktop
+connection and optional MCP adapter available in v1.4.0. Reviewed October 2026.
 
 Quick Ternaries should remain a visible, editable scientific workspace while an
 agent works with it. The desktop application owns the live document. Human
