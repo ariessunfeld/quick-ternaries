@@ -106,7 +106,9 @@ enforce the publishing procedure.
 2. After the release pull request is merged, update the clean checkout to
    `main`. Build the final artifacts from that merged commit into a fresh output
    directory, and rerun the candidate upgrade smoke test against them. Tag that
-   exact commit, not the earlier release-branch commit.
+   exact commit, not the earlier release-branch commit. Only `ariessunfeld` can
+   create, move, or delete repository tags; use the owner-controlled release
+   process rather than granting collaborators a tag-rule bypass.
 
    ```bash
    git switch main
@@ -166,7 +168,8 @@ package/tag metadata and that the tag is on `main`, and runs strict Twine checks
 Fresh macOS, Windows and Linux jobs install the base wheel and then its agent
 extra, check dependencies, start the desktop with access off, and validate the
 MCP adapter and bundled skill outside a source checkout. Only then can the
-separate `pypi` environment job obtain a short-lived publishing credential.
+separate `pypi` environment job request approval from `ariessunfeld`. After
+that explicit environment approval, it can obtain a short-lived publishing credential.
 The skill ZIP is never uploaded to PyPI.
 
 One-time setup, using an owner-controlled PyPI account with verified email and
@@ -178,12 +181,23 @@ One-time setup, using an owner-controlled PyPI account with verified email and
    `ariessunfeld`, repository `quick-ternaries`, workflow `publish-pypi.yml`, and
    environment `pypi`. No long-lived PyPI token belongs in repository secrets.
 2. Create the GitHub `pypi` environment and restrict deployment branches/tags to
-   `main` and version tags `v*`. Keep repository release permissions controlled.
+   `main` and version tags `v*`. Require `ariessunfeld` as the sole environment
+   reviewer. Allow that account to approve its own runs so the owner can publish
+   without another maintainer; other collaborators cannot approve deployment.
+   Keep the all-tags owner restriction and `main` protections described in
+   [Repository protections](repository-protection.md).
 3. For the first publication of an existing GitHub release, dispatch
    `publish-pypi.yml` **from main**, with its exact tag (initially `v1.5.0`).
    Do not move the tag or rebuild/replace that release's distributions merely
    to introduce PyPI. For future versions, follow the full checklist above;
    publishing the GitHub release triggers this workflow automatically.
+
+The workflow waits for environment approval after all three installation jobs
+pass. In GitHub Actions, open the run, choose **Review deployments**, inspect the
+release tag and tested artifacts, and approve `pypi` as `ariessunfeld`. Agents
+must obtain Ari's explicit approval for that specific release before submitting
+this approval on his behalf; an instruction to prepare a release is insufficient.
+Do not bypass the environment gate merely to finish an automated task.
 
 After the workflow succeeds, verify PyPI's release version and file SHA-256
 values match GitHub, then use a disposable environment outside the checkout:
