@@ -9,10 +9,10 @@ read-only API and access controls.
 ## Install and register
 
 Install the optional extra in the **same Python environment as Quick Ternaries**.
-For a GitHub release, use its exact version tag (replace `vX.Y.Z` below):
+For v1.4.0, use its exact release tag:
 
 ```sh
-python -m pip install 'quick-ternaries[agent] @ https://github.com/ariessunfeld/quick-ternaries/archive/refs/tags/vX.Y.Z.tar.gz'
+python -m pip install 'quick-ternaries[agent] @ https://github.com/ariessunfeld/quick-ternaries/archive/refs/tags/v1.4.0.tar.gz'
 python -c 'import sys; print(sys.executable)'
 ```
 
