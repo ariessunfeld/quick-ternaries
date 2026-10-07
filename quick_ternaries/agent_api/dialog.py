@@ -20,10 +20,11 @@ class AgentConnectionDialog(QDialog):
         self._read_count = 0
         layout = QVBoxLayout(self)
         explanation = QLabel(
-            "Allow a local agent to read this window's plot settings, trace and filter "
-            "details, and loaded dataset names and column schemas. Data rows are excluded. "
+            "Allow a local agent to read this window's plot settings, trace styles, heatmaps, "
+            "filters, and loaded dataset names and column schemas. Data rows are excluded. "
             "Editing and export are not available yet.\n\n"
-            "Share connection details only with an agent you choose. Access lasts until "
+            "Share connection details with your chosen agent once. Its persistent client "
+            "can keep reading after you copy something else. Access lasts until "
             "you disconnect or close this window."
         )
         explanation.setWordWrap(True)
@@ -74,7 +75,7 @@ class AgentConnectionDialog(QDialog):
 
     def _read_completed(self, endpoint):
         self._read_count += 1
-        label = "workspace" if endpoint == "/v1/workspace" else "capabilities"
+        label = endpoint.removeprefix("/v1/").split("/")[0]
         self.activity.setText(f"{self._read_count} reads · Last read: {label}")
 
     def stop(self):

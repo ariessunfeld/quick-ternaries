@@ -7,6 +7,8 @@ from uuid import uuid4
 import h11
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtNetwork import QHostAddress, QNetworkProxy, QTcpServer
+from .contract import ApiError
+from .inspection import Inspection, capabilities, parse_target
 
 MAX_REQUEST_BYTES = 16 * 1024
 MAX_RESPONSE_BYTES = 1024 * 1024
@@ -41,6 +43,7 @@ class DesktopApi(QObject):
         self.instance_id = str(uuid4())
         self._token = secrets.token_urlsafe(32)
         self._reader = self._reader_factory(self.instance_id)
+        self._inspection = Inspection(self._reader)
         if not self._listener.listen(QHostAddress.SpecialAddress.LocalHost, 0):
             self.stop()
             raise OSError("Could not start the local agent connection")
@@ -51,6 +54,7 @@ class DesktopApi(QObject):
             connection.socket.abort()
         self._token = None
         self._reader = None
+        self._inspection = None
 
     def connection_details(self):
         if not self.running:
@@ -89,19 +93,20 @@ class DesktopApi(QObject):
         if b"transfer-encoding" in headers or headers.get(b"content-length", b"0") != b"0":
             return 400, {"error": "request_body_not_supported"}
         common = {"protocol_version": 1, "instance_id": self.instance_id}
-        if request.target == b"/v1/capabilities":
-            result = {**common, "capabilities": ["workspace.read"], "permissions": ["read"],
-                      "identity_scope": "connection", "data_rows": False,
-                      "endpoints": ["/v1/capabilities", "/v1/workspace"]}
-        elif request.target == b"/v1/workspace":
-            try:
-                result = {**common, "workspace": self._reader.snapshot()}
-            except Exception:
-                # Never send exception details, local paths, or model contents.
-                return 500, {"error": "snapshot_unavailable"}
-        else:
-            return 404, {"error": "unknown_endpoint"}
-        self.read_completed.emit(request.target.decode("ascii"))
+        try:
+            path, params = parse_target(request.target.decode("ascii"))
+            if path == "/v1/capabilities":
+                if params:
+                    raise ApiError("invalid_query", "Capabilities takes no parameters.")
+                result = {**common, **capabilities()}
+            else:
+                result = {**common, **self._inspection.query(path, params)}
+        except ApiError as error:
+            return error.status, {"error": error.code, "message": str(error)}
+        except Exception:
+            # Never send exception details, local paths, or model contents.
+            return 500, {"error": "snapshot_unavailable"}
+        self.read_completed.emit(path)
         return 200, result
 
 

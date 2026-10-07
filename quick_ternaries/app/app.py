@@ -1783,6 +1783,10 @@ class MainWindow(QMainWindow):
             try:
                 workspace = WorkspaceManager.load_from_file(filename)
 
+                # Nested Qt events must not expose a half-replaced workspace.
+                self._agent_loading_workspace = True
+                self._agent_document_epoch = getattr(self, "_agent_document_epoch", 0) + 1
+
                 # Validate data files and get mapping for any relocated files
                 file_path_mapping = validate_data_library(
                     workspace.setup_model.data_library, self
@@ -1910,6 +1914,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(
                     self, "Error", f"Failed to load workspace: {str(e)}"
                 )
+            finally:
+                self._agent_loading_workspace = False
 
     def _fix_combobox_model_sync(self, combo_name, model_field_name):
         """Make sure the combobox and model value stay in sync."""
