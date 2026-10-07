@@ -7,11 +7,13 @@ description: Work with the person's open Quick Ternaries scientific plotting wor
 
 Use the person's chosen running window. Prefer its MCP tools; do not modify app
 code to operate it. Access starts read-only. Check capabilities on the running
-version: v1.4.0 supports inspection; newer development versions can support
-workspace editing and rendering. File import, source-point contour creation,
-save and export still use the human interface or available computer-use tools.
+version using `get_capabilities`; older desktops may support inspection only.
+File import, source-point contour creation, save and export still use the human
+interface or available computer-use tools.
 
-If MCP is unavailable or attachment fails, read [connection guidance](references/connection.md).
+For setup or attachment failures, read [connection guidance](references/connection.md).
+For a host without MCP but with a persistent subprocess, use the
+[JSON-lines session reference](references/session.md).
 After the person enables Agent API and copies connection details, call
 `connect_from_clipboard` once. The adapter retains credentials in memory even
 after the clipboard changes. Never print the clipboard/token or place credentials
@@ -56,6 +58,8 @@ its latest entry/actor and current revision before an authorized undo; it may be
 the human's change. File import/replacement and workspace load clear history and
 start a new epoch. Rendering and external files are not undoable document edits.
 
+For new data, import through the UI before creating traces or setting apices.
+Choose columns from the loaded schema; preserve requested units and formulas.
 Use computer-use tools for remaining dialogs and visual review; reread controls
 and selection after navigation. An accessibility identifier names a control in
 the current editor, not a persistent trace. Leave the attachment available for

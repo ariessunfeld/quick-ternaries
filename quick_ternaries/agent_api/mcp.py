@@ -1,9 +1,7 @@
 """Optional, local-only MCP adapter. The desktop remains the state owner."""
 
 import argparse
-from importlib import resources
 import json
-from pathlib import Path
 import sys
 from threading import RLock
 from typing import Annotated, Literal
@@ -11,6 +9,7 @@ from uuid import UUID
 
 from .contract import ApiError
 from .session import Session
+from .skills import export_skill, install_skill
 
 
 def create_server(session=None):
@@ -189,30 +188,20 @@ def create_server(session=None):
     return server
 
 
-def install_skill(destination):
-    """Install matching, self-contained guidance without changing host settings."""
-    root = resources.files("quick_ternaries").joinpath("resources", "agent_skill")
-    files = {"SKILL.md": root.joinpath("SKILL.md").read_bytes(),
-             "references/connection.md": root.joinpath("references", "connection.md").read_bytes()}
-    destination = Path(destination).expanduser()
-    for name, contents in files.items():
-        target = destination / name
-        if target.exists() and target.read_bytes() != contents:
-            raise ValueError(f"Existing skill differs: {target}. Choose an empty destination or review/remove that copy first.")
-    for name, contents in files.items():
-        target = destination / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(contents)
-    return destination
-
-
 def main():
     parser = argparse.ArgumentParser(description="Connect an MCP host to a chosen Quick Ternaries desktop")
-    parser.add_argument("--install-skill", metavar="DIRECTORY", help="Copy the bundled skill into this directory and exit; leaves host configuration unchanged")
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--install-skill", metavar="HOST_OR_DIRECTORY", help="Install the bundled skill for codex, claude, or an explicit quick-ternaries directory")
+    actions.add_argument("--update-skill", metavar="HOST_OR_DIRECTORY", help="Update an unmodified official skill; preserve customizations and local additions")
+    actions.add_argument("--export-skill", metavar="ZIP", help="Export a portable skill archive without changing host configuration")
     args = parser.parse_args()
-    if args.install_skill:
+    if args.install_skill or args.update_skill or args.export_skill:
         try:
-            print(install_skill(args.install_skill))
+            if args.export_skill:
+                path = export_skill(args.export_skill)
+            else:
+                path = install_skill(args.install_skill or args.update_skill, update=bool(args.update_skill))
+            print(path)
             return 0
         except (OSError, ValueError) as error:
             print(str(error), file=sys.stderr)

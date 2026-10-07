@@ -31,11 +31,7 @@ quick-ternaries -- /absolute/python -m quick_ternaries.agent_api.mcp`.
 | `local_access_denied` | Resolve permission to reach loopback on the desktop's machine. |
 | `connection_unavailable` | Check the app and its connection toggle. |
 | `access_revoked` / `instance_changed` | Explicitly reconnect to the chosen window. |
-| `workspace_busy` / `editor_busy` / `connection_timeout` | Let loading/dialogs finish; retry an uncertain edit using the identical request UUID and arguments. |
-| `read_only` | Workspace editing is not enabled. The person controls permission in the desktop panel. |
-| `edit_conflict` / `color_conflict` | Read current edit state and review the intervening change before a new edit. |
-| `workspace_changed` | Refresh the overview and edit state; do not reuse the old workspace epoch. |
-| `request_id_reused` | Do not reuse a successful request UUID with different arguments. |
+| `workspace_busy` / `connection_timeout` | Let loading/dialogs finish, then retry. |
 | `trace_not_found` / `dataset_not_found` | Refresh identity catalogs before selecting another object. |
 
 If the host restarts the adapter, its credentials are lost; repeat the handoff.

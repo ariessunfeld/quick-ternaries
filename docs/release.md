@@ -46,15 +46,25 @@ enforce the publishing procedure.
 
    ```bash
    python -m build --sdist --wheel
+   python -m quick_ternaries.agent_api.mcp --export-skill dist/quick-ternaries-skill-X.Y.Z.zip
    ls -lh dist
    ```
 
-   The release should include both:
+   The release should include all three artifacts:
 
    ```text
    dist/quick_ternaries-X.Y.Z-py3-none-any.whl
    dist/quick_ternaries-X.Y.Z.tar.gz
+   dist/quick-ternaries-skill-X.Y.Z.zip
    ```
+
+   Build the skill ZIP with the candidate package installed; the exporter uses
+   its bundled resources, never a second hand-maintained copy. Follow
+   [skill validation](agent-skill-testing.md): verify installation/update/export
+   from the wheel outside the checkout and exercise the host setup and behavior
+   scenarios for supported Codex/Claude versions. Record automated and manual
+   evidence separately. Update development-only wording in the integration docs
+   when preparing the release; do not claim earlier tags include new tools.
 
 5. Test upgrades using the previous release's code, before publishing.
 
@@ -104,12 +114,13 @@ enforce the publishing procedure.
    git push origin vX.Y.Z
    ```
 
-3. Create the GitHub Release and upload the wheel and source distribution.
+3. Create the GitHub Release and upload the wheel, source distribution, and portable skill ZIP.
 
    ```bash
    gh release create vX.Y.Z \
      dist/quick_ternaries-X.Y.Z-py3-none-any.whl \
      dist/quick_ternaries-X.Y.Z.tar.gz \
+     dist/quick-ternaries-skill-X.Y.Z.zip \
      --repo ariessunfeld/quick-ternaries \
      --target main \
      --title vX.Y.Z \
@@ -124,7 +135,7 @@ enforce the publishing procedure.
    ```
 
    Verify `tagName` is exactly `vX.Y.Z`, independently of `name`. Download the
-   wheel and source archive and compare their SHA-256 digests to the tested
+   wheel, source archive and skill ZIP and compare their SHA-256 digests to the tested
    local artifacts. Confirm the tag resolves to the intended commit on `main`.
 
 5. Smoke-test the published updater path from the previous version in a

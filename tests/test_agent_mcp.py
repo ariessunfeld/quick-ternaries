@@ -12,7 +12,7 @@ import pytest
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 
-from quick_ternaries.agent_api.mcp import create_server, install_skill
+from quick_ternaries.agent_api.mcp import create_server
 from quick_ternaries.agent_api.session import Session
 from test_agent_api import app, window, live_api, in_client_thread
 
@@ -128,26 +128,16 @@ def test_reconnect_read_calls_are_serialized_and_unexpected_errors_redacted():
     asyncio.run(scenario())
 
 
-def test_bundled_skill_install_preserves_existing_customizations(tmp_path):
-    target = tmp_path / 'skill'
-    install_skill(target)
-    assert (target / 'references/connection.md').exists()
-    install_skill(target)
-    customized = target / 'SKILL.md'
-    customized.write_text('custom instructions')
-    with pytest.raises(ValueError, match='Existing skill differs'):
-        install_skill(target)
-    assert customized.read_text() == 'custom instructions'
-
-
 def test_mcp_module_import_and_skill_install_do_not_import_qt_or_sdk(tmp_path):
     script = '''import sys
 from quick_ternaries.agent_api.mcp import install_skill
 assert 'mcp' not in sys.modules
 assert not any(k.startswith('PySide6') for k in sys.modules)
 install_skill(sys.argv[1])
+assert 'mcp' not in sys.modules
+assert not any(k.startswith('PySide6') for k in sys.modules)
 '''
-    result = subprocess.run([sys.executable, '-c', script, str(tmp_path/'skill')], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, '-c', script, str(tmp_path/'quick-ternaries')], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
 
 
