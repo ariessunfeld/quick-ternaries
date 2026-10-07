@@ -38,8 +38,8 @@ process or reread the clipboard for every read.
 
 See [Session commands and recovery](agent-api-session.md) for the complete
 handoff procedure, focused-read examples, compact comparisons and diagnostics.
-The package includes a [portable skill](../quick_ternaries/resources/agent_skill/SKILL.md);
-see [MCP setup](agent-mcp.md#optional-skill) for installation.
+The package includes a [portable skill](../quick_ternaries/resources/quick-ternaries/SKILL.md);
+see [MCP setup](agent-mcp.md#install-the-skill) for installation.
 
 For isolated reads, the CLI also accepts connection JSON as one line on stdin:
 

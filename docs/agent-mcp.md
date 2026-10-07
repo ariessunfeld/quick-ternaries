@@ -10,10 +10,10 @@ inspection and edits.
 ## Install and register
 
 Install the optional extra in the **same Python environment as Quick Ternaries**.
-For v1.5.0, use its exact release tag:
+Install the published package from PyPI:
 
 ```sh
-python -m pip install 'quick-ternaries[agent] @ https://github.com/ariessunfeld/quick-ternaries/archive/refs/tags/v1.5.0.tar.gz'
+python -m pip install "quick-ternaries[agent]"
 python -c 'import sys; print(sys.executable)'
 ```
 
