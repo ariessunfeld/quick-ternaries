@@ -1,9 +1,9 @@
-# Shared workspace editing (development)
+# Shared workspace editing
 
-This branch extends v1.4.0's read-only connection with workspace transactions,
-shared history, trace lifecycle, and rendering. It is not in the v1.4.0 release.
+The desktop and local agent connection share workspace transactions, history,
+trace lifecycle, and rendering.
 Check the running desktop's capabilities. **Allow workspace editing** in its
-Agent API panel grants `edit_workspace`; each new connection starts read-only.
+**Settings → Agent API** panel grants `edit_workspace`; each new connection starts read-only.
 Revocation is checked again before a buffered request executes and cancels
 queued agent renders. Closing the panel keeps the connection; Disconnect or
 closing the window revokes all clients.

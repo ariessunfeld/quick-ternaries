@@ -29,7 +29,7 @@ concurrency:
 
 env:
   # Advance this when preparing the next package version (see docs/release.md).
-  PREVIOUS_RELEASE: v1.3.0
+  PREVIOUS_RELEASE: v1.4.0
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PYTHONUTF8: "1"
 

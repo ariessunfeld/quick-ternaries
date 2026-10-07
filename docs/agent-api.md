@@ -1,16 +1,16 @@
 # Desktop agent API: read-only sessions and focused inspection
 
-Available in v1.4.0, this interface lets a local program inspect a **chosen open
+This interface lets a local program inspect a **chosen open
 Quick Ternaries window** while the person continues editing it. No server starts
 automatically, and enabling access is not saved in a workspace or preference.
 
-This development branch adds an optional [shared workspace editing](agent-editing.md).
-It is not part of v1.4.0. The read contract below remains compatible.
+Optional [shared workspace editing](agent-editing.md) uses the same connection,
+with separate editing permission. The read contract remains compatible with v1.4.0.
 
 ## Connect
 
 1. Open **Settings**, then **Agent API: Off**.
-2. Choose **Enable read-only connection**. Settings displays
+2. Choose **Enable read-only connection**. The entry displays
    **Agent API: Read only** while access is enabled.
 3. Choose **Copy connection details** when the chosen local agent is ready to
    connect. It contains an ephemeral address, instance ID, protocol version,
@@ -67,8 +67,8 @@ connection is for local programs; browser JavaScript clients are rejected.
 ## Version 1 read contract
 
 All routes require `Authorization: Bearer <token>` and the exact
-`Host: 127.0.0.1:<port>` header. v1.4.0 accepts only bodyless GET requests. The development
-editing extension adds bounded POST commands and render status after separate opt-in.
+`Host: 127.0.0.1:<port>` header. Inspection uses bodyless GET requests. The editing
+extension adds bounded POST commands and render status after separate opt-in.
 There are no file-read, export, evaluation, or arbitrary-widget endpoints. Origin-bearing requests are rejected, and CORS is not enabled.
 
 | Endpoint | Result |
@@ -141,7 +141,7 @@ pushed into a model turn automatically.
 The observed revision does not cover raw data values, uncommitted editor text,
 render completion, source-point/error entries, or the excluded setup settings
 (scaling, formulas, advanced settings and labels other than title). It is **not
-a document revision**, so it cannot authorize a write. The development
+a document revision**, so it cannot authorize a write. The
 [editing contract](agent-editing.md) provides separate field and workspace revisions.
 
 An unknown/expired cursor or a replaced workspace produces `resync_required`.

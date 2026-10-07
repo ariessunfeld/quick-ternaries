@@ -2,18 +2,18 @@
 
 Quick Ternaries provides an optional local MCP adapter for inspecting a chosen
 open desktop window. It exposes focused read tools, retains a connection after
-the clipboard changes, and works independently of the window's lifetime. Released v1.4.0 is read-only; this development branch adds optional
+the clipboard changes, and supports optional
 [workspace editing and rendering](agent-editing.md). File import, save and export
-remain in the human interface.
-The desktop enforces access controls for both inspection and edits.
+remain in the human interface. The desktop enforces access controls for both
+inspection and edits.
 
 ## Install and register
 
 Install the optional extra in the **same Python environment as Quick Ternaries**.
-For v1.4.0, use its exact release tag:
+For v1.5.0, use its exact release tag:
 
 ```sh
-python -m pip install 'quick-ternaries[agent] @ https://github.com/ariessunfeld/quick-ternaries/archive/refs/tags/v1.4.0.tar.gz'
+python -m pip install 'quick-ternaries[agent] @ https://github.com/ariessunfeld/quick-ternaries/archive/refs/tags/v1.5.0.tar.gz'
 python -c 'import sys; print(sys.executable)'
 ```
 
@@ -85,7 +85,7 @@ number of filtered points. See [the API contract](agent-api.md) for details.
 Errors set MCP's error flag and return a redacted code/message. See the
 [session recovery table](agent-api-session.md#lifetime-and-recovery).
 
-## Development editing tools
+## Editing tools
 
 | Tool | Purpose |
 | --- | --- |
@@ -99,7 +99,7 @@ The person enables **Allow workspace editing** in the desktop. Tools remain
 visible while permission is off or the connected desktop is older; discover
 capabilities first. Use the [editing contract](agent-editing.md) for schemas,
 revisions, retry receipts and limits. `get_trace_color_state` and `set_trace_color`
-remain convenience wrappers using the same history. These tools are not in v1.4.0.
+remain convenience wrappers using the same history.
 
 For example: “Create two traces from my loaded dataset, set A/B/C as the apices,
 filter one trace to Sample = Alpha, give them distinct styles, and render. Keep
@@ -113,7 +113,7 @@ selective reads, shared editing, scientific limits and recovery. It needs no
 source checkout or repository AGENTS.md. Tool descriptions and live schemas
 supply the current API contract; connection and fallback details load on demand.
 
-With this development version installed, run **one** command for your agent:
+Run **one** command for your agent:
 
 ```sh
 quick-ternaries-mcp --install-skill codex
@@ -126,7 +126,6 @@ Windows and Linux. If the command is not on PATH, use the same absolute Python
 as the MCP registration: `python -m quick_ternaries.agent_api.mcp --install-skill codex`.
 An explicit directory ending in `quick-ternaries` is also supported, including a
 project's `.agents/skills/quick-ternaries` or `.claude/skills/quick-ternaries`.
-The v1.4.0 installer accepts explicit directories only.
 
 MCP registration, skill installation and desktop access are separate steps:
 installing guidance does not register a server or enable access. Keep just one
@@ -191,9 +190,8 @@ quick-ternaries-mcp --export-skill quick-ternaries-skill.zip
 ```
 
 Extract the archive into the chosen host's skills folder. Its top-level directory
-is already `quick-ternaries`, with an update manifest and all references. Future
-releases publish a versioned ZIP beside the wheel/source archive; v1.4.0 does not
-have a separate skill asset. A skill archive does not include the app or register MCP.
+is already `quick-ternaries`, with an update manifest and all references. Releases
+include a versioned ZIP beside the wheel/source archive. A skill archive does not include the app or register MCP.
 
 This is a portable Agent Skills bundle with explicit local MCP registration.
 A marketplace plugin can wrap the same source later. We do not claim public

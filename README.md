@@ -375,18 +375,20 @@ We would truly love to hear from you, whether you need help getting set up, have
 
 ### Agent access
 
-Inspect an open workspace from Codex or Claude Code with the optional
-[local MCP integration](docs/agent-mcp.md). Agent access is visibly opt-in and
-read-only; focused tools cover trace styles, heatmaps, filters, and dataset
-schemas. You can continue editing in the app while an agent inspects it.
+Connect Codex or Claude Code to your open Quick Ternaries workspace through the
+optional [local MCP integration](docs/agent-mcp.md). Agents can inspect data
+schemas and trace settings, edit apices, styles and filters, create and organize
+traces, adjust scientific settings, and render plots while you continue working.
 
-The development branch adds [shared workspace editing](docs/agent-editing.md):
-apices, styles, filters, trace lifecycle, scientific settings and rendering.
-Human and agent edits share conventional Edit > Undo/Redo and conflict protection,
-with a separate permission toggle. This extension is not in v1.4.0.
+Open **Settings → Agent API** to enable a connection. Access starts read-only;
+turn on **Allow workspace editing** when you want the agent to make changes.
+Human and agent edits share **Edit > Undo/Redo** and protect against conflicting
+changes and unfinished typing. File import, save and export stay in the app's
+normal interface.
 
-Install the optional [agent skill](docs/agent-mcp.md#install-the-skill) to teach
-your agent how to connect, inspect selectively, and collaborate safely. This
-branch includes self-contained guidance, explicit Codex/Claude installation,
-protected updates, and a portable skill ZIP. No repository checkout is needed
-for everyday app use.
+Install the optional [agent skill](docs/agent-mcp.md#install-the-skill) for
+connection guidance, selective reads and collaborative editing. The same
+self-contained skill works with Codex and Claude Code, supports protected
+updates, and is available as a ZIP alongside the package in
+[GitHub Releases](https://github.com/ariessunfeld/quick-ternaries/releases).
+No source checkout is needed for everyday app use.
