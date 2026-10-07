@@ -300,7 +300,13 @@ class TabPanel(QWidget):
         self.apply_dynamic_style()
 
     def add_tab(self, title: str, model, trace_id=None) -> str:
-        unique_id = self.workspace_session.add_trace(model, trace_id)
+        commands = getattr(self.window(), 'workspace_commands', None)
+        record = commands is not None and not getattr(self.window(), '_agent_loading_workspace', False)
+        unique_id = self.workspace_session.add_trace(model, trace_id, record=record)
+        if record:
+            with QSignalBlocker(self.listWidget):
+                self.select_tab_by_id(unique_id)
+            return unique_id
 
         new_item = QListWidgetItem(title)
         new_item.setFlags(new_item.flags() | Qt.ItemFlag.ItemIsEditable)
@@ -324,6 +330,10 @@ class TabPanel(QWidget):
                     break
 
     def remove_tab_by_id(self, unique_id: str):
+        if (getattr(self.window(), 'workspace_commands', None) is not None
+                and not getattr(self.window(), '_agent_loading_workspace', False)):
+            self.workspace_session.remove_trace(unique_id, record=True)
+            return
         old_selected_item = self.listWidget.currentItem()
         old_selected_uid = None
         if old_selected_item:

@@ -44,6 +44,7 @@ assert not exports, exports
 assert 'scipy.stats' not in sys.modules
 assert 'matplotlib' not in sys.modules
 assert 'h11' not in sys.modules
+assert 'mcp' not in sys.modules
 assert window.agent_dialog is None
 window.agentButton.click()
 assert not window.agent_dialog.api.running

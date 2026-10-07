@@ -23,10 +23,11 @@ class DesktopApi(QObject):
     read_completed = Signal(str)
     edit_completed = Signal(str)
 
-    def __init__(self, reader_factory, parent=None, workspace_session=None):
+    def __init__(self, reader_factory, parent=None, workspace_session=None, workspace_controller=None):
         super().__init__(parent)
         self._reader_factory = reader_factory
         self.workspace_session = workspace_session
+        self.workspace_controller = workspace_controller
         self.edit_enabled = False
         self._listener = QTcpServer(self)
         self._listener.setProxy(QNetworkProxy(QNetworkProxy.ProxyType.NoProxy))
@@ -55,6 +56,8 @@ class DesktopApi(QObject):
     def stop(self):
         self._listener.close()
         self.edit_enabled = False
+        if self.workspace_controller is not None:
+            self.workspace_controller.render.cancel_pending()
         for connection in tuple(self._connections):
             connection.socket.abort()
         self._token = None
@@ -114,7 +117,23 @@ class DesktopApi(QObject):
             path, params = parse_target(request.target.decode("ascii"))
             if request.method == b"POST":
                 return self._command(path, params, body, common)
-            if path.startswith("/v1/trace-colors/"):
+            if path == '/v1/edit-state':
+                self._reader.prepare()
+                if self.workspace_session is None or params.keys() - {'target', 'trace_id', 'fields'}:
+                    raise ApiError('invalid_query', 'Use target, trace_id and optional fields.')
+                state = self.workspace_session.edit_state(params.get('target', 'workspace'), params.get('trace_id'))
+                if 'fields' in params:
+                    names = params['fields'].split(',')
+                    if 'values' not in state or not names or set(names) - state['values'].keys():
+                        raise ApiError('invalid_query', 'Request editable field names from the schema.')
+                    for key in ('values', 'schema', 'field_revisions'):
+                        state[key] = {k: state[key][k] for k in names}
+                result = {**common, 'state': state}
+            elif path == '/v1/render-status' and self.workspace_controller is not None:
+                if params:
+                    raise ApiError('invalid_query', 'Render status takes no parameters.')
+                result = {**common, 'render': self.workspace_controller.render.status()}
+            elif path.startswith("/v1/trace-colors/"):
                 if params or self.workspace_session is None:
                     raise ApiError("invalid_query", "Color reads take only a trace ID.")
                 self._reader.prepare()
@@ -127,19 +146,31 @@ class DesktopApi(QObject):
                     raise ApiError("invalid_query", "Capabilities takes no parameters.")
                 result = {**common, **capabilities()}
                 if self.workspace_session is not None:
-                    result["capabilities"].append("trace_color.read")
-                    result["endpoints"] = [*result["endpoints"], "/v1/trace-colors/{id}"]
+                    result["capabilities"].extend(["trace_color.read", "workspace.edit_state"])
+                    result["endpoints"] = [*result["endpoints"], "/v1/trace-colors/{id}", "/v1/edit-state"]
                     result["identity_scope"] = "mixed"
                     result["identity_scopes"] = {"traces": "saved_workspace_uuid", "datasets": "connection",
                                                   "workspace_epoch": "loaded_document_lifetime"}
                     if self.edit_enabled:
-                        result["capabilities"].append("trace_color.edit")
-                        result["permissions"].append("edit_trace_color")
-                        result["endpoints"].append("/v1/commands/set-trace-color")
-                    result["color_edit"] = {"revision_scope": "trace_color", "history_limit": HISTORY_LIMIT,
-                                            "receipt_limit": RECEIPT_LIMIT, "trace_ids_persist_on_save": True}
+                        result["capabilities"].extend(["trace_color.edit", "workspace.edit", "workspace.history"])
+                        result["permissions"].append("edit_workspace")
+                        result["endpoints"].extend('/v1/commands/' + name for name in
+                            ('set-trace-color', 'apply-edits', 'undo', 'redo'))
+                    result['editing'] = {'revision_scope': 'per_field', 'atomic_batches': True,
+                        'history_limit': HISTORY_LIMIT, 'receipt_limit': RECEIPT_LIMIT,
+                        'trace_ids_persist_on_save': True, 'max_edits': 32}
+                    if self.workspace_controller is not None:
+                        result['capabilities'].append('render.status')
+                        result['endpoints'].append('/v1/render-status')
+                        if self.edit_enabled:
+                            result['capabilities'].extend(['trace.lifecycle', 'plot.render'])
+                            result['endpoints'].extend('/v1/commands/' + name for name in
+                                ('create-trace', 'duplicate-trace', 'delete-trace', 'reorder-traces', 'render-plot'))
+
             else:
                 result = {**common, **self._inspection.query(path, params)}
+        except WorkspaceError as error:
+            return (404 if error.code == "trace_not_found" else 400), {"error": error.code, "message": str(error)}
         except ApiError as error:
             return error.status, {"error": error.code, "message": str(error)}
         except Exception:
@@ -155,24 +186,64 @@ class DesktopApi(QObject):
         if QApplication.activeModalWidget() is not None:
             return 409, {"error": "editor_busy"}
         self._reader.prepare()
-        if path != "/v1/commands/set-trace-color" or params:
-            return 404, {"error": "unknown_endpoint"}
+        if params:
+            return 400, {'error': 'invalid_command'}
         try:
             command = json.loads(body)
-        except (ValueError, UnicodeError):
-            return 400, {"error": "invalid_command"}
-        fields = {"trace_id", "color", "expected_color_revision", "workspace_epoch", "request_id"}
-        if not isinstance(command, dict) or set(command) != fields:
-            return 400, {"error": "invalid_command"}
+            if not isinstance(command, dict):
+                raise ValueError()
+        except (ValueError, UnicodeError, RecursionError):
+            return 400, {'error': 'invalid_command'}
+        operation = path.removeprefix('/v1/commands/').replace('-', '_')
         try:
-            receipt = self.workspace_session.set_color(**command, actor="agent")
+            if operation == 'set_trace_color':
+                required = {'trace_id', 'color', 'expected_color_revision', 'workspace_epoch', 'request_id'}
+                if set(command) != required:
+                    raise ValueError()
+                if self.workspace_controller:
+                    self.workspace_controller.guard_edits([{'target': 'trace', 'trace_id': command['trace_id'],
+                                                            'changes': {'trace_color': command['color']}}])
+                receipt = self.workspace_session.set_color(**command, actor='agent')
+            elif operation == 'apply_edits':
+                if set(command) != {'edits', 'workspace_epoch', 'request_id'}:
+                    raise ValueError()
+                if self.workspace_controller:
+                    self.workspace_controller.guard_edits(command['edits'])
+                receipt = self.workspace_session.apply(**command, actor='agent')
+            elif operation in ('undo', 'redo', 'create_trace', 'duplicate_trace', 'delete_trace', 'reorder_traces'):
+                fields = {'workspace_epoch', 'request_id', 'expected_revision'}
+                structural = operation not in ('undo', 'redo')
+                if structural:
+                    fields.add('arguments')
+                if set(command) != fields:
+                    raise ValueError()
+                if structural and self.workspace_controller is None:
+                    return 404, {'error': 'unknown_endpoint'}
+                focus = QApplication.focusWidget()
+                from PySide6.QtWidgets import QLineEdit
+                if operation in ('undo', 'redo') and (self.workspace_controller.pending_editor() if self.workspace_controller
+                        else isinstance(focus, QLineEdit) and focus.isModified()):
+                    raise WorkspaceError('editor_busy', 'Let the person finish editing before changing workspace history.')
+                execute = (lambda: self.workspace_controller.trace_command(operation, command['arguments'], self._reader)) if structural else None
+                receipt = self.workspace_session.control(operation=operation, execute=execute, **command)
+            elif operation == 'render_plot' and self.workspace_controller is not None:
+                if set(command) != {'workspace_epoch', 'request_id', 'expected_revision'}:
+                    raise ValueError()
+                from PySide6.QtWidgets import QLineEdit
+                focus = QApplication.focusWidget()
+                if self.workspace_controller.pending_editor():
+                    raise WorkspaceError('editor_busy', 'Let the person finish editing before rendering.')
+                receipt = self.workspace_controller.render.request(**command)
+            else:
+                return 404, {'error': 'unknown_endpoint'}
         except WorkspaceError as error:
-            status = 400 if error.code == "invalid_command" else 409
-            if error.code == "trace_not_found":
-                status = 404
-            return status, {"error": error.code, "message": str(error), "details": error.details}
-        self.edit_completed.emit("Trace color")
-        return 200, {**common, "receipt": receipt}
+            status = 400 if error.code == 'invalid_command' else 404 if error.code in ('trace_not_found', 'dataset_not_found') else 409
+            return status, {'error': error.code, 'message': str(error), 'details': error.details}
+        except (ValueError, TypeError, KeyError, AttributeError):
+            return 400, {'error': 'invalid_command'}
+        self.edit_completed.emit(operation.replace('_', ' ').capitalize())
+        return 200, {**common, 'receipt': receipt}
+
 
 
 class _Connection(QObject):

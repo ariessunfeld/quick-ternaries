@@ -3,8 +3,9 @@
 The [API guide](agent-api.md) defines coverage, endpoints, cursor scope and limits.
 This guide describes how an agent keeps a reliable, economical client session.
 
-The development [color-edit extension](agent-editing.md) adds `color_state` and
-`set_trace_color` operations; these are not available in v1.4.0.
+The development [editing extension](agent-editing.md) adds focused `edit_state`,
+atomic `apply_edits`, trace lifecycle, `undo`/`redo`, `render_plot` and
+`render_status` operations. These are not available in v1.4.0; check capabilities.
 
 ## Start and connect once
 

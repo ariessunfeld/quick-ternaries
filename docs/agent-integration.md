@@ -3,21 +3,16 @@
 Status: accessibility foundation released in v1.3.0; read-only desktop
 connection and optional MCP adapter available in v1.4.0. Reviewed October 2026.
 
-Quick Ternaries should remain a visible, editable scientific workspace while an
-agent works with it. The desktop application owns the live document. Human
-actions and agent commands must eventually share validation, history, and state
-updates. Accessibility provides a complementary way to operate the interface.
+Quick Ternaries remains a visible, editable scientific workspace while an agent
+works alongside the person. The desktop owns the live document; local clients
+submit structured commands. Accessibility complements the API for remaining
+dialogs and visual checks.
 
-v1.4.0 ships [read-only inspection](agent-api.md), focused reads, bounded
-observation cursors, and the optional [MCP adapter](agent-mcp.md). Its stdio
-JSON-lines client is a separate non-MCP interface using the same HTTP client.
-
-This development branch implements the first [shared undoable edit](agent-editing.md):
-trace color. `WorkspaceSession` owns the trace model mapping and color command
-history; both the color picker and the API call that command on the GUI thread.
-Other fields still use their existing models. Color revisions are per trace,
-not whole-document revisions, and observation cursors remain read-only tokens.
-The broader architecture below remains the target as more commands migrate.
+v1.4.0 ships [focused read-only inspection](agent-api.md), bounded observation
+cursors and the optional [MCP adapter](agent-mcp.md). This development branch adds
+[workspace editing](agent-editing.md): atomic multi-object edits, trace lifecycle,
+shared undo/redo, scientific settings and explicit render jobs. It replaces the
+initial color-only prototype. No package version is changed by this PR.
 
 ## Development and Git policy
 
@@ -40,126 +35,106 @@ workflow. Opening its PR does. Source changes run the full matrix; changes
 limited to documentation use the existing reduced checks. Merge and release
 remain separate decisions; this increment does not bump the package version.
 
-## Existing state ownership
-
-| State | Current owner | Consequence for integration |
-| --- | --- | --- |
-| Plot configuration | `SetupMenuModel` and its section dataclasses | Reuse the domain fields, but separate public schemas from Qt widget metadata. |
-| Traces and their order | `WorkspaceSession.traces`; Qt list rows still own order | `TabPanel.id_to_widget` aliases the session mapping. Valid saved trace UUIDs survive load; order migration remains future work. |
-| Active editor | `MainWindow` and `TraceEditorView` | Changing agent data must not force the human to change tabs. |
-| Data files | `DataFileMetadata` and `DataframeManager` | Define stable dataset IDs, provenance, and replacement semantics. |
-| Plot type | Main window combo box | Move into the document model. |
-| Persistence | Main-window save/load code plus `WorkspaceManager` | Color edits reuse existing persistence and restore trace UUIDs; consolidate serialization before broader document commands. |
-| Rendered plot and selection | Plotly/QWebEngine, `PlotlyInterface`, and main-window callbacks | Document revisions and completed renders are different events. |
-
-Most widgets still write directly into dataclasses. Only trace color has moved
-behind the shared command boundary so far. Expose further edits only after their
-GUI paths, validation, revisions, and undo semantics migrate together.
-
-## Target application boundary
+## Implemented application boundary
 
 ```text
-Qt views/controllers ──┐
-                      ├─> WorkspaceSession / commands ─> document + history
-Local API adapter ────┘                  │
-                                        └─> change events ─> Qt views / renderer
-      ↑
-stdio MCP adapter and command-line client
-      ↑
-Codex / Claude Code / other clients
+Codex / Claude Code ─> local stdio MCP adapter ─┐
+Python / JSON-lines CLI client ────────────────┴─> authenticated loopback API
+                                                           │
+Mouse / keyboard ─> Qt views ─> DesktopWorkspace adapter <──┘
+                                       │
+                       WorkspaceSession transactions + history
+                                       │
+                         existing models + ordered trace IDs
+                                       │
+                  targeted Qt refresh / explicit RenderService job
+                                       │
+                        scientific plot services ─> QWebEngine
 ```
 
-`WorkspaceSession` should own a plain document, stable IDs, a monotonic revision,
-and a command dispatcher. The document should not contain `QWidget` instances,
-dataframe-manager references, or generated HTML. Adapters convert between plain
-payloads and existing plotting/model types. Keep plotting functions usable
-without a running desktop session.
+`workspace/session.py` is a Qt-independent transaction engine. Explicit resource
+adapters read and write model fields; `workspace/schema.py` defines the allowlist
+and value constraints without Qt widget metadata. Validation runs against all
+candidate resources before any write. Atomic commits advance per-field and
+workspace revisions, record one command, and emit one change event. Successful
+receipts are saved before observer notification so a UI failure cannot turn a
+network retry into another mutation. Tests exercise rollback and that ordering.
 
-Start with a small vertical slice: list traces, read one trace, change its name
-or color, and observe the same change in the open editor. Route both human and
-agent versions of those edits through the dispatcher. Expand only after this
-path has conflict and undo tests.
+`workspace/desktop.py` binds the existing dataclasses and routes native editing
+through the same commands. The session owns trace identity/order/history;
+`TabPanel.id_to_widget` aliases its mapping. Plot type now lives in
+`SetupMenuModel`, with the dropdown as its view. Scientific services retain their
+existing inputs; the transport never calls arbitrary setters, evaluates Python,
+or exposes a scripting endpoint.
 
-### Commands, concurrency, and history
+`workspace/render.py` supplies the Render button and API with one lifecycle.
+Each window owns a temporary HTML directory. Rendering checks the requested
+revision before starting and reports the Plotly initialization result separately
+from model acceptance. Construction still runs on the GUI thread; queued jobs
+are not background computation. Large-plot responsiveness needs a later immutable
+snapshot/worker design, not an unsafe worker touching live Qt models.
 
-- Give workspaces, datasets, traces, and filters persistent IDs. Preserve IDs
-  through save/load; duplication creates new IDs. Migrate old files explicitly
-  and test that existing v1.2.2 workspaces still open.
-- Supply typed, versioned request/result schemas with discoverable enums,
-  constraints, and structured errors. Do not expose arbitrary `setattr`, Python
-  evaluation, JavaScript evaluation, or direct widget calls.
-- Mutations include `expected_revision` and a request ID. Validate a batch
-  against a candidate document, then commit it atomically as one history entry.
-  Return the new revision and a concise diff. Reject stale edits with a conflict
-  response; never silently replace a newer human edit.
-- Cache completed request IDs within the session so retrying a timed-out request
-  cannot create duplicate traces. Reusing an ID with different arguments is an
-  error. Document cache expiry and reconnection behavior.
-- Dispatch commits and widget updates on the Qt GUI thread. Worker threads may
-  parse data or calculate plots from immutable snapshots; they must not touch
-  widgets. Check the revision again when accepting a worker result.
-- Decide how unfinished text edits commit before migrating each editor. Retain
-  a dirty edit buffer until commit/cancel, and surface a conflict if an agent
-  changed its source field. Avoid rebuilding a focused form on every event.
-- Undo/redo covers document changes made by either actor, with actor and command
-  labels visible in history. It must not pretend to reverse exported files or
-  other external effects. Save/export uses explicit destination and overwrite
-  behavior and reports the produced artifact.
+### Collaboration and history
 
-Example proposed exchange (not a currently supported endpoint):
+- Per-field optimistic revisions allow unrelated human and agent edits to coexist.
+  A stale member rejects an entire batch. Filters and nested mappings are whole
+  fields, deliberately without a second identity/revision scheme.
+- Structural commands and agent Undo/Redo require the latest workspace revision.
+  Restoring a deleted trace preserves its UUID but advances field revisions,
+  preventing stale commands from becoming valid again after undo.
+- Agent updates preserve the human's selected trace, focus, cursor and unrelated
+  text. Dirty focused text, numeric input, filters and scientific editors are
+  protected; modal dialogs and workspace loading also block agent writes.
+- Human typing coalesces by editing gesture; an intervening agent command breaks
+  the merge. Standard Edit menu actions and platform shortcuts operate shared
+  history. Native focused text undo remains local to that editor.
+- History is bounded to 100 commands. Successful request receipts are bounded to
+  128 across clients and are scoped to the loaded workspace epoch. Replays return
+  historical results, including after a human undo. They never masquerade as a
+  fresh read. See the editing contract for eviction/no-op/render limitations.
+- File import/removal/rebinding and workspace loading establish a new epoch and
+  clear undo history. They are outside document-edit undo. Unexpected direct
+  writes to exposed fields invalidate history rather than overwriting them.
 
-```json
-{
-  "command": "trace.update",
-  "request_id": "client-generated-unique-id",
-  "expected_revision": 42,
-  "trace_id": "persistent-trace-id",
-  "changes": {"trace_color": "#377eb8"}
-}
-```
+The existing workspace file format is retained. Valid trace IDs persist;
+legacy/duplicate IDs migrate during load. Epochs, revisions, render jobs,
+permissions and credentials are runtime state, not serialized workspace state.
+Raw dataset contents and source-point provenance are not covered by editable
+field revisions. Dataset IDs retain their connection scope.
 
-Session events should have an increasing sequence number and include document
-revision, actor, changed IDs, and operation status. A client that misses events
-must be able to request a fresh snapshot. Keep document revision, selection
-state, background-job status, and rendered revision separate. A successful edit
-does not mean the web view has finished drawing it. Expensive render operations
-return job IDs and later emit completion/failure for the source revision.
+### Transport, tools and context
 
-### Local transport and MCP
+The API starts only after explicit user action, binds IPv4 loopback on an ephemeral
+port and uses a per-instance bearer token. It rejects browser origins, incorrect
+hosts, oversized/slow requests, unexpected fields and unsupported operations.
+Every connection starts read-only; a visible workspace-editing toggle grants the
+bounded command surface. Revocation is rechecked at execution. A queued agent
+render is cancelled on revocation; closing the window disconnects all clients.
 
-Prefer a small authenticated API owned by the running desktop, with an external
-stdio MCP adapter translating agent tools into that API. Stdio is convenient
-for both Codex and Claude Code and keeps their MCP lifecycle separate from the
-desktop's lifecycle. MCP is the agent-facing protocol; it should not become the
-document model or a dependency of plotting code.
+The optional official-SDK MCP process and persistent JSON-lines client reuse the
+same authenticated HTTP client. They retain credentials in memory after one
+explicit clipboard handoff and never automatically discover a different window.
+MCP is an adapter, not another app state store. Normal desktop startup does not
+import the SDK. The bundled portable skill teaches attachment, focused reads,
+edit preconditions, retries, shared history and honest render verification.
 
-Proposed initial transport is HTTP on an ephemeral loopback port. Enable it
-explicitly in the desktop and show connection status and a disconnect control.
-Use a per-session secret and an owner-only discovery file containing instance
-ID, PID, port, protocol version, and capabilities. Enforce owner-only access on
-Windows as well as Unix; a port number or PID is not authentication. Bind only
-to loopback, require authentication for reads and writes, validate Host/Origin,
-and do not enable permissive CORS. Define size/time limits and redact secrets
-and dataset contents from logs. Evaluate a local socket/named pipe if secure
-discovery cannot be implemented consistently across supported platforms.
+Inspection cursors describe bounded net changes to a projection, not command
+history. Clients request an overview, relevant objects and small edit-state
+field subsets. No full snapshot is injected every turn. After context compaction
+or cursor expiry, read current relevant state. There is no subscription/event
+stream in this increment.
 
-Multiple desktop instances require explicit selection by instance/workspace
-ID. Never attach silently to the first available port. Shut down the service
-and remove discovery records on normal exit; validate and ignore stale records
-after a crash. Reconnection creates a new authenticated session.
+## Remaining boundaries
 
-Start the transport with read-only capabilities. When writes arrive, expose
-separate read/edit/export permissions and a visible audit trail. Reads can
-include private scientific data and need the same connection controls. Files,
-spreadsheet cells, trace names, and plot annotations are data, not instructions
-to the agent. The adapter should return bounded previews and schemas rather
-than dumping whole dataframes into every tool result.
-
-Initial tools should be task-oriented: inspect workspace, inspect dataset
-schema, inspect trace, apply validated changes, render, and export. Use stable
-IDs in tool arguments and display names in explanations. Return actionable
-errors and current revisions. Pin and test the chosen MCP SDK/protocol version
-at implementation time; do not hand-roll the protocol from this design note.
+File import/export/save and source-point contour creation remain human UI actions.
+A future file-command increment needs explicit destination/overwrite semantics,
+provenance and artifact receipts. A versioned document serializer can consolidate
+the remaining legacy persistence paths. Automatic discovery needs owner-only
+credentials and Windows ACL validation. Background rendering, durable history,
+per-filter IDs and semantic plot/data summaries remain separate improvements.
+These limits do not prevent the current loaded-data workflow: agents can create
+traces, configure apices, filters and appearance, render, and collaborate on edits
+in the same visible window.
 
 ## Accessibility and computer use
 
@@ -167,7 +142,7 @@ The current dependency range is already `pyside6>=6.10,<7`.
 `QWidget.accessibleIdentifier` was introduced in Qt 6.9, so this work needs no
 Qt upgrade or compatibility shim.
 
-This increment adds:
+The v1.3.0 accessibility foundation provides:
 
 - Semantic names and stable identifiers for main workspace controls, generated
   setup/trace fields, filter fields, and composite-control children.
@@ -194,8 +169,9 @@ navigation or a view rebuild. User-facing labels remain readable and separate
 from identifiers. Qt combo boxes may report their current text as their
 accessible name; their field label is also supplied as a description.
 
-This is an initial coverage pass. Dynamic scaling/formula/error controls,
-selection dialogs, notifications, and Plotly's content need a subsequent audit.
+This is an initial coverage pass. Dynamic scaling/formula/error controls now also have semantic names and stable
+identifiers. Selection dialogs, notifications, and Plotly's content need a
+subsequent audit.
 A name on `QWebEngineView` does not make a scientific plot accessible. Add a
 textual plot summary and a navigable data/selection table, including units,
 trace identity, filtering, and validation errors. Preserve normal mouse and
@@ -260,29 +236,14 @@ titles, axes, and toolbar labels, but not a reliable semantic point count;
 the point-count checks above used screenshots. Windows UIA, Linux AT-SPI,
 and screen-reader smoke tests remain outstanding.
 
-Subsequent PR-sized milestones:
-
-1. **Session boundary:** central state ownership, versioned serializer and ID
-   migration, then the shared name/color command path with revision conflicts
-   and undo. Test that human and agent edits interleave without lost changes.
-2. **Read-only connection:** authenticated discovery, instance selection,
-   capabilities, bounded snapshots, disconnect, and a stdio MCP adapter. Test
-   unauthorized access, malformed input, stale discovery, and shutdown.
-3. **Editing and artifacts:** dataset registration, traces, filters, styles,
-   batches, job/render status, export, audit history, and API-driven GUI refresh.
-   Cover retries, stale revisions, partial failures, and file overwrite rules.
-4. **Agent guidance and native audit:** a small portable Agent Skill with tested
-   connection instructions and scientific workflows; provider-specific setup
-   only where necessary. Prefer the API for structured operations and computer
-   use for remaining dialogs and visual checks. Keep detailed schemas in tools,
-   rather than duplicating them in a large skill prompt.
-
-End-to-end acceptance: an agent imports a synthetic CSV, creates two styled
-ternary traces, renders them, and reports the changes; the human changes a
-style in the same window; the agent observes that revision and changes a
-different field; stale writes fail visibly; save/reopen preserves identities
-and settings; export produces the requested image; undo restores the intended
-document change. Run this on all three operating systems before broad release.
+The editing integration test now drives the real desktop through HTTP and the
+official MCP SDK: create from synthetic data, configure apices/style/category
+filters atomically, preserve focused human typing, reject stale writes, undo/redo,
+duplicate/delete traces, change scientific settings, render and reload a saved
+workspace. A Plotly initialization check verifies actual rendering. Separate
+transaction tests cover validation rollback, observer failure, read dependencies,
+retry receipts and restored-object revisions. CI runs the full existing matrix;
+native screen-reader audits remain distinct from these automated tests.
 
 ## References
 

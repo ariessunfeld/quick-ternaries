@@ -160,9 +160,6 @@ class MainWindow(QMainWindow):
             self.setupMenuModel.data_library,
         )
         self.traceEditorView.traceNameChangedCallback = self.on_trace_name_changed
-        self.traceEditorView.traceColorChangedCallback = self.change_trace_color
-        self.workspace_session.changed = self._on_shared_color_changed
-        self._create_color_history_controls()
         self.centerStack.addWidget(self.traceEditorView)
 
         # Right: Plot Window (placeholder)
@@ -206,6 +203,8 @@ class MainWindow(QMainWindow):
         self.cartesian_plot_maker = CartesianPlotMaker()
         self.density_contour_maker = DensityContourMaker()
         self._describe_accessibility()
+        from quick_ternaries.workspace.desktop import DesktopWorkspace
+        self.workspace_commands = DesktopWorkspace(self)
 
     def _describe_accessibility(self):
         """Stable names for the main regions and actions of the desktop UI."""
@@ -340,7 +339,7 @@ class MainWindow(QMainWindow):
             
             message += "\nPlease set uncertainty values before rendering."
             
-            QMessageBox.warning(self, "Missing Uncertainty Values", message)
+            self._render_warning(self, "Missing Uncertainty Values", message)
             return False
                 
         return True
@@ -352,7 +351,7 @@ class MainWindow(QMainWindow):
         Returns:
             bool: True if validation passes, False otherwise
         """
-        current_plot_type = self.plotTypeSelector.currentText().lower()
+        current_plot_type = self.setupMenuModel.plot_type
         
         # Determine required axes based on plot type
         if current_plot_type == 'ternary':
@@ -385,7 +384,7 @@ class MainWindow(QMainWindow):
             axes_str = ', '.join(empty_axes)
             
             # Show warning popup
-            QMessageBox.warning(
+            self._render_warning(
                 self,
                 "Missing Axis Data",
                 f"The following axes have no columns selected: {axes_str}\n\n"
@@ -766,7 +765,7 @@ class MainWindow(QMainWindow):
             
             message += "\nPlease ensure there are enough data points for contour generation."
             
-            QMessageBox.warning(self, "Density Contour Issues", message)
+            self._render_warning(self, "Density Contour Issues", message)
             return False
                 
         return True
@@ -776,7 +775,7 @@ class MainWindow(QMainWindow):
         try:
 
             # Get the current plot type
-            current_plot_type = self.plotTypeSelector.currentText().lower()
+            current_plot_type = self.setupMenuModel.plot_type
             
             # Get visible traces
             visible_traces = self._get_visible_traces()
@@ -831,7 +830,7 @@ class MainWindow(QMainWindow):
             elif current_plot_type == 'cartesian':
                 fig = self.cartesian_plot_maker.make_plot(self.setupMenuModel, regular_traces)
             else:
-                QMessageBox.warning(
+                self._render_warning(
                     self, 
                     "Plot Type Not Supported", 
                     f"Exporting {current_plot_type} as HTML is not supported yet."
@@ -975,15 +974,23 @@ class MainWindow(QMainWindow):
                     axis_display = axis.replace("_", " ").title()
                     message += f"• Trace '{trace}': '{formula}' is not valid for '{column}' on {axis_display}\n"
             
-            QMessageBox.warning(self, "Formula Validation Error", message)
+            self._render_warning(self, "Formula Validation Error", message)
             return False
             
         return True
 
     def on_preview_clicked(self):
+        self.workspace_commands.render.from_ui()
+
+    def _render_warning(self, parent, title, message, *args):
+        if getattr(self, '_agent_rendering', False):
+            raise WorkspaceError('render_validation_failed', 'Check plot configuration and loaded data.')
+        return QMessageBox.warning(parent, title, message, *args)
+
+    def _render_plot(self):
         """Generate and display the current plot."""
         # Check if we should validate formulas (skip for Zmap)
-        current_plot_type = self.plotTypeSelector.currentText().lower()
+        current_plot_type = self.setupMenuModel.plot_type
         
         # For non-Zmap plots, validate formulas
         if current_plot_type != 'zmap':
@@ -1012,7 +1019,7 @@ class MainWindow(QMainWindow):
         if current_plot_type == 'zmap':
             # Check if we have enough data to create a zmap
             if not self.setupMenuModel.axis_members.categorical_column or not self.setupMenuModel.axis_members.numerical_columns:
-                QMessageBox.warning(
+                self._render_warning(
                     self, 
                     "Missing Configuration",
                     "Please select a categorical column and at least one numerical column in the Setup Menu."
@@ -1026,7 +1033,7 @@ class MainWindow(QMainWindow):
             )
             
             if not success:
-                QMessageBox.warning(
+                self._render_warning(
                     self, 
                     "Plot Generation Failed",
                     "Failed to generate Z-maps. Please check your data and configuration."
@@ -1037,7 +1044,7 @@ class MainWindow(QMainWindow):
             current_path = self.zmap_plot_maker.load_current_plot()
             
             if not current_path or not os.path.exists(current_path):
-                QMessageBox.warning(
+                self._render_warning(
                     self, 
                     "File Not Found",
                     f"Could not find the plot file: {current_path}"
@@ -1061,7 +1068,7 @@ class MainWindow(QMainWindow):
                 current_target = self.zmap_plot_maker.current_target
                 self.statusLabel.setText(f"Plot {self.zmap_plot_maker.current_index + 1}/{total_plots}: {current_target}")
             
-            return
+            return True
         
         # For other plot types, hide Zmap buttons
         self.zmapPrevButton.setVisible(False)
@@ -1153,7 +1160,7 @@ class MainWindow(QMainWindow):
         
         elif current_plot_type == 'histogram':
             # TODO: Implement histogram plot maker
-            QMessageBox.warning(
+            self._render_warning(
                 self, 
                 "Plot Type Not Supported", 
                 "The plot type 'histogram' is not fully implemented yet."
@@ -1161,7 +1168,7 @@ class MainWindow(QMainWindow):
             return
         
         else:
-            QMessageBox.warning(
+            self._render_warning(
                 self, 
                 "Plot Type Not Supported", 
                 f"The plot type '{current_plot_type}' is not supported."
@@ -1169,7 +1176,7 @@ class MainWindow(QMainWindow):
             return
 
         # Generate HTML with plotlyInterface for ternary/cartesian plots
-        html = figure_to_html(fig)
+        html = figure_to_html(fig, post_script="window.__quick_ternaries_render_ready = true;")
         javascript = """
             <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
             <script type="text/javascript">
@@ -1191,13 +1198,14 @@ class MainWindow(QMainWindow):
         """
         full = html + javascript
         
-        fname = Path(__file__).parent / "__tmp.html"
+        fname = Path(self.workspace_commands.render.directory.name) / (self.workspace_commands.render.job["job_id"] + ".html")
 
         # Write temporary file and load it
         with open(fname, "w", encoding='utf-8') as f:
             f.write(full)
         
         self.plotView.setUrl(QUrl.fromLocalFile(fname))
+        return True
 
     def _get_visible_traces(self):
         """
@@ -1225,7 +1233,7 @@ class MainWindow(QMainWindow):
         Handles the Bootstrap button click event.
         """
         # Get current plot type
-        current_plot_type = self.plotTypeSelector.currentText().lower()
+        current_plot_type = self.setupMenuModel.plot_type
 
         # For now, bootstrapping is only implemented for ternary plots
         if current_plot_type != 'ternary':
@@ -1399,7 +1407,7 @@ class MainWindow(QMainWindow):
             return
         model = self.tabPanel.id_to_widget.get(unique_id)
         if isinstance(model, TraceEditorModel):
-            model.trace_name = new_label
+            self.workspace_commands.edit_trace(model, {"trace_name": new_label})
         # Update the display text of the corresponding QListWidgetItem.
         for i in range(self.tabPanel.listWidget.count()):
             it = self.tabPanel.listWidget.item(i)
@@ -1550,59 +1558,6 @@ class MainWindow(QMainWindow):
     def _show_setup_content(self):
         self.centerStack.setCurrentWidget(self.setupMenuView)
 
-    def _create_color_history_controls(self):
-        toolbar = self.addToolBar("Trace color history")
-        toolbar.setObjectName("trace-color-history")
-        self.undoColorButton = QPushButton("Undo color")
-        self.redoColorButton = QPushButton("Redo color")
-        describe_control(self.undoColorButton, "workspace.undo_color", "Undo trace color")
-        describe_control(self.redoColorButton, "workspace.redo_color", "Redo trace color")
-        toolbar.addWidget(self.undoColorButton)
-        toolbar.addWidget(self.redoColorButton)
-        self.undoColorButton.clicked.connect(lambda: self._move_color_history(False))
-        self.redoColorButton.clicked.connect(lambda: self._move_color_history(True))
-        self._update_color_history_controls()
-
-    def _update_color_history_controls(self):
-        history = self.workspace_session.history()
-        for button, kind in ((self.undoColorButton, "undo"), (self.redoColorButton, "redo")):
-            button.setEnabled(bool(history[f"{kind}_count"]))
-            label = history[f"{kind}_label"]
-            button.setToolTip(f"{kind.title()} {label}" if label else f"No color change to {kind}")
-            button.setAccessibleDescription(button.toolTip())
-
-    def _move_color_history(self, redo):
-        try:
-            (self.workspace_session.redo if redo else self.workspace_session.undo)()
-        except WorkspaceError as error:
-            self.statusBar().showMessage(str(error), 8000)
-        self._update_color_history_controls()
-
-    def change_trace_color(self, model, color):
-        uid = next((uid for uid, item in self.workspace_session.traces.items() if item is model), None)
-        if uid is None:
-            return
-        state = self.workspace_session.color_state(uid)
-        try:
-            self.workspace_session.set_color(trace_id=uid, color=color,
-                expected_color_revision=state["color_revision"], workspace_epoch=state["workspace_epoch"],
-                request_id=str(uuid4()), actor="human")
-        except WorkspaceError as error:
-            self.statusBar().showMessage(str(error), 8000)
-            self._on_shared_color_changed(uid)
-
-    def _on_shared_color_changed(self, uid):
-        model = self.workspace_session.traces.get(uid)
-        # Update only this field, never rebuild the form or change selection.
-        if model is not None and self.traceEditorView.model is model:
-            button = self.traceEditorView.widgets.get("trace_color")
-            if button:
-                button.setColor(model.trace_color)
-        self.on_trace_color_changed(None)
-        self._update_color_history_controls()
-        if model is not None:
-            self.statusBar().showMessage("Trace color updated. Render to refresh the plot.", 8000)
-
     def on_trace_color_changed(self, new_color):
         """Handle when a trace's color is manually changed."""
         # Refresh our color tracking by examining all traces
@@ -1698,8 +1653,13 @@ class MainWindow(QMainWindow):
         model.sizemap_column = original_sizemap_column
 
     def on_plot_type_changed(self, plot_type: str):
+        if (hasattr(self, "workspace_commands") and not self.workspace_commands.updating
+                and not getattr(self, "_agent_loading_workspace", False)):
+            if self.workspace_commands.edit_plot({"plot_type": plot_type.lower()}):
+                return
         plot_type_lower = plot_type.lower()
-        
+        self.setupMenuModel.plot_type = plot_type_lower
+
         # Show/hide Zmap buttons based on plot type
         is_zmap = plot_type_lower == 'zmap'
         self.zmapPrevButton.setVisible(is_zmap)
@@ -1797,7 +1757,7 @@ class MainWindow(QMainWindow):
 
         setup_data = self.setupMenuModel.to_dict()
 
-        current_plot_type = self.plotTypeSelector.currentText().lower()
+        current_plot_type = self.setupMenuModel.plot_type
 
         # Build the complete workspace data
         workspace_data = {
@@ -1834,7 +1794,7 @@ class MainWindow(QMainWindow):
                 self._agent_loading_workspace = True
                 self._agent_document_epoch = getattr(self, "_agent_document_epoch", 0) + 1
                 self.workspace_session.reset()
-                self._update_color_history_controls()
+                self.workspace_commands.update_actions()
 
                 # Validate data files and get mapping for any relocated files
                 file_path_mapping = validate_data_library(

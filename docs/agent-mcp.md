@@ -2,9 +2,9 @@
 
 Quick Ternaries provides an optional local MCP adapter for inspecting a chosen
 open desktop window. It exposes focused read tools, retains a connection after
-the clipboard changes, and works independently of the window's lifetime. It
-cannot import, render, save or export. Released v1.4.0 is read-only; this
-development branch adds optional [trace-color editing](agent-editing.md).
+the clipboard changes, and works independently of the window's lifetime. Released v1.4.0 is read-only; this development branch adds optional
+[workspace editing and rendering](agent-editing.md). File import, save and export
+remain in the human interface.
 The desktop enforces access controls for both inspection and edits.
 
 ## Install and register
@@ -84,13 +84,26 @@ number of filtered points. See [the API contract](agent-api.md) for details.
 Errors set MCP's error flag and return a redacted code/message. See the
 [session recovery table](agent-api-session.md#lifetime-and-recovery).
 
-## Development color-edit tools
+## Development editing tools
 
-This branch also exposes `get_trace_color_state` and `set_trace_color`. The
-desktop requires separate color-edit opt-in; attaching remains read-only by
-default. These tools are not in v1.4.0. See the [editing contract](agent-editing.md)
-for scoped revisions, retries, undo and limitations. Tools are discoverable even
-when permission is off or the connected desktop is older; check capabilities.
+| Tool | Purpose |
+| --- | --- |
+| `get_edit_state` | Focused field values, validation schema and revisions; workspace history/order |
+| `apply_edits` | Atomic changes to traces and plot settings, one Undo step |
+| `change_trace_structure` | Create from loaded data, duplicate, delete or reorder |
+| `change_history` | Guarded shared Undo/Redo after inspecting the latest entry/actor |
+| `render_plot` / `get_render_status` | Queue a render, then verify completion and staleness |
+
+The person enables **Allow workspace editing** in the desktop. Tools remain
+visible while permission is off or the connected desktop is older; discover
+capabilities first. Use the [editing contract](agent-editing.md) for schemas,
+revisions, retry receipts and limits. `get_trace_color_state` and `set_trace_color`
+remain convenience wrappers using the same history. These tools are not in v1.4.0.
+
+For example: “Create two traces from my loaded dataset, set A/B/C as the apices,
+filter one trace to Sample = Alpha, give them distinct styles, and render. Keep
+my current editor selected and tell me what changed.” The agent inspects schemas,
+creates traces, batches related edits, and checks the resulting render job.
 
 ## Optional skill
 

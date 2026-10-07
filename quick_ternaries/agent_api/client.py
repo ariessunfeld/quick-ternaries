@@ -29,7 +29,7 @@ def validate_connection(connection):
 
 
 def read(connection, endpoint="workspace", **params):
-    allowed = ("capabilities", "workspace", "overview", "plot", "changes", "traces", "datasets")
+    allowed = ("capabilities", "workspace", "overview", "plot", "changes", "traces", "datasets", "edit-state", "render-status")
     if endpoint not in allowed:
         try:
             kind, uid = endpoint.split("/")
@@ -45,6 +45,14 @@ def read(connection, endpoint="workspace", **params):
 def set_trace_color(connection, **command):
     """One explicit command; never automatically retries an uncertain result."""
     return _request(connection, "POST", "/v1/commands/set-trace-color", command)
+
+
+def command(connection, operation, **arguments):
+    allowed = {'apply_edits', 'undo', 'redo', 'create_trace', 'duplicate_trace',
+               'delete_trace', 'reorder_traces', 'render_plot'}
+    if operation not in allowed:
+        raise ApiError('invalid_command', 'Unknown workspace operation.')
+    return _request(connection, 'POST', '/v1/commands/' + operation.replace('_', '-'), arguments)
 
 
 def _request(connection, method, path, command=None):
@@ -78,10 +86,13 @@ def _request(connection, method, path, command=None):
         if response.status != 200:
             # Never repeat arbitrary server text from a misidentified local service.
             known = {
-                "read_only": "Agent color editing is disabled in the desktop connection panel.",
-                "editor_busy": "A modal editor is open. Wait for the person to finish, then retry the same request.",
+                "read_only": "Workspace editing is disabled in the desktop connection panel.",
+                "editor_busy": "The person is editing a field or dialog. Let them finish, then retry the same request.",
+                "edit_conflict": "Requested fields or workspace history changed. Read current edit state before deciding on another edit.",
+                "history_empty": "No workspace change is available to undo or redo.",
+                "render_busy": "A render is already in progress. Read render status.",
                 "color_conflict": "Trace color changed. Read its current color state before deciding on another edit.",
-                "workspace_changed": "Workspace was replaced. Read a new overview and color state.",
+                "workspace_changed": "Workspace was replaced. Read a new overview and edit state.",
                 "request_id_reused": "Request ID was already used with different arguments.",
                 "invalid_command": "Invalid command. Check the editing contract and capabilities.",
                 "trace_not_found": "Trace unavailable. Refresh the overview.",

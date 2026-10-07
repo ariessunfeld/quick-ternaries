@@ -16,14 +16,15 @@ class AgentConnectionDialog(QDialog):
         self.setWindowTitle("Agent connection")
         self.setMinimumWidth(480)
         self.api = DesktopApi(lambda instance: WorkspaceReader(window, instance), self,
-                              workspace_session=getattr(window, "workspace_session", None))
+                              workspace_session=getattr(window, "workspace_session", None),
+                              workspace_controller=getattr(window, "workspace_commands", None))
         self._copied_details = None
         self._read_count = 0
         layout = QVBoxLayout(self)
         explanation = QLabel(
             "Allow a local agent to read this window's plot settings, trace styles, heatmaps, "
             "filters, and loaded dataset names and column schemas. Data rows are excluded. "
-            "Trace color editing is separately optional; other edits and export are unavailable.\n\n"
+            "Optional editing lets your agent change plot settings, styles, filters and traces, and render the plot. Workspace edits can be undone from the Edit menu. File import and export remain under your control.\n\n"
             "Share connection details with your chosen agent once. Its persistent client "
             "can keep reading after you copy something else. Access lasts until "
             "you disconnect or close this window."
@@ -46,8 +47,8 @@ class AgentConnectionDialog(QDialog):
         self.copy.setEnabled(False)
         self.copy.clicked.connect(self.copy_details)
         layout.addWidget(self.copy)
-        self.allow_edit = QCheckBox("Allow agent trace color edits (undoable)")
-        describe_control(self.allow_edit, "agent.allow_color_edits", "Allow agent trace color edits")
+        self.allow_edit = QCheckBox("Allow workspace editing")
+        describe_control(self.allow_edit, "agent.allow_workspace_edits", "Allow workspace editing")
         self.allow_edit.setEnabled(False)
         self.allow_edit.toggled.connect(self._set_edit_permission)
         layout.addWidget(self.allow_edit)
@@ -79,14 +80,16 @@ class AgentConnectionDialog(QDialog):
 
     def _set_edit_permission(self, enabled):
         self.api.edit_enabled = bool(enabled and self.api.running and self.api.workspace_session is not None)
+        if not self.api.edit_enabled:
+            self.window.workspace_commands.render.cancel_pending()
         if self.api.running:
-            mode = "Color edits" if self.api.edit_enabled else "Read only"
+            mode = "Editing" if self.api.edit_enabled else "Read only"
             self.status.setText(f"Connected · {mode}")
             self.window.agentButton.setText(f"Agent API: {mode}")
             self.window.agentButton.setAccessibleName(self.window.agentButton.text())
 
     def _edit_completed(self, label):
-        self.activity.setText(f"Agent command: {label}. Use Undo color to reverse a new change.")
+        self.activity.setText(f"Last agent action: {label}")
 
     def copy_details(self):
         self._copied_details = json.dumps(self.api.connection_details())

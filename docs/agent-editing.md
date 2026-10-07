@@ -1,115 +1,165 @@
-# Shared trace-color editing (development)
+# Shared workspace editing (development)
 
-This extension is implemented on the development branch after v1.4.0. It is not
-in the v1.4.0 release. Check `/v1/capabilities` on the actual running desktop:
-`trace_color.read` advertises color state; `trace_color.edit` and permission
-`edit_trace_color` appear only while the person enables **Allow agent trace color
-edits (undoable)** in its Agent API panel. Every connection starts read-only.
-Revoking editing takes effect before a buffered request executes. Disconnecting
-revokes all access; re-enabling does not preserve edit permission.
+This branch extends v1.4.0's read-only connection with workspace transactions,
+shared history, trace lifecycle, and rendering. It is not in the v1.4.0 release.
+Check the running desktop's capabilities. **Allow workspace editing** in its
+Agent API panel grants `edit_workspace`; each new connection starts read-only.
+Revocation is checked again before a buffered request executes and cancels
+queued agent renders. Closing the panel keeps the connection; Disconnect or
+closing the window revokes all clients.
 
-## One command shared with the interface
+## One workspace, two participants
 
-The GUI color picker and local API both call `WorkspaceSession.set_color` on the
-Qt GUI thread. The session owns the trace mapping and color history. Agent edits
-update only the affected color preview and history controls: they do not switch
-tabs, replace the editor, move focus, or overwrite text in other fields. Writes
-are rejected while a modal editor is open or the workspace is loading.
+The Qt interface and local API call the same `WorkspaceSession`. Its transaction
+engine has no Qt dependency. `DesktopWorkspace` binds explicit schemas to the
+existing model dataclasses and updates affected controls on the GUI thread.
+Plot services and persistence keep using those models. MCP and the persistent
+Python/CLI client are transport adapters, not owners of a second document.
 
-**Undo color** and **Redo color** in the desktop cover both human and agent color
-changes, with the actor in their accessible descriptions/tooltips. They leave
-other fields alone. Native text undo retains its own shortcuts. Up to 100 color
-changes are retained. Adding/removing a trace or replacing the workspace clears
-color history; this is deliberately not general document undo. An unexpected
-legacy color write also invalidates history when detected.
+Supported edits include trace names, visibility, points/lines/outlines,
+heatmaps/sizemaps, filters, density contours, transforms and uncertainties;
+plot type, labels, apices/axes/hover columns, legend, fonts, backgrounds, ranges,
+scaling and chemical formulas. `get_edit_state` is the authority on the running
+version's fields, constraints and revisions. Filters and nested scientific
+mappings are replaced as whole fields; they do not have per-item revisions.
+Create traces from loaded datasets; duplicate regular traces; delete and reorder
+traces. File import, source-point contour creation, datasource replacement,
+save and export use the existing human interface.
 
-Valid saved trace UUIDs survive workspace save/load. Missing, invalid or duplicate
-legacy IDs receive fresh UUIDs. Duplicating a trace creates a new UUID. Loading a
-workspace changes its runtime `workspace_epoch` and clears history and receipts,
-even if the file contains the same trace IDs. Color revisions/history are not
-persisted. Dataset and observation cursor identities retain their existing scope.
+**Edit > Undo/Redo** and normal platform shortcuts share a history of up to 100
+transactions, with contextual labels and actor information. A batch is one undo
+step; continuous human typing coalesces until focus or another command changes.
+Focused text editors retain native text undo. Trace creation, deletion and order
+are undoable. There is no special history toolbar or persistent status row.
 
-## Read, then edit
+Agent changes preserve the selected trace, existing editor, cursor and selection
+when their fields are unrelated. Deleting the selected trace returns to Setup.
+An agent cannot overwrite a modified focused editor (including numeric input),
+change history while the person is typing, or edit through a modal dialog.
+Semantic validation rejects incomplete agent configurations; human editors may
+hold intermediate values while the person works. Rendering validates the whole
+plot using the existing scientific services.
 
-`GET /v1/trace-colors/{trace_id}` returns `color_state`, containing `trace_id`,
-`workspace_epoch`, `color`, `color_revision` and `revision_scope: trace_color`.
-The revision is a nonnegative integer for that trace's color. A label or another
-trace's color edit does not invalidate it. Color changes, undo and redo advance
-it monotonically within the workspace epoch. Read cursors/fingerprints are never
-write preconditions.
+## Focused state and atomic edits
 
-`POST /v1/commands/set-trace-color` accepts exactly this JSON shape:
+`GET /v1/edit-state?target=workspace` returns `workspace_epoch`,
+`workspace_revision`, trace order and recent history. The revision covers editable
+fields and structure, not raw data values, view selection, unsaved editor buffers,
+or external files. `target=plot` or `target=trace&trace_id=UUID` returns values,
+per-field revisions and schemas. Add `fields=trace_color,point_size` for a focused
+read. Observation cursors from inspection are **not write preconditions**.
+
+`POST /v1/commands/apply-edits` accepts:
 
 ```json
 {
-  "trace_id": "UUID from the trace catalog",
-  "color": "#377eb8",
-  "expected_color_revision": 0,
-  "workspace_epoch": "UUID from the color-state read",
-  "request_id": "new client-generated UUID"
+  "workspace_epoch": "UUID from edit-state",
+  "request_id": "new client-generated UUID",
+  "edits": [
+    {
+      "target": "trace",
+      "trace_id": "UUID from the trace catalog",
+      "changes": {"trace_color": "#377eb8", "point_size": 10},
+      "expected_revisions": {"trace_color": 0, "point_size": 0}
+    },
+    {
+      "target": "plot",
+      "trace_id": null,
+      "changes": {"top_axis": ["A"], "left_axis": ["B"], "right_axis": ["C"]},
+      "expected_revisions": {"top_axis": 0, "left_axis": 0, "right_axis": 0}
+    }
+  ]
 }
 ```
 
-Use actual UUIDs in place of the explanatory strings. Colors accept `#RRGGBB`
-or `#AARRGGBB` (Qt's alpha-first format). The request requires authentication,
-exact loopback Host, `Content-Type: application/json`, Content-Length, no Origin,
-and no transfer encoding. The existing 16 KiB total request/3-second connection
-limits still apply. There are no arbitrary field, actor, or evaluation arguments.
+Replace the illustrative UUIDs and revisions with actual reads. Supply 1–32
+edits, one per object. Every changed field needs its exact expected revision;
+additional field revisions can guard assumptions used to construct the change.
+All candidates validate before any model write. One stale field rejects the
+entire batch; unrelated human edits do not conflict. Undo/redo advance revisions,
+including when a value returns to its original value. Adapter write failures
+roll the batch back. Unknown fields and arbitrary attribute/evaluation requests
+are rejected. Colors use `#RRGGBB` or Qt's alpha-first `#AARRGGBB`.
 
-A successful response includes `receipt` with the color state at completion,
-`request_id`, `actor: agent`, `applied`, `replayed`, and `render_required: true`.
-Setting the same color is a no-op and creates no history entry. The user still
-uses **Render Plot** to update the visualization; success does not certify a
-completed render or visible output.
+A receipt contains the resulting values/revisions for requested fields, actor,
+request ID, `applied`, `replayed`, and `render_required`. No-op edits have no
+history entry. A successful edit does not claim that the visible plot updated.
 
-## Conflicts and retries
+## Structure, history and rendering
 
-A stale color revision returns HTTP 409 `color_conflict` without mutation. The
-raw response includes the current color state in `details`; clients report a
-fixed safe error and can request fresh state with the focused read. Review the
-intervening change before issuing a new intended edit with a new request UUID.
-`workspace_changed`, `request_id_reused`, and `editor_busy` are also 409 errors.
-Disabled edits return 405 `read_only`; loading returns 503 `workspace_busy`.
+These POST routes take `workspace_epoch`, `request_id` and `expected_revision`
+from the workspace state. Structural routes additionally require `arguments`:
 
-For an uncertain timeout/lost response, resend **the identical request UUID and
-arguments**. A completed command's receipt is returned with `replayed: true`;
-the change and history entry are not applied twice. In particular, a retry
-cannot reverse a human undo. A receipt describes the original completion, so
-read current state again before explaining what the workspace now contains.
-Reusing a retained UUID with different arguments is rejected.
+| Route under `/v1/commands/` | Arguments / effect |
+| --- | --- |
+| `create-trace` | `{"source_id":"loaded dataset UUID","name":"Samples"}` |
+| `duplicate-trace` | `{"source_id":"regular trace UUID","name":"Copy"}` |
+| `delete-trace` | `{"trace_id":"trace UUID"}` |
+| `reorder-traces` | `{"trace_ids":["every trace UUID in desired order"]}` |
+| `undo`, `redo` | No arguments; inspect the latest shared history and actor first |
+| `render-plot` | No arguments; queue a render of that revision |
 
-The workspace retains the last 128 successful command receipts across all
-clients (including human color commands). Receipts survive connection restarts
-while the workspace stays open, but not workspace replacement or app restart.
-After eviction, the old expected revision still prevents a previously applied
-color change from being applied again. A no-op retry may be revalidated as a
-no-op. Clients must not silently substitute new IDs or revisions to make a
-conflicting retry succeed. No client layer automatically retries writes.
+Structural commands and history require the current workspace revision so they
+cannot silently undo or delete through intervening human work. Saved valid trace
+UUIDs survive reload; duplicates receive new IDs; malformed legacy IDs migrate.
+Loading a workspace or changing its data library/source starts a new epoch and
+clears history and receipts. File changes cannot be undone by model history.
+An unexpected direct write to an exposed field invalidates history when detected.
+History and runtime revisions are not persisted in workspace files.
 
-## MCP, Python, and JSON-lines clients
+`GET /v1/render-status` reports the latest job, source epoch/revision, and a
+`stale` flag. Rendering reuses the human Render button's service and creates no
+undo entry. Jobs progress through queued/building/loading to `rendered`, `failed`
+or `cancelled`. `rendered` confirms Plotly's initialization promise completed;
+Z-map reports only `view_loaded`. Editing during a completed render makes it
+stale; changing the document before queued work starts cancels that job.
+Scientific construction still runs on the GUI thread and can pause interaction
+for large plots. Background rendering from immutable snapshots is future work.
+Each window owns its temporary HTML directory; windows do not overwrite each
+other's output. Render errors are redacted and agent failures do not open modal
+warning dialogs. Visual inspection is still needed for scientific/visual claims.
 
-MCP exposes `get_trace_color_state(trace_id)` and `set_trace_color(...)` with
-UUIDs, strict nonnegative integer revisions and a constrained color string.
-These tools reuse the same authenticated HTTP client and command layer. Their
-presence in the tool list does not grant desktop permission.
+## Conflicts, retries and transport
 
-Python uses `read(connection, "trace-colors/" + trace_id)` and
-`set_trace_color(connection, **command)` from `quick_ternaries.agent_api.client`.
-The persistent JSON-lines session accepts `{"op":"color_state","trace_id":"…"}`
-and the command fields above with `"op":"set_trace_color"`. These operations
-return full color states/receipts, never comparison deltas. Successful commands
-clear the client's read-comparison cache; the next overview establishes a new
-observation baseline. All entry points preserve existing credential redaction.
+`edit_conflict`, `workspace_changed`, `request_id_reused`, `editor_busy` and
+`render_busy` return HTTP 409 without starting the requested change. Read-only
+access returns 405; loading returns 503 `workspace_busy`. Refresh relevant state
+and inspect intervening work before creating a new intended edit. Let the person
+finish pending input; never force an overwrite to resolve `editor_busy`.
 
-## Validation and remaining scope
+After a lost response, retry the **identical request UUID and arguments**.
+Successful receipts are stored before UI notification and replayed without
+reapplying a change or undoing a later human undo. A replay describes historical
+completion: reread before reporting current state. Reusing a retained UUID with
+different arguments is rejected. The last 128 successful receipts are retained
+across clients and connection restarts within the workspace epoch. After eviction,
+preconditions are checked again; mutating commands' advanced revisions reject old
+writes. No-op and render requests do not advance revisions, so deduplication of
+those requests is guaranteed only while their receipts remain retained. No client
+layer silently retries writes or substitutes new IDs/revisions.
 
-Tests cover real Qt/HTTP/MCP requests, competing clients, human/agent interleaving,
-focused typing/selection, undo/redo, retries after undo, request-ID collisions,
-receipt eviction, permission revocation mid-request, modal/loading rejection,
-malformed requests, and real workspace save/load with legacy IDs. They run in the
-existing macOS/Windows/Linux Python matrix. Offscreen Qt tests do not certify
-native screen-reader or OS clipboard behavior.
+Existing authentication, exact loopback Host, Origin rejection, 16 KiB total
+request limit and 3-second connection deadline still apply. POST requires JSON,
+Content-Length and no transfer encoding. The bundled client's command body limit
+is 8 KiB; keep batches concise. Local edits run serially on the GUI thread.
 
-Other field commands, structural undo, complete document revisions, rendering
-jobs, import/export, subscriptions and persistent discovery remain future work.
-Expand by migrating each GUI mutation and its validation/history together.
+## MCP, Python and JSON-lines clients
+
+MCP exposes `get_edit_state`, `apply_edits`, `change_trace_structure`,
+`change_history`, `render_plot` and `get_render_status` alongside focused reads.
+Tool availability does not grant desktop permission. The former
+`get_trace_color_state` / `set_trace_color` convenience tools delegate to the same
+transaction engine; they have no separate history.
+
+Python uses `read(connection, "edit-state", target="trace", trace_id=uid)` and
+`command(connection, "apply_edits", **payload)`. JSON-lines uses the same payload
+with `"op":"apply_edits"`; other operations are `edit_state`, `render_status`,
+`create_trace`, `duplicate_trace`, `delete_trace`, `reorder_traces`, `undo`, `redo`
+and `render_plot`. Focused edit reads always return full requested values.
+Commands clear the client's observation-comparison cache; none exposes credentials.
+
+Automated tests cover the real window, HTTP and official MCP SDK with synthetic
+data, atomic batches, retries, focused typing/numbers, native shortcuts, filters,
+structure, transforms, save/load migration and actual Plotly initialization.
+The existing cross-platform matrix runs these tests; offscreen testing does not
+certify native screen-reader interoperability.

@@ -1,4 +1,6 @@
-from dataclasses import fields
+from dataclasses import fields, asdict
+from functools import wraps
+
 from quick_ternaries.views.accessibility import describe_field
 from typing import TYPE_CHECKING
 
@@ -49,6 +51,18 @@ if TYPE_CHECKING:
 
 
 
+def quiet_refresh(method):
+    @wraps(method)
+    def run(self, *args, **kwargs):
+        previous = getattr(self, "_refreshing", False)
+        self._refreshing = True
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            self._refreshing = previous
+    return run
+
+
 class TraceEditorView(QWidget):
     LARGE_VALUE_SPINBOX_FIELDS = frozenset(
         {
@@ -66,7 +80,11 @@ class TraceEditorView(QWidget):
     @classmethod
     def _configure_double_spinbox(cls, field_name, widget):
         """Configure ranges that exceed Qt's default 0.0-99.99 bounds."""
-        if field_name in cls.LARGE_VALUE_SPINBOX_FIELDS:
+        from quick_ternaries.workspace.schema import TRACE_FIELDS
+        spec = TRACE_FIELDS.get(field_name)
+        if spec and spec.kind in ('integer', 'number'):
+            widget.setRange(spec.minimum, spec.maximum)
+        elif field_name in cls.LARGE_VALUE_SPINBOX_FIELDS:
             widget.setRange(-1e10, 1e10)
 
     def __init__(self, model: "TraceEditorModel", parent=None):
@@ -118,6 +136,8 @@ class TraceEditorView(QWidget):
 
     def _on_feature_enabled(self, feature_name: str, enabled: bool):
         """Initialize column when a feature like heatmap or sizemap is enabled."""
+        if getattr(self.window(), "workspace_commands", None) is not None:
+            return  # The shared command already chose the column and bounds.
         if not enabled:
             return
             
@@ -167,7 +187,7 @@ class TraceEditorView(QWidget):
         combo.blockSignals(True)
         
         # Set the model value
-        setattr(self.model, combo_name, first_column)
+        self._edit_field(combo_name, first_column)
         
         # Update the combo box
         combo.clear()
@@ -202,7 +222,7 @@ class TraceEditorView(QWidget):
                 
                 # Also ensure model gets updated
                 heatmap_combo.currentTextChanged.connect(
-                    lambda text: setattr(self.model, "heatmap_column", text)
+                    lambda text: self._edit_field("heatmap_column", text)
                 )
                 
                 # If heatmap is on and we have a column, update min/max immediately
@@ -399,12 +419,13 @@ class TraceEditorView(QWidget):
                 continue
                 
             # Normal handling for other fields
-            widget = widget_cls(self)
+            widget = widget_cls(parent=self) if widget_cls is ColorScaleDropdown else widget_cls(self)
             if label_text:
                 describe_field(widget, f"trace.{f.name}", label_text)
             self.widgets[f.name] = widget
             value = getattr(self.model, f.name)
             if isinstance(widget, QLineEdit):
+                widget.setMaxLength(512)
                 widget.setText(str(value))
                 if f.name == "trace_name":
                     widget.textChanged.connect(
@@ -412,7 +433,7 @@ class TraceEditorView(QWidget):
                     )
                 else:
                     widget.textChanged.connect(
-                        lambda text, fname=f.name: setattr(self.model, fname, text)
+                        lambda text, fname=f.name: self._edit_field(fname, text)
                     )
             elif isinstance(widget, ColorButton):
                 widget.setColor(value)
@@ -420,39 +441,39 @@ class TraceEditorView(QWidget):
                     widget.colorChanged.connect(self._on_trace_color_changed)
                 else:
                     widget.colorChanged.connect(
-                        lambda color_str, fname=f.name: setattr(self.model, fname, color_str)
+                        lambda color_str, fname=f.name: self._edit_field(fname, color_str)
                     )
             elif isinstance(widget, ColorScaleDropdown):
                 # Handle our custom ColorScaleDropdown
                 widget.setColorScale(value)
                 widget.colorScaleChanged.connect(
-                    lambda scale_str, fname=f.name: setattr(
-                        self.model, fname, scale_str
-                    )
+                    lambda scale_str, fname=f.name: self._edit_field(fname, scale_str)
                 )
             elif isinstance(widget, ShapeButtonWithMenu):
                 # Special handling for our custom shape buttons
                 widget.setShape(value)
                 widget.shapeChanged.connect(
-                    lambda shape_str, fname=f.name: setattr(
-                        self.model, fname, shape_str
-                    )
+                    lambda shape_str, fname=f.name: self._edit_field(fname, shape_str)
                 )
             elif isinstance(widget, QDoubleSpinBox):
                 self._configure_double_spinbox(f.name, widget)
                 widget.setValue(float(value))
                 widget.valueChanged.connect(
-                    lambda val, fname=f.name: setattr(self.model, fname, val)
+                    lambda val, fname=f.name: self._edit_field(fname, val)
                 )
             elif isinstance(widget, QSpinBox):
+                from quick_ternaries.workspace.schema import TRACE_FIELDS
+                spec = TRACE_FIELDS.get(f.name)
+                if spec and spec.kind == "integer":
+                    widget.setRange(spec.minimum, spec.maximum)
                 widget.setValue(int(value))
                 widget.valueChanged.connect(
-                    lambda val, fname=f.name: setattr(self.model, fname, val)
+                    lambda val, fname=f.name: self._edit_field(fname, val)
                 )
             elif isinstance(widget, QCheckBox):
                 widget.setChecked(bool(value))
                 widget.stateChanged.connect(
-                    lambda state, fname=f.name: setattr(self.model, fname, bool(state))
+                    lambda state, fname=f.name: self._edit_field(fname, bool(state))
                 )
                 if f.name in (
                         "heatmap_on", 
@@ -529,7 +550,7 @@ class TraceEditorView(QWidget):
                     widget.addItems([])
                 widget.setCurrentText(str(value))
                 widget.currentTextChanged.connect(
-                    lambda text, fname=f.name: setattr(self.model, fname, text)
+                    lambda text, fname=f.name: self._edit_field(fname, text)
                 )
 
             # Enhanced grouping with subgrouping support
@@ -672,7 +693,7 @@ class TraceEditorView(QWidget):
             
             # Connect to both update the model and the visibility
             density_multiple_checkbox.stateChanged.connect(
-                lambda state: setattr(self.model, "density_contour_multiple", bool(state))
+                lambda state: self._edit_field("density_contour_multiple", bool(state))
             )
             density_multiple_checkbox.stateChanged.connect(
                 lambda state: self._update_multiple_contours_visibility(bool(state))
@@ -702,7 +723,7 @@ class TraceEditorView(QWidget):
         """Update visibility of fields based on multiple contours checkbox."""
         # Ensure the model attribute is updated
         if hasattr(self.model, "density_contour_multiple"):
-            self.model.density_contour_multiple = enable_multiple
+            self._edit_field("density_contour_multiple", enable_multiple)
         
         print(f"Model density_contour_multiple updated to: {enable_multiple}")
         
@@ -802,7 +823,11 @@ class TraceEditorView(QWidget):
 
     def on_error_changed(self, component: str, value: float):
         """Handle when an error value is changed."""
-        self.model.error_entry_model.set_error(component, value)
+        commands = getattr(self.window(), "workspace_commands", None)
+        if commands is not None:
+            commands.edit_trace(self.model, {"error_entries": {**self.model.error_entry_model.entries, component: value}})
+        else:
+            self.model.error_entry_model.set_error(component, value)
 
     def _update_advanced_visibility(self, show_advanced):
         """Update visibility of all advanced components when the toggle
@@ -825,7 +850,7 @@ class TraceEditorView(QWidget):
 
         # Update the model value
         if hasattr(self.model, "heatmap_use_advanced"):
-            self.model.heatmap_use_advanced = show_advanced
+            self._edit_field("heatmap_use_advanced", show_advanced)
 
     def set_plot_type(self, plot_type: str):
         self.current_plot_type = plot_type.lower()
@@ -960,6 +985,7 @@ class TraceEditorView(QWidget):
             except RuntimeError as e:
                 print('Encountered a runtime error trying to update error entry widget visibility')
 
+    @quiet_refresh
     def update_from_model(self):
         # Special handling for datafile widget
         datafile_widget = self.widgets.get("datafile")
@@ -1047,7 +1073,7 @@ class TraceEditorView(QWidget):
         if "density_contour_thickness" in self.widgets:
             spinbox = self.widgets["density_contour_thickness"]
             if isinstance(spinbox, QSpinBox):
-                spinbox.setRange(1, 10)
+                spinbox.setRange(1, 100)
                 spinbox.setSingleStep(1)
         
         if "density_contour_percentile" in self.widgets:
@@ -1067,21 +1093,6 @@ class TraceEditorView(QWidget):
                 if hasattr(self.model, "density_contour_line_style"):
                     combobox.setCurrentText(self.model.density_contour_line_style)
         
-        # # Configure spinboxes for density contours
-        # if "density_contour_percentile" in self.widgets:
-        #     spinbox = self.widgets["density_contour_percentile"]
-        #     if isinstance(spinbox, QDoubleSpinBox):
-        #         spinbox.setRange(1.0, 99.99)
-        #         spinbox.setSingleStep(1.0)
-        #         spinbox.setDecimals(2)
-        #         spinbox.setSuffix("%")
-        
-        if "density_contour_thickness" in self.widgets:
-            spinbox = self.widgets["density_contour_thickness"]
-            if isinstance(spinbox, QSpinBox):
-                spinbox.setRange(0.5, 100)
-                spinbox.setSingleStep(0.1)
-
         if "vertical_offset_value" in self.widgets:
             spinbox = self.widgets["vertical_offset_value"]
             if isinstance(spinbox, QDoubleSpinBox):
@@ -1118,27 +1129,45 @@ class TraceEditorView(QWidget):
         self.connect_column_change_handlers()
 
 
-    def _on_trace_color_changed(self, color: str):
-        callback = getattr(self, "traceColorChangedCallback", None)
-        if callback:
-            callback(self.model, color)
-        else:
-            self.model.trace_color = color
+    def _edit_field(self, name, value):
+        if getattr(self, '_refreshing', False):
+            return
+        commands = getattr(self.window(), 'workspace_commands', None)
+        from quick_ternaries.workspace.schema import TRACE_FIELDS
+        if commands is not None and name in TRACE_FIELDS:
+            if commands.edit_trace(self.model, {name: value}):
+                return
+            if commands.updating:
+                return
+        if name == "filters":
+            value = [FilterModel(**f) for f in value]
+        setattr(self.model, name, value)
 
-    def _on_trace_name_changed(self, text: str):
-        self.model.trace_name = text
-        if hasattr(self, "traceNameChangedCallback") and self.traceNameChangedCallback:
+    def _on_trace_color_changed(self, color):
+        self._edit_field('trace_color', color)
+
+    def _on_trace_name_changed(self, text):
+        self._edit_field('trace_name', text)
+        if getattr(self, 'traceNameChangedCallback', None):
             self.traceNameChangedCallback(text)
 
+    @quiet_refresh
     def set_model(self, new_model: "TraceEditorModel"):
         """Set a new model for the editor view."""
         self.model = new_model
         
-        # Remove all existing widgets
-        while self.form_layout.count():
-            item = self.form_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        # Dispose nested layouts as well as direct rows; hide immediately so
+        # deferred deletion cannot leave old controls painting over the new form.
+        def clear_layout(layout):
+            while layout.count():
+                item = layout.takeAt(0)
+                if item.widget():
+                    item.widget().hide()
+                    item.widget().deleteLater()
+                elif item.layout():
+                    clear_layout(item.layout())
+                    item.layout().deleteLater()
+        clear_layout(self.form_layout)
         
         # Rebuild UI with the new model
         self._build_ui()
@@ -1159,10 +1188,10 @@ class TraceEditorView(QWidget):
         # Set visibility based on plot type
         self.set_plot_type(self.current_plot_type)
 
-        # Rebuild filters UI
-        self._build_filters_ui()
-
         self.connect_column_change_handlers()
+        commands = getattr(self.window(), "workspace_commands", None)
+        if commands is not None:
+            commands.watch_editors()
 
     # --- Filters UI Methods in TraceEditorView ---
     def _build_filters_ui(self):
@@ -1214,7 +1243,9 @@ class TraceEditorView(QWidget):
             return
         
         # Remove the filter from the model
-        self.model.filters.pop(index)
+        filters = [asdict(f) for f in self.model.filters]
+        filters.pop(index)
+        self._edit_field("filters", filters)
         
         # Update the filter tabs
         filter_names = [f.filter_name for f in self.model.filters]
@@ -1257,7 +1288,14 @@ class TraceEditorView(QWidget):
 
     def on_filter_add_requested(self):
         new_filter = FilterModel()
-        self.model.filters.append(new_filter)
+        commands = getattr(self.window(), 'workspace_commands', None)
+        if commands is not None:
+            library = self.window().setupMenuModel.data_library
+            data = library.dataframe_manager.get_dataframe(self.model.datafile.df_id)
+            if data is not None and len(data.columns):
+                new_filter.filter_column = str(data.columns[0])
+                new_filter.filter_operation = '<' if data.iloc[:, 0].dtype.kind in 'biuf' else 'is'
+        self._edit_field("filters", [*[asdict(f) for f in self.model.filters], asdict(new_filter)])
         self.filterTabWidget.add_filter_tab(new_filter.filter_name)
         self.currentFilterIndex = len(self.model.filters) - 1
         self._show_current_filter()
@@ -1265,7 +1303,9 @@ class TraceEditorView(QWidget):
     def on_filter_renamed(self, index: int, new_name: str):
         if index < 0 or index >= len(self.model.filters):
             return
-        self.model.filters[index].filter_name = new_name
+        filters = [asdict(f) for f in self.model.filters]
+        filters[index]["filter_name"] = new_name
+        self._edit_field("filters", filters)
         if self.currentFilterIndex == index and hasattr(self, "currentFilterEditor"):
             self.currentFilterEditor.update_from_model()
 

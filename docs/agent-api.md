@@ -4,7 +4,7 @@ Available in v1.4.0, this interface lets a local program inspect a **chosen open
 Quick Ternaries window** while the person continues editing it. No server starts
 automatically, and enabling access is not saved in a workspace or preference.
 
-This development branch adds an optional [shared trace-color edit](agent-editing.md).
+This development branch adds an optional [shared workspace editing](agent-editing.md).
 It is not part of v1.4.0. The read contract below remains compatible.
 
 ## Connect
@@ -68,8 +68,8 @@ connection is for local programs; browser JavaScript clients are rejected.
 
 All routes require `Authorization: Bearer <token>` and the exact
 `Host: 127.0.0.1:<port>` header. v1.4.0 accepts only bodyless GET requests. The development
-color-edit extension adds one bounded POST command after separate opt-in.
-There are no render, file-read, export, evaluation, or arbitrary-widget endpoints. Origin-bearing requests are rejected, and CORS is not enabled.
+editing extension adds bounded POST commands and render status after separate opt-in.
+There are no file-read, export, evaluation, or arbitrary-widget endpoints. Origin-bearing requests are rejected, and CORS is not enabled.
 
 | Endpoint | Result |
 | --- | --- |
@@ -141,8 +141,8 @@ pushed into a model turn automatically.
 The observed revision does not cover raw data values, uncommitted editor text,
 render completion, source-point/error entries, or the excluded setup settings
 (scaling, formulas, advanced settings and labels other than title). It is **not
-a document revision**, so it cannot authorize a future write. A later shared
-command layer must provide complete document revision/undo semantics.
+a document revision**, so it cannot authorize a write. The development
+[editing contract](agent-editing.md) provides separate field and workspace revisions.
 
 An unknown/expired cursor or a replaced workspace produces `resync_required`.
 Loading a workspace blocks inspection during nested Qt events, increments its
@@ -194,11 +194,7 @@ human edits, and clipboard handling. The fresh-process desktop startup test
 checks disabled-by-default behavior and disconnect on window close. These tests
 run in the existing full macOS/Windows/Linux and Python 3.11–3.14 matrix.
 
-Next: introduce persistent document IDs and a versioned serializer, then a
-shared command dispatcher with revision checks, retry semantics, and undo for
-both human and agent edits. Add secure automatic discovery and a stdio MCP
-adapter using the official SDK. Extend the portable skill to use that tested
-adapter. Mutation support must wait for the shared command boundary;
-the read adapter is not permission to write directly into Qt models.
+Shared commands, history and render jobs are described in the
+[editing contract](agent-editing.md). Inspection remains compatible with v1.4.0.
 
 For Codex and Claude Code, use the [optional MCP adapter](agent-mcp.md).

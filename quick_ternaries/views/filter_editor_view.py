@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtCore import Qt
-from dataclasses import fields
+from dataclasses import fields, asdict
 from quick_ternaries.views.accessibility import add_focus_shortcut, describe_control, describe_field
 
 from quick_ternaries.views.widgets import FilterTabWidget, MultiFieldSelector
@@ -111,7 +111,9 @@ class FilterEditorView(QWidget):
                                 widget.setCurrentText(value)
                         elif all_cols:
                             widget.setCurrentText(all_cols[0])
-                            self.filter_model.filter_column = all_cols[0]
+                            # Display choices without silently modifying the model.
+                            widget.insertItem(0, "")
+                            widget.setCurrentIndex(0)
                 else:
                     widget.setCurrentText(str(value))
                 widget.currentTextChanged.connect(
@@ -141,7 +143,25 @@ class FilterEditorView(QWidget):
             )
 
     def _on_field_changed(self, field_name, value):
-        setattr(self.filter_model, field_name, value)
+        commands = getattr(self.window(), 'workspace_commands', None)
+        trace = getattr(getattr(self.window(), 'traceEditorView', None), 'model', None)
+        if commands is not None and trace is not None:
+            index = next((i for i, f in enumerate(trace.filters) if f is self.filter_model), None)
+            if index is not None:
+                values = [asdict(f) for f in trace.filters]
+                values[index][field_name] = value
+                if field_name == 'filter_column':
+                    library = self.window().setupMenuModel.data_library
+                    data = library.dataframe_manager.get_dataframe(trace.datafile.df_id)
+                    numeric = data is not None and value in data.columns and data[value].dtype.kind in 'biuf'
+                    allowed = FilterModel.ALLOWED_NUMERIC_OPERATIONS if numeric else ('is', 'is not', 'is one of', 'is not one of')
+                    if values[index]['filter_operation'] not in allowed:
+                        values[index]['filter_operation'] = '<' if numeric else 'is'
+                commands.edit_trace(trace, {'filters': values})
+            else:
+                setattr(self.filter_model, field_name, value)
+        else:
+            setattr(self.filter_model, field_name, value)
         if field_name == "filter_name":
             parent_widget = self.parent()
             while parent_widget is not None:
@@ -233,7 +253,7 @@ class FilterEditorView(QWidget):
         op_widget.blockSignals(False)
         op = op_widget.currentText()
         # Save back the op to the model (if it changed).
-        self.filter_model.filter_operation = op
+        # Refreshing an editor never changes its model.
 
         # Create new widgets for filter_value1 and filter_value2...
         # (Rest of the method remains the same as in the original code)
@@ -308,7 +328,7 @@ class FilterEditorView(QWidget):
             self.form_layout.removeWidget(old_widget2)
             old_widget2.deleteLater()
 
-        if numeric and op in ["a < x < b", "a <= x < b", "a < x <= b"]:
+        if numeric and op in ["a < x < b", "a <= x < b", "a < x <= b", "a <= x <= b"]:
             new_w2 = QLineEdit(self)
             new_w2.setValidator(QDoubleValidator())
             new_w2.textChanged.connect(

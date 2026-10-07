@@ -43,15 +43,22 @@ def test_shared_history_revisions_and_unrelated_fields(core):
     assert error.value.code == "color_conflict"
     assert error.value.details["color"] == "#ff0000"
     fresh = command(core, uid)
-    core.traces[uid].trace_name = "Human typing"
+    core.human_edit("trace", uid, {"trace_name": "Human typing"})
     core.set_color(**fresh, actor="agent")
-    assert core.history()["undo_label"] == "Agent: trace color"
-    assert core.undo()["color"] == "#ff0000"
-    assert core.undo()["color"] == "#000000"
-    assert core.redo()["color"] == "#ff0000"
-    assert core.redo()["color"] == "#123456"
-    assert core.color_state(uid)["color_revision"] == 6
-    assert core.traces[uid].trace_name == "Human typing"
+    assert core.history()["undo_label"] == "Change trace color"
+    assert core.history()["undo_actor"] == "agent"
+    core.undo()
+    assert core.color_state(uid)['color'] == '#ff0000'
+    assert core.traces[uid].trace_name == 'Human typing'
+    core.undo()  # Name is now a first-class shared command as well.
+    assert core.traces[uid].trace_name == 'Original'
+    core.undo()
+    assert core.color_state(uid)['color'] == '#000000'
+    core.redo()
+    core.redo()
+    core.redo()
+    assert core.color_state(uid)['color_revision'] == 6
+    assert core.traces[uid].trace_name == 'Human typing'
 
 
 def test_retry_returns_original_receipt_even_after_human_undo(core):
@@ -119,7 +126,7 @@ def test_legacy_color_bypass_invalidates_history(core):
     core.traces[uid].trace_color = "blue"
     with pytest.raises(WorkspaceError) as error:
         core.undo()
-    assert error.value.code == "color_conflict"
+    assert error.value.code == "history_empty"
     assert core.color_state(uid)["color"] == "blue"
 
 
@@ -146,7 +153,7 @@ def test_real_requests_opt_in_conflict_retry_and_two_agent_race(app, editing_api
     assert core.history()["undo_count"] == 0
     api.edit_enabled = True
     caps = in_client_thread(app, lambda: read(details, "capabilities"))
-    assert "edit_trace_color" in caps["permissions"]
+    assert "edit_workspace" in caps["permissions"]
     assert caps["identity_scopes"]["traces"] == "saved_workspace_uuid"
     assert "/v1/commands/set-trace-color" in caps["endpoints"]
     state = in_client_thread(app, lambda: read(details, "trace-colors/" + uid))["color_state"]

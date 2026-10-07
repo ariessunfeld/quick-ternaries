@@ -32,8 +32,12 @@ class TraceEditorController:
         self.data_library = data_library  # Pass the DataLibraryModel for lookup
         self.connect_heatmap_column_change()
 
-    def _update_heatmap_min_max_for_column(self, column_name: str):
+    def _update_heatmap_min_max_for_column(self, column_name: str, *, data_changed=False):
         """Set the heatmap color-scale bounds from the selected column."""
+        if not data_changed and getattr(self.view.window() if hasattr(self.view, "window") else None, "workspace_commands", None) is not None:
+            return  # Shared edit adapter includes derived bounds in the column command.
+        if getattr(self.view, "_refreshing", False):
+            return
         if not column_name:
             return
             
@@ -344,6 +348,7 @@ class TraceEditorController:
                             if len(valid_values) < len(filter_model.filter_value1):
                                 filter_model.filter_value1 = valid_values
         
+        commands = getattr(self.view.window() if hasattr(self.view, "window") else None, "workspace_commands", None)
         # Now apply all the changes to the model
         for attr, value in changes.items():
             setattr(self.model, attr, value)
@@ -391,10 +396,12 @@ class TraceEditorController:
             # If heatmap column was changed, make sure to update min/max
             if "heatmap_column" in changes:
                 print(f"Datafile change triggered heatmap column update to {changes['heatmap_column']}")
-                self._update_heatmap_min_max_for_column(changes['heatmap_column'])
+                self._update_heatmap_min_max_for_column(changes['heatmap_column'], data_changed=True)
             else:
                 print(f"Updating heatmap min/max for existing column: {self.model.heatmap_column}")
-                self._update_heatmap_min_max_for_column(self.model.heatmap_column)
+                self._update_heatmap_min_max_for_column(self.model.heatmap_column, data_changed=True)
+        if commands is not None:
+            commands.data_boundary()
 
     def update_filter_columns_for_datafile(self, all_cols):
         """Update all filter columns based on the current datafile.
