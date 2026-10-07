@@ -60,6 +60,27 @@ def test_fetch_latest_release_builds_install_url():
     )
 
 
+@pytest.mark.parametrize("title", [
+    "v1.3.0 — Keyboard navigation and accessibility",
+    "An arbitrary title 🚀 (not a version)",
+])
+def test_descriptive_title_does_not_affect_previous_version_update(title, monkeypatch):
+    monkeypatch.setattr(updater, "installed_version", lambda: "1.2.2")
+    commands = []
+
+    def opener(request, timeout):
+        return FakeResponse({"tag_name": "v1.3.0", "name": title,
+                             "body": "Notes are prose, not a version."})
+
+    result = updater.run_update_command(
+        opener=opener,
+        runner=lambda command: commands.append(command) or subprocess.CompletedProcess(command, 0),
+    )
+    assert result == 0
+    assert commands == [[updater.sys.executable, "-m", "pip", "install", "--upgrade",
+                         "https://github.com/ariessunfeld/quick-ternaries/archive/tags/v1.3.0.tar.gz"]]
+
+
 def test_fetch_latest_release_rejects_missing_tag():
     def opener(request, timeout):
         return FakeResponse({"html_url": "https://example.test/release"})
