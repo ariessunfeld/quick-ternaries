@@ -2,6 +2,8 @@
 
 The [agent integration architecture](agent-integration.md) describes the planned
 live API, shared command boundary, accessibility work, and staged validation.
+The [experimental desktop API](agent-api.md) documents its current read-only
+connection flow, client, limits, and tests.
 
 ## Run the checked-out source
 

@@ -1,15 +1,24 @@
 # Agent integration architecture
 
-Status: proposed architecture, with the first accessibility foundation implemented.
-Baseline: v1.2.2 / `cf672d5a`. Reviewed October 2026.
+Status: accessibility foundation released in v1.3.0; experimental read-only
+desktop connection in development. Reviewed October 2026.
 
 Quick Ternaries should remain a visible, editable scientific workspace while an
 agent works with it. The desktop application owns the live document. Human
 actions and agent commands must eventually share validation, history, and state
 updates. Accessibility provides a complementary way to operate the interface.
 
-This first increment adds accessible control metadata and keyboard paths. It
-does not start a server, change workspace files, or expose an agent API.
+The accessibility increment added control metadata and keyboard paths. The next
+increment implements an opt-in [read-only desktop API](agent-api.md), without
+changing workspace files. Read-only inspection can safely precede command-layer
+migration because it does not mutate models. The shared command boundary below
+remains a prerequisite for exposing edits.
+
+The current draft also includes a persistent JSON-lines client, focused reads,
+heatmap coverage, bounded observation cursors, and portable skill guidance.
+Observation revisions cover only the public projection; they do not implement
+the complete document revision/undo boundary described below. The stdio client
+is not MCP.
 
 ## Development and Git policy
 
