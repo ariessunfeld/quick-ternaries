@@ -1,0 +1,120 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable GitHub release tag (vX.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'release' && !github.event.release.prerelease &&
+       startsWith(github.event.release.tag_name, 'v'))
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate tag and download published distributions
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python -c 'import os; from scripts.check_release_distributions import release_version; print(release_version(os.environ["RELEASE_TAG"]))')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release.json
+          gh release download "$RELEASE_TAG" --dir dist/pypi \
+            --pattern "quick_ternaries-$version-py3-none-any.whl" \
+            --pattern "quick_ternaries-$version.tar.gz"
+          python scripts/check_release_distributions.py "$RELEASE_TAG" dist/pypi release.json
+          python -m pip install twine
+          python -m twine check --strict dist/pypi/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist/pypi/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi-smoke-script
+          path: scripts/check_installed_package.py
+          if-no-files-found: error
+
+  installed-package:
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: pypi-smoke-script
+          path: smoke
+      - name: Install Linux Qt runtime dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install and test the base wheel, then its agent extra
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel="$GITHUB_WORKSPACE/dist/quick_ternaries-$PACKAGE_VERSION-py3-none-any.whl"
+          python -m pip install "$wheel"
+          python -m pip check
+          python -I smoke/check_installed_package.py "$PACKAGE_VERSION"
+          python -m pip install "$wheel[agent]"
+          python -m pip check
+          python -I smoke/check_installed_package.py "$PACKAGE_VERSION" --agent
+          quick-ternaries --help
+          quick-ternaries-mcp --help
+
+  publish:
+    needs: [prepare, installed-package]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/quick-ternaries/${{ needs.prepare.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist
+      - name: Publish the verified GitHub release files
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
