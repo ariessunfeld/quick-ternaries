@@ -1021,6 +1021,20 @@ class MainWindow(QMainWindow):
         # Get visible traces
         visible_traces = self._get_visible_traces()
 
+        if current_plot_type in ('ternary', 'cartesian'):
+            from quick_ternaries.services import heatmap
+            for _, model in visible_traces:
+                if (not getattr(model, 'is_contour', False) and heatmap.is_advanced(model)
+                        and not (current_plot_type == 'ternary' and model.custom_colorscale_on)):
+                    frame = self.setupMenuModel.data_library.dataframe_manager.get_dataframe_by_metadata(model.datafile)
+                    try:
+                        if frame is None:
+                            raise heatmap.HeatmapError('Load a dataset for this heatmap.')
+                        heatmap.preview(model, frame)
+                    except heatmap.HeatmapError as exc:
+                        self._render_warning(self, 'Invalid Heatmap', f'{model.trace_name}: {exc}')
+                        return
+
         print(f"Number of visible traces: {len(visible_traces)}")
         for i, (uid, model) in enumerate(visible_traces):
             print(f"Trace {i+1}: {model.trace_name}")

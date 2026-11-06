@@ -119,6 +119,20 @@ class TraceEditorModel:
             "group": "heatmap",
         },
     )
+    # Additive defaults keep old workspace files and basic heatmaps unchanged.
+    heatmap_calculation_on: bool = field(default=False, metadata={
+        "label": "Calculate heatmap values:", "widget": QCheckBox,
+        "plot_types": ["ternary", "cartesian"], "group": "heatmap", "advanced": True,
+    })
+    heatmap_columns: list = field(default_factory=list)
+    heatmap_scales: dict = field(default_factory=dict)
+    heatmap_formulas: dict = field(default_factory=dict)
+    heatmap_molar: bool = field(default=False)
+    heatmap_range_mode: str = field(default="Manual", metadata={
+        "label": "Color range:", "widget": QComboBox,
+        "plot_types": ["ternary", "cartesian"], "group": "heatmap", "advanced": True,
+    })
+
     # Advanced options – marked with "advanced": True and depend on both heatmap_on and heatmap_use_advanced.
     heatmap_colorscale: str = field(
         default="Inferno",

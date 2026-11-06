@@ -1,3 +1,4 @@
+from quick_ternaries.services import heatmap
 import time
 import numpy as np
 import pandas as pd
@@ -900,6 +901,8 @@ class CartesianTraceMaker:
         if trace_data_df is None:
             raise ValueError(f"Failed to load data for trace: {trace_model.trace_name}")
             
+        # Keep a full-data reference for optional automatic color limits.
+        full_heatmap_data = trace_data_df
         # Make a copy to avoid modifying the original
         trace_data_df = trace_data_df.copy()
         
@@ -945,10 +948,15 @@ class CartesianTraceMaker:
         # Keep the empty axis columns for plotting, but skip marker normalization
         # and sorting, which require at least one matching point.
         if trace_data_df.empty:
+            if heatmap.is_advanced(trace_model):
+                heatmap.resolve(trace_model, trace_data_df, full_heatmap_data)
             return marker, trace_data_df
 
         # Configure markers based on heatmap and sizemap settings
-        if trace_model.heatmap_on and trace_model.sizemap_on:
+        if heatmap.is_advanced(trace_model):
+            marker, trace_data_df = heatmap.render(
+                self, marker, trace_model, trace_data_df, full_heatmap_data, unique_str)
+        elif trace_model.heatmap_on and trace_model.sizemap_on:
             # Sort and style considering both heatmap and sizemap columns
             marker, trace_data_df = self._integrated_sort(
                 marker,
@@ -1585,7 +1593,7 @@ class CartesianTraceMaker:
             # Default to apex columns and heatmap/sizemap columns
             hover_cols = axis_columns.copy()
             
-            if trace_model.heatmap_on and trace_model.heatmap_column not in hover_cols:
+            if trace_model.heatmap_on and not trace_model.heatmap_calculation_on and trace_model.heatmap_column not in hover_cols:
                 hover_cols.append(trace_model.heatmap_column)
                 
             if trace_model.sizemap_on and trace_model.sizemap_column not in hover_cols:
@@ -1628,4 +1636,4 @@ class CartesianTraceMaker:
         # Disable default hover text
         hovertemplate += "<extra></extra>"
         
-        return customdata, hovertemplate
+        return heatmap.add_hover(data_df, customdata, hovertemplate)

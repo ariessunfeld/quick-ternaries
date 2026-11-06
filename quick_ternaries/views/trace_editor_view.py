@@ -23,11 +23,15 @@ from PySide6.QtWidgets import (
     QGroupBox, 
     QTableView, 
     QMessageBox,
-    QHeaderView
+    QHeaderView,
+    QLabel
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QSignalBlocker
 
 # ---------------------------------
+
+from quick_ternaries.services import heatmap
+from quick_ternaries.views.widgets.heatmap_calculation_widget import HeatmapCalculationWidget
 
 from quick_ternaries.models.pandas_series_model import PandasSeriesModel
 from quick_ternaries.models.filter_model import FilterModel
@@ -534,6 +538,9 @@ class TraceEditorView(QWidget):
                     widget.setCurrentText(str(value))
                 elif f.name == "line_style":
                     widget.addItems(['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'])
+                elif f.name == "heatmap_range_mode":
+                    widget.addItems(heatmap.RANGE_MODES)
+                    widget.setToolTip("Manual preserves editable limits. Automatic modes recalculate from the color values; limits are entered in unlogged units.")
                 elif f.name == "heatmap_sort_mode":
                     widget.addItems(["no change", "high on top", "low on top", "shuffled"])
                 elif f.name == "heatmap_colorscale":
@@ -610,8 +617,24 @@ class TraceEditorView(QWidget):
                         # Only add fields without a subgroup directly to advanced form
                         if not meta.get("subgroup"):
                             advanced_form.addRow(label_text, widget)
+                            if fname == "heatmap_calculation_on":
+                                self.heatmapCalculation = HeatmapCalculationWidget(self)
+                                self.heatmapCalculation.edited.connect(self._edit_fields)
+                                advanced_form.addRow(self.heatmapCalculation)
+                                self.widgets.update({
+                                    'heatmap_columns': self.heatmapCalculation.selector,
+                                    'heatmap_scales': self.heatmapCalculation.scaling,
+                                    'heatmap_formulas': self.heatmapCalculation.formulas,
+                                    'heatmap_molar': self.heatmapCalculation.molar,
+                                })
                     else:
                         basic_form.addRow(label_text, widget)
+
+                self.heatmapStatus = QLabel(self)
+                self.heatmapStatus.setWordWrap(True)
+                self.heatmapStatus.setTextFormat(Qt.TextFormat.PlainText)
+                self.heatmapStatus.setAccessibleName("Heatmap calculation and range status")
+                basic_form.addRow(self.heatmapStatus)
 
                 # Add basic form to the main layout
                 vlayout.addLayout(basic_form)
@@ -851,6 +874,7 @@ class TraceEditorView(QWidget):
         # Update the model value
         if hasattr(self.model, "heatmap_use_advanced"):
             self._edit_field("heatmap_use_advanced", show_advanced)
+        self.refresh_heatmap_controls()
 
     def set_plot_type(self, plot_type: str):
         self.current_plot_type = plot_type.lower()
@@ -1129,19 +1153,78 @@ class TraceEditorView(QWidget):
         self.connect_column_change_handlers()
 
 
+    def refresh_heatmap_controls(self):
+        if not hasattr(self, 'heatmapCalculation'):
+            return
+        frame = None
+        window = self.window()
+        if hasattr(window, 'setupMenuModel'):
+            manager = window.setupMenuModel.data_library.dataframe_manager
+            frame = manager.get_dataframe(self.model.datafile.df_id)
+        available = list(frame.select_dtypes(include='number').columns) if frame is not None else []
+        self.heatmapCalculation.refresh(self.model, available)
+        self.heatmapCalculation.setVisible(self.model.heatmap_calculation_on)
+        self.widgets['heatmap_column'].setEnabled(not self.model.heatmap_calculation_on)
+        automatic = self.model.heatmap_range_mode != 'Manual'
+        for name in ('heatmap_min', 'heatmap_max'):
+            widget = self.widgets[name]
+            widget.setReadOnly(automatic)
+            with QSignalBlocker(widget):
+                widget.setDecimals(10 if automatic or self.model.heatmap_calculation_on else 2)
+                widget.setValue(getattr(self.model, name))
+        active = heatmap.is_advanced(self.model)
+        self.heatmapStatus.setVisible(active)
+        if not active:
+            return
+        if frame is None:
+            self.heatmapStatus.setText('Load a dataset to calculate heatmap values.')
+            return
+        try:
+            result = heatmap.preview(self.model, frame)
+            message = result.label
+            if automatic:
+                bounds = (f'{result.minimum:g} to {result.maximum:g}'
+                          if pd.notna(result.minimum) else 'no matching values')
+                message += f"; {self.model.heatmap_range_mode.lower()} range: {bounds}"
+                for name, value in (('heatmap_min', result.minimum), ('heatmap_max', result.maximum)):
+                    widget = self.widgets[name]
+                    with QSignalBlocker(widget):
+                        if pd.notna(value):
+                            widget.setValue(value)
+                        else:
+                            widget.clear()
+            if result.excluded:
+                message += f"; {result.excluded} rows with missing, nonfinite or nonpositive log values omitted"
+            if result.values.empty:
+                message += '; no rows match the filters'
+            self.heatmapStatus.setText(message)
+        except heatmap.HeatmapError as exc:
+            self.heatmapStatus.setText(str(exc))
+            if automatic:
+                for name in ('heatmap_min', 'heatmap_max'):
+                    with QSignalBlocker(self.widgets[name]):
+                        self.widgets[name].clear()
+
     def _edit_field(self, name, value):
+        self._edit_fields({name: value})
+
+    def _edit_fields(self, values):
         if getattr(self, '_refreshing', False):
             return
         commands = getattr(self.window(), 'workspace_commands', None)
         from quick_ternaries.workspace.schema import TRACE_FIELDS
-        if commands is not None and name in TRACE_FIELDS:
-            if commands.edit_trace(self.model, {name: value}):
+        if commands is not None and values.keys() <= TRACE_FIELDS.keys():
+            if commands.edit_trace(self.model, values):
                 return
             if commands.updating:
                 return
-        if name == "filters":
-            value = [FilterModel(**f) for f in value]
-        setattr(self.model, name, value)
+        values = heatmap.initialize_edit(self.model, values)
+        for name, value in values.items():
+            if name == "filters":
+                value = [FilterModel(**f) for f in value]
+            setattr(self.model, name, value)
+        if any(name.startswith('heatmap_') or name in ('filters', 'filters_on') for name in values):
+            self.refresh_heatmap_controls()
 
     def _on_trace_color_changed(self, color):
         self._edit_field('trace_color', color)

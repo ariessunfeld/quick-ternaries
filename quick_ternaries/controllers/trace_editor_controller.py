@@ -34,6 +34,8 @@ class TraceEditorController:
 
     def _update_heatmap_min_max_for_column(self, column_name: str, *, data_changed=False):
         """Set the heatmap color-scale bounds from the selected column."""
+        if self.model.heatmap_calculation_on or self.model.heatmap_range_mode != 'Manual':
+            return  # Calculated/manual limits and derived automatic bounds have separate lifetimes.
         if not data_changed and getattr(self.view.window() if hasattr(self.view, "window") else None, "workspace_commands", None) is not None:
             return  # Shared edit adapter includes derived bounds in the column command.
         if getattr(self.view, "_refreshing", False):
@@ -141,6 +143,11 @@ class TraceEditorController:
         
         # Check heatmap column
         if hasattr(self.model, "heatmap_on") and self.model.heatmap_on:
+            if self.model.heatmap_calculation_on:
+                for column in self.model.heatmap_columns:
+                    if column not in new_numeric_cols_set:
+                        impacts.append(f"Heatmap calculation column '{column}' is missing or nonnumeric; repair the calculation before rendering")
+                        has_critical = True
             heatmap_col = self.model.heatmap_column
             if heatmap_col:
                 if heatmap_col not in new_columns:

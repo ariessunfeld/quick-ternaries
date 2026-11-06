@@ -1,6 +1,7 @@
 """
 TODO identify rendundant methods and use inheritance to resolve
 """
+from quick_ternaries.services import heatmap
 
 import time
 from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
@@ -1384,6 +1385,8 @@ class TernaryTraceMaker:
         if trace_data_df is None:
             raise ValueError(f"Failed to load data for trace: {trace_model.trace_name}")
             
+        # Keep a full-data reference for optional automatic color limits.
+        full_heatmap_data = trace_data_df
         # Make a copy to avoid modifying the original
         trace_data_df = trace_data_df.copy()
         
@@ -1429,6 +1432,8 @@ class TernaryTraceMaker:
         # Keep the empty axis columns for plotting, but skip marker normalization
         # and sorting, which require at least one matching point.
         if trace_data_df.empty:
+            if heatmap.is_advanced(trace_model) and not trace_model.custom_colorscale_on:
+                heatmap.resolve(trace_model, trace_data_df, full_heatmap_data)
             return marker, trace_data_df
 
         # First, check for custom colorscale, then fallback to heatmap
@@ -1439,6 +1444,9 @@ class TernaryTraceMaker:
                 trace_model,
                 unique_str
             )
+        elif heatmap.is_advanced(trace_model):
+            marker, trace_data_df = heatmap.render(
+                self, marker, trace_model, trace_data_df, full_heatmap_data, unique_str)
         elif trace_model.heatmap_on and trace_model.sizemap_on:
             # Existing code for integrated sort
             marker, trace_data_df = self._integrated_sort(
@@ -1969,7 +1977,7 @@ class TernaryTraceMaker:
             # Default to apex columns and heatmap/sizemap columns
             hover_cols = apex_columns.copy()
             
-            if trace_model.heatmap_on and trace_model.heatmap_column not in hover_cols:
+            if trace_model.heatmap_on and not trace_model.heatmap_calculation_on and trace_model.heatmap_column not in hover_cols:
                 hover_cols.append(trace_model.heatmap_column)
                 
             if trace_model.sizemap_on and trace_model.sizemap_column not in hover_cols:
@@ -2007,7 +2015,7 @@ class TernaryTraceMaker:
         # Disable default hover text
         hovertemplate += "<extra></extra>"
         
-        return customdata, hovertemplate
+        return heatmap.add_hover(data_df, customdata, hovertemplate)
     
     def _get_basic_marker_dict(self, trace_model) -> dict:
         """

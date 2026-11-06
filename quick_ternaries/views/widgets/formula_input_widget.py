@@ -24,8 +24,10 @@ class FormulaInputWidget(QWidget):
 
     formulaChanged = Signal(str, str, str)  # axis_name, column_name, formula
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, identifier_prefix="setup", auto_suggest=True):
         super().__init__(parent)
+        self.identifier_prefix = identifier_prefix
+        self.auto_suggest = auto_suggest
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.axis_sections = {}  # axis_name -> QGroupBox
@@ -66,6 +68,7 @@ class FormulaInputWidget(QWidget):
         if axis_name in self.axis_sections:
             section = self.axis_sections[axis_name]
             self.layout().removeWidget(section)
+            section.hide()
             section.deleteLater()
             # Clean up formula_inputs and validation_labels references for this axis
             keys_to_remove = [k for k in self.formula_inputs if k[0] == axis_name]
@@ -90,7 +93,7 @@ class FormulaInputWidget(QWidget):
                 
                 # Formula input field
                 formula_input = QLineEdit()
-                describe_control(formula_input, f"setup.formula.{axis_name}.{quote(str(column), safe='')}",
+                describe_control(formula_input, f"{self.identifier_prefix}.formula.{axis_name}.{quote(str(column), safe='')}",
                                  f"{display_name}: {column} chemical formula")
                 formula_input.setMaxLength(512)
                 formula_input.setPlaceholderText("Enter formula (e.g. Al2O3)")
@@ -160,7 +163,7 @@ class FormulaInputWidget(QWidget):
                 form_layout.addRow(column, input_container)
 
                 # With this conditional version:
-                if not formula_value.strip():
+                if self.auto_suggest and not formula_value.strip():
                     suggest_button.click()
                 # suggest_button.click()
 
@@ -176,7 +179,8 @@ class FormulaInputWidget(QWidget):
         if key in self.formula_inputs:
             # Block signals to prevent triggering the textChanged signal
             self.formula_inputs[key].blockSignals(True)
-            self.formula_inputs[key].setText(value)
+            if self.formula_inputs[key].text() != value:
+                self.formula_inputs[key].setText(value)
             self.formula_inputs[key].blockSignals(False)
             
             # Update validation label
@@ -194,6 +198,7 @@ class FormulaInputWidget(QWidget):
         """Clear all formula sections."""
         for section in self.axis_sections.values():
             self.layout().removeWidget(section)
+            section.hide()
             section.deleteLater()
         self.axis_sections.clear()
         self.formula_inputs.clear()

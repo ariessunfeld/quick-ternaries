@@ -285,6 +285,39 @@ By checking off `Show Advanced Settings`, you get complete control over the heat
 - Position the colorbar anywhere on the plot
 - Modify the length, width, and orientation of the colorbar
 
+Advanced heatmap settings also support **Calculate heatmap values**. This is off
+by default: the usual single-column heatmap and editable minimum/maximum work as
+before. Enable it to use the same Add/Remove column selector, scaling controls,
+and chemical-formula inputs as the axes. Initially, it selects the current
+heatmap column with a scale of 1 and molar conversion off.
+
+Each selected column is multiplied by its scale, optionally divided by the
+molar mass of its chemical formula, then summed. Heatmap conversion is independent
+of axis conversion. With wt% inputs, the converted values are mol/100 g; they are
+not normalized to mol%. Missing or nonfinite components invalidate the whole row,
+which is omitted from the heatmap trace and reported in the editor. Invalid or
+missing chemical formulas prevent rendering until corrected.
+
+The advanced **Color range** setting has three modes:
+
+- **Manual** (default): keep editable bounds, initialized from the full source
+  column when selecting a simple heatmap column, as before.
+- **Full dataset**: automatically calculate limits from the color values for the
+  trace's entire source dataset, before trace filters.
+- **Filtered data**: automatically calculate limits after the trace's filters.
+  Zoom and lasso selection do not affect these limits.
+
+Automatic limits are displayed read-only and do not overwrite your stored manual
+limits. The calculation and range remain active when advanced settings are
+collapsed. For calculated heatmaps and automatic ranges, logarithmic mapping
+uses only positive values and transforms both colors and limits; enter manual
+limits in unlogged units. The colorbar identifies the log-transformed quantity,
+and hover text includes the unlogged calculated value. Existing simple manual
+heatmaps retain their previous log behavior.
+
+Previously saved workspaces load with the new features off and their saved limits
+preserved. New workspaces save the calculation and range settings per trace.
+
 ### Using a Sizemap
 
 Like heatmaps, sizemaps can provide an additional dimension to the data represented in a Trace. By checking off `Use Sizemap`, you get the option to pick a numerical column from the selected datafile to represent with different point sizes.

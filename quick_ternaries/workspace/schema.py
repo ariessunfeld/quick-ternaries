@@ -31,6 +31,9 @@ class Field:
                 description.update(minimum=.01, maximum=1000)
         elif self.kind == 'errors':
             description.update(shape='column name -> absolute uncertainty', minimum=0, maximum=1e10, max_items=128)
+        elif self.kind in ('column_scales', 'column_formulas'):
+            description.update(shape='column name -> value', max_items=128,
+                value='finite scale between 0.01 and 1000' if self.kind == 'column_scales' else 'chemical formula or empty string')
         elif self.kind == 'color':
             description['format'] = '#RRGGBB or #AARRGGBB (alpha first)'
         return description
@@ -52,6 +55,13 @@ class Field:
                      and len(value) == len(set(value)))
         elif self.kind in ('axis_scales', 'axis_formulas', 'errors'):
             valid = valid_mapping(value, self.kind)
+        elif self.kind in ('column_scales', 'column_formulas'):
+            valid = isinstance(value, dict) and len(value) <= 128
+            if valid:
+                item_field = Field('number', .01, 1000) if self.kind == 'column_scales' else Field('string')
+                valid = all(isinstance(k, str) and 0 < len(k) <= 512 for k in value)
+                for item in value.values():
+                    item_field.validate(item)
         elif self.kind == 'filters':
             valid = isinstance(value, list) and len(value) <= 50
             if valid:
@@ -102,6 +112,10 @@ TRACE_FIELDS = {
     'outline_color': COLOR, 'outline_thickness': Field('number', 0, 100),
     'exclude_from_legend': BOOL, 'show_advanced_settings_on': BOOL,
     'heatmap_on': BOOL, 'heatmap_use_advanced': BOOL, 'heatmap_column': TEXT,
+    'heatmap_calculation_on': BOOL, 'heatmap_columns': COLUMNS,
+    'heatmap_scales': Field('column_scales'), 'heatmap_formulas': Field('column_formulas'),
+    'heatmap_molar': BOOL,
+    'heatmap_range_mode': Field('string', choices=('Manual', 'Full dataset', 'Filtered data')),
     'heatmap_min': NUM, 'heatmap_max': NUM, 'heatmap_colorscale': TEXT,
     'heatmap_reverse_colorscale': BOOL, 'heatmap_log_transform': BOOL, 'heatmap_sort_mode': SORT,
     'heatmap_bar_orientation': Field('string', choices=('vertical', 'horizontal')),
