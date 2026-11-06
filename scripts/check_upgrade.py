@@ -18,6 +18,7 @@ import re
 import shlex
 import subprocess
 import sys
+import sysconfig
 import tarfile
 import tempfile
 from types import SimpleNamespace
@@ -43,6 +44,19 @@ def wheel_version(wheel):
 
 def run(command, **kwargs):
     return REAL_RUN([str(part) for part in command], check=True, **kwargs)
+
+
+def inherit_validated_dependencies(python):
+    # system_site_packages inherits the base interpreter's packages, not an
+    # invoking virtualenv's packages. Expose those validated dependencies too.
+    # Plain path entries deliberately do not execute the parent's .pth files
+    # (including editable-install hooks that could shadow the installed wheel).
+    result = REAL_RUN([str(python), '-c',
+        "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        capture_output=True, text=True, check=True)
+    site_packages = Path(result.stdout.strip())
+    paths = sorted({sysconfig.get_path('purelib'), sysconfig.get_path('platlib')})
+    (site_packages / 'validated_dependencies.pth').write_text('\n'.join(paths) + '\n')
 
 
 def probe(method, previous_source, candidate, previous_version):
@@ -133,6 +147,7 @@ def check_upgrade(from_ref, wheel_dir):
             venv.EnvBuilder(with_pip=True, system_site_packages=True).create(environment)
             scripts = environment / ("Scripts" if os.name == "nt" else "bin")
             python = scripts / ("python.exe" if os.name == "nt" else "python")
+            inherit_validated_dependencies(python)
             env = os.environ.copy()
             env.pop("PYTHONPATH", None)
             env.update(PATH=str(scripts) + os.pathsep + env.get("PATH", ""),
