@@ -12,6 +12,8 @@ TRACE_SECTIONS = {
         "heatmap_log_transform", "heatmap_sort_mode", "heatmap_bar_orientation",
         "heatmap_colorbar_x", "heatmap_colorbar_y", "heatmap_colorbar_len",
         "heatmap_colorbar_thickness",
+        "heatmap_calculation_on", "heatmap_columns", "heatmap_scales",
+        "heatmap_formulas", "heatmap_molar", "heatmap_range_mode",
     ),
     "sizemap": ("sizemap_on", "sizemap_column", "sizemap_sort_mode", "sizemap_min", "sizemap_max"),
     "transforms": (

@@ -65,8 +65,18 @@ class DesktopWorkspace(QObject):
             data = self.window.setupMenuModel.data_library.dataframe_manager.get_dataframe(model.datafile.df_id)
             columns = set(data.columns) if data is not None else set()
             if actor == 'agent':
+                from types import SimpleNamespace
+                from quick_ternaries.services.heatmap import CALCULATION_FIELDS, color_values, HeatmapError
+                if changed & (CALCULATION_FIELDS | {'heatmap_on'}) and values['heatmap_calculation_on']:
+                    if data is None:
+                        raise WorkspaceError('invalid_command', 'Load a dataset before configuring heatmap calculations.')
+                    try:
+                        color_values(SimpleNamespace(**values), data.iloc[:0])
+                    except HeatmapError as exc:
+                        raise WorkspaceError('invalid_command', str(exc)) from exc
                 for feature in ('heatmap', 'sizemap'):
-                    if changed & {feature + '_on', feature + '_column'} and values[feature + '_on']:
+                    calculated = feature == 'heatmap' and values['heatmap_calculation_on']
+                    if changed & {feature + '_on', feature + '_column'} and values[feature + '_on'] and not calculated:
                         column = values[feature + '_column']
                         if column not in columns or data is None or data[column].dtype.kind not in 'biuf':
                             raise WorkspaceError('invalid_command', f'{feature} requires a loaded numeric column.')
@@ -164,7 +174,8 @@ class DesktopWorkspace(QObject):
         uid = self.find_trace(model)
         if uid is None or self.updating or getattr(self.window, '_agent_loading_workspace', False):
             return False
-        values = dict(values)
+        from quick_ternaries.services.heatmap import initialize_edit
+        values = initialize_edit(model, values)
         # Treat choosing a heatmap column (including first enable) as one gesture,
         # including its derived bounds. The agent supplies these explicitly.
         for feature in ('heatmap', 'sizemap'):
@@ -175,7 +186,9 @@ class DesktopWorkspace(QObject):
                     numeric = list(frame.select_dtypes(include='number').columns)
                     column = values.get(column_key) or (numeric[0] if numeric else '')
                     values[column_key] = column
-                    if feature == 'heatmap' and column in numeric:
+                    if (feature == 'heatmap' and column in numeric
+                            and not values.get('heatmap_calculation_on', model.heatmap_calculation_on)
+                            and model.heatmap_range_mode == 'Manual'):
                         import numpy as np
                         finite = frame[column].replace([np.inf, -np.inf], np.nan).dropna()
                         if not finite.empty:
@@ -282,6 +295,9 @@ class DesktopWorkspace(QObject):
                     raise WorkspaceError('editor_busy', 'The person is renaming this trace. Let them finish.')
             if target == 'trace' and self.find_trace(self.window.traceEditorView.model) == uid:
                 view = self.window.traceEditorView
+                if (self.contains(getattr(view, 'heatmapCalculation', None), focus)
+                        and any(k.startswith('heatmap_') for k in fields)):
+                    raise WorkspaceError('editor_busy', 'The person is editing heatmap calculations. Let them finish.')
                 if any(self.contains(view.widgets.get(k), focus) for k in fields) or any(k.endswith('_on') for k in fields):
                     raise WorkspaceError('editor_busy', 'The person is editing this field. Let them finish.')
                 if (('filters' in fields or 'filters_on' in fields) and (self.contains(getattr(view, 'filterEditorContainer', None), focus) or self.contains(getattr(view, 'filterTabWidget', None), focus))):
@@ -437,6 +453,9 @@ class DesktopWorkspace(QObject):
             model.filters = deepcopy(source.filters)
             model.error_entry_model = deepcopy(source.error_entry_model)
             model.source_point_data = deepcopy(source.source_point_data)
+            model.heatmap_columns = list(source.heatmap_columns)
+            model.heatmap_scales = dict(source.heatmap_scales)
+            model.heatmap_formulas = dict(source.heatmap_formulas)
         else:
             metadata = next((m for m in self.window.setupMenuModel.data_library.loaded_files
                              if reader.dataset_id(m) == arguments['source_id']), None)

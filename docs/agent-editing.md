@@ -22,6 +22,16 @@ plot type, labels, apices/axes/hover columns, legend, fonts, backgrounds, ranges
 scaling and chemical formulas. `get_edit_state` is the authority on the running
 version's fields, constraints and revisions. Filters and nested scientific
 mappings are replaced as whole fields; they do not have per-item revisions.
+Advanced heatmaps expose `heatmap_calculation_on`, `heatmap_columns`,
+`heatmap_scales` (column → multiplier), `heatmap_formulas` (column → chemical
+formula), `heatmap_molar`, and `heatmap_range_mode` (`Manual`, `Full dataset`,
+or `Filtered data`). Supply a nonempty numeric column list when enabling a
+calculation; supply valid formulas for every selected column when enabling
+molar conversion. These settings are independent of axis transforms. Automatic
+limits are derived from the calculated values without changing the stored
+`heatmap_min`/`heatmap_max`; those fields remain the manual, unlogged limits.
+Human column selection can suggest formulas; agent transactions supply their
+requested configuration explicitly. Read the schema from the running version.
 Create traces from loaded datasets; duplicate regular traces; delete and reorder
 traces. File import, source-point contour creation, datasource replacement,
 save and export use the existing human interface.

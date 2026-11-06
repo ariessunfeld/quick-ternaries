@@ -18,8 +18,9 @@ class ColumnScalingWidget(QWidget):
 
     scaleChanged = Signal(str, str, float)  # axis_name, column_name, scale_factor
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, identifier_prefix="setup"):
         super().__init__(parent)
+        self.identifier_prefix = identifier_prefix
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.axis_sections = {}  # axis_name -> QGroupBox
@@ -59,6 +60,7 @@ class ColumnScalingWidget(QWidget):
         if axis_name in self.axis_sections:
             section = self.axis_sections[axis_name]
             self.layout().removeWidget(section)
+            section.hide()
             section.deleteLater()
             # Clean up scale_inputs references for this axis
             keys_to_remove = [k for k in self.scale_inputs if k[0] == axis_name]
@@ -75,7 +77,7 @@ class ColumnScalingWidget(QWidget):
 
             for column in columns:
                 spin_box = QDoubleSpinBox()
-                describe_control(spin_box, f"setup.scale.{axis_name}.{quote(str(column), safe='')}",
+                describe_control(spin_box, f"{self.identifier_prefix}.scale.{axis_name}.{quote(str(column), safe='')}",
                                  f"{display_name}: {column} scale factor")
                 spin_box.setRange(0.01, 1000.0)  # Wide range for flexibility
                 spin_box.setSingleStep(0.1)
@@ -116,6 +118,7 @@ class ColumnScalingWidget(QWidget):
         """Clear all scaling sections."""
         for section in self.axis_sections.values():
             self.layout().removeWidget(section)
+            section.hide()
             section.deleteLater()
         self.axis_sections.clear()
         self.scale_inputs.clear()
